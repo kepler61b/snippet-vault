@@ -1723,7 +1723,7 @@ export function SettingsModal({
                       </h3>
                     </div>
                     <p className="text-[11px] text-zinc-400 leading-relaxed max-w-xl">
-                      Безвозвратно удаляет все сохраненные сниппеты и файлы кода из базы данных. Если необходимо сохранить наработки, предварительно скачайте резервную копию выше.
+                      Безвозвратно удаляет все сохраненные сниппеты, файлы кода и коллекции из базы данных. Если необходимо сохранить наработки, предварительно скачайте резервную копию выше.
                     </p>
                   </div>
 
@@ -1787,10 +1787,10 @@ export function SettingsModal({
               </div>
               <div className="space-y-1.5 flex-1 min-w-0">
                 <h3 className="text-base font-bold text-white">
-                  Очистить базу сниппетов?
+                  Очистить базу сниппетов и коллекций?
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Вы уверены, что хотите удалить <span className="text-rose-300 font-semibold">все сниппеты</span> из базы данных? Все файлы кода, теги и персональные заметки будут удалены навсегда.
+                  Вы уверены, что хотите удалить <span className="text-rose-300 font-semibold">все сниппеты и коллекции</span> из базы данных? Все файлы кода, теги и персональные заметки будут удалены навсегда.
                 </p>
                 <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-300 font-medium">
                   ⚠️ Это действие необратимо. Рекомендуем предварительно сделать экспорт в JSON.

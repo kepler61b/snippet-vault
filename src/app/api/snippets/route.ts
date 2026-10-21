@@ -178,6 +178,13 @@ export async function DELETE(request: NextRequest) {
       });
     }
 
+    // Delete all custom collections of this user (or unassigned/demo collections)
+    const deletedCollections = await prisma.collection.deleteMany({
+      where: {
+        OR: [{ userId: currentUser.id }, { userId: null }],
+      },
+    });
+
     // Mark seed as completed permanently so deleted snippets are never auto-recreated
     await prisma.setting.upsert({
       where: { key: "seed_completed" },
@@ -187,8 +194,9 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Все сниппеты (${ids.length}) успешно удалены из базы данных.`,
+      message: `База данных очищена: удалено сниппетов: ${ids.length}, коллекций: ${deletedCollections.count}.`,
       count: ids.length,
+      deletedCollections: deletedCollections.count,
     });
   } catch (error: any) {
     console.error("Error clearing snippets:", error);

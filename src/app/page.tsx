@@ -136,6 +136,12 @@ export default function HomePage() {
       const data = await res.json();
       if (data.success && data.collections) {
         setCollections(data.collections);
+        setSelectedCollectionId((prev) => {
+          if (prev && !data.collections.some((c: any) => c.id === prev)) {
+            return null;
+          }
+          return prev;
+        });
       }
     } catch (e) {
       console.warn("fetchCollections warning:", e);
