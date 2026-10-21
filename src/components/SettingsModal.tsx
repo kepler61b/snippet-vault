@@ -312,6 +312,9 @@ export function SettingsModal({
 
   const handleLogout = async () => {
     if (confirm("Вы действительно хотите выйти из аккаунта?")) {
+      try {
+        sessionStorage.removeItem("snippetvault_tab_session");
+      } catch {}
       await fetch("/api/auth/logout", { method: "POST" });
       router.push("/login");
       router.refresh();

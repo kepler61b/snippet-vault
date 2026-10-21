@@ -33,6 +33,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  React.useEffect(() => {
+    try {
+      if (!sessionStorage.getItem("snippetvault_tab_session")) {
+        fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+      }
+    } catch {}
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -59,6 +67,7 @@ export default function LoginPage() {
         }
 
         // Login success
+        sessionStorage.setItem("snippetvault_tab_session", "active");
         window.location.href = "/";
       } else {
         // Register
@@ -74,6 +83,7 @@ export default function LoginPage() {
         }
 
         // Register success
+        sessionStorage.setItem("snippetvault_tab_session", "active");
         window.location.href = "/";
       }
     } catch (err: any) {
@@ -108,6 +118,7 @@ export default function LoginPage() {
       }
 
       // 2FA Success -> redirect to dashboard
+      sessionStorage.setItem("snippetvault_tab_session", "active");
       window.location.href = "/";
     } catch (err: any) {
       setError(err.message || "Ошибка проверки двухфакторного кода");

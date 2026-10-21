@@ -41,6 +41,7 @@ import { CommandPalette } from "@/components/CommandPalette";
 export default function HomePage() {
   const [snippets, setSnippets] = useState<SnippetItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // View Mode & Sorting
@@ -169,6 +170,19 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    try {
+      const isTabActive = sessionStorage.getItem("snippetvault_tab_session");
+      if (!isTabActive) {
+        fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+          window.location.href = "/login";
+        });
+        return;
+      }
+    } catch {
+      // In case sessionStorage is restricted in iframe/incognito
+    }
+
+    setIsAuthChecking(false);
     fetchCurrentUser();
     fetchCollections();
     fetchSnippets();
@@ -456,6 +470,14 @@ export default function HomePage() {
 
     return data.result;
   };
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">

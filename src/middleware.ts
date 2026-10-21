@@ -22,10 +22,6 @@ export async function middleware(request: NextRequest) {
 
   // If user is accessing /login
   if (pathname === "/login") {
-    if (isValidSession) {
-      // If already has valid session cookie, redirect to dashboard
-      return NextResponse.redirect(new URL("/", request.url));
-    }
     const response = NextResponse.next();
     if (sessionCookie && !isValidSession) {
       response.cookies.delete(COOKIE_NAME);
