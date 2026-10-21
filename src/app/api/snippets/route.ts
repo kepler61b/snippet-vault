@@ -151,3 +151,50 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Find all snippets of this user (or unassigned/demo snippets)
+    const snippets = await prisma.snippet.findMany({
+      where: {
+        OR: [{ userId: currentUser.id }, { userId: null }],
+      },
+      select: { id: true },
+    });
+
+    const ids = snippets.map((s) => s.id);
+
+    if (ids.length > 0) {
+      await prisma.snippetFile.deleteMany({
+        where: { snippetId: { in: ids } },
+      });
+      await prisma.snippet.deleteMany({
+        where: { id: { in: ids } },
+      });
+    }
+
+    // Mark seed as completed permanently so deleted snippets are never auto-recreated
+    await prisma.setting.upsert({
+      where: { key: "seed_completed" },
+      update: { value: "true" },
+      create: { key: "seed_completed", value: "true" },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Все сниппеты (${ids.length}) успешно удалены из базы данных.`,
+      count: ids.length,
+    });
+  } catch (error: any) {
+    console.error("Error clearing snippets:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Ошибка при очистке базы сниппетов" },
+      { status: 500 }
+    );
+  }
+}

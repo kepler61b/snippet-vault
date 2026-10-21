@@ -121,8 +121,21 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+
+    // Delete child files first to avoid foreign key constraint issues in SQLite
+    await prisma.snippetFile.deleteMany({
+      where: { snippetId: id },
+    });
+
     await prisma.snippet.delete({
       where: { id },
+    });
+
+    // Ensure seed does not recreate snippets if count drops to 0
+    await prisma.setting.upsert({
+      where: { key: "seed_completed" },
+      update: { value: "true" },
+      create: { key: "seed_completed", value: "true" },
     });
 
     return NextResponse.json({ success: true, message: "Snippet deleted" });

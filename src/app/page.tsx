@@ -335,7 +335,12 @@ export default function HomePage() {
     }
 
     try {
-      await fetch(`/api/snippets/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/snippets/${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        console.error("Delete failed on server:", data.error);
+        fetchSnippets();
+      }
     } catch (e) {
       console.error("Delete failed", e);
       fetchSnippets();

@@ -71,6 +71,7 @@ export function SettingsModal({
   const [userCollections, setUserCollections] = useState<{ id: string; name: string }[]>([]);
   const [selectedExportColId, setSelectedExportColId] = useState<string>("all");
   const [importing, setImporting] = useState(false);
+  const [clearingDb, setClearingDb] = useState(false);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -536,6 +537,35 @@ export function SettingsModal({
     }
   };
 
+  const handleClearAllSnippets = async () => {
+    if (
+      !confirm(
+        "ВНИМАНИЕ: Вы действительно хотите удалить ВСЕ сниппеты из базы данных? Это действие необратимо!"
+      )
+    ) {
+      return;
+    }
+
+    setImportError(null);
+    setImportSuccess(null);
+    setClearingDb(true);
+
+    try {
+      const res = await fetch("/api/snippets", { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Не удалось очистить базу сниппетов");
+      }
+      setImportSuccess(data.message || "Все сниппеты успешно удалены");
+      onSettingsChanged?.();
+      await loadCollectionsList();
+    } catch (err: any) {
+      setImportError(err.message || "Ошибка при очистке базы сниппетов");
+    } finally {
+      setClearingDb(false);
+    }
+  };
+
   const handleLogout = async () => {
     if (confirm("Вы действительно хотите выйти из аккаунта?")) {
       try {
@@ -630,7 +660,7 @@ export function SettingsModal({
             }`}
           >
             <Database className="w-3.5 h-3.5" />
-            <span>Резервные копии & Данные</span>
+            <span>Данные</span>
           </button>
         </div>
 
@@ -1543,6 +1573,37 @@ export function SettingsModal({
                       <span>{importing ? "Обработка файла..." : "Выбрать файл резервной копии (.json)"}</span>
                     </span>
                   </label>
+                </div>
+              </div>
+
+              {/* Danger Zone: Clear Snippets Database */}
+              <div className="border border-rose-500/30 rounded-2xl p-5 bg-rose-500/5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Trash2 className="w-4 h-4 text-rose-400" />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-rose-300">
+                        Очистить всю базу сниппетов
+                      </h3>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed max-w-xl">
+                      Безвозвратно удаляет все сохраненные сниппеты и файлы кода из базы данных. Если необходимо сохранить наработки, предварительно скачайте резервную копию выше.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleClearAllSnippets}
+                    disabled={clearingDb}
+                    className="flex items-center gap-2 py-2 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs transition-all active:scale-[0.98] shadow-sm shadow-rose-600/25 shrink-0 disabled:opacity-50"
+                  >
+                    {clearingDb ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    <span>{clearingDb ? "Очистка..." : "Очистить базу сниппетов"}</span>
+                  </button>
                 </div>
               </div>
             </div>

@@ -2,6 +2,14 @@ import prisma from "./db";
 import { hashPassword } from "./auth";
 
 export async function ensureSeedSnippets() {
+  // If seed was already completed in this database, never re-seed
+  const seedSetting = await prisma.setting.findUnique({
+    where: { key: "seed_completed" },
+  });
+  if (seedSetting) {
+    return;
+  }
+
   // Ensure default demo user exists
   const userCount = await prisma.user.count();
   let defaultUserId: string | undefined = undefined;
@@ -22,7 +30,15 @@ export async function ensureSeedSnippets() {
   }
 
   const count = await prisma.snippet.count();
-  if (count > 0) return;
+  if (count > 0) {
+    // If snippets already exist, mark seed as completed so future deletions don't re-seed
+    await prisma.setting.upsert({
+      where: { key: "seed_completed" },
+      update: { value: "true" },
+      create: { key: "seed_completed", value: "true" },
+    });
+    return;
+  }
 
   await prisma.snippet.create({
     data: {
@@ -204,5 +220,12 @@ volumes:
         ],
       },
     },
+  });
+
+  // Permanently mark seed as completed
+  await prisma.setting.upsert({
+    where: { key: "seed_completed" },
+    update: { value: "true" },
+    create: { key: "seed_completed", value: "true" },
   });
 }
