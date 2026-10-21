@@ -1,6 +1,26 @@
 import prisma from "./db";
+import { hashPassword } from "./auth";
 
 export async function ensureSeedSnippets() {
+  // Ensure default demo user exists
+  const userCount = await prisma.user.count();
+  let defaultUserId: string | undefined = undefined;
+
+  if (userCount === 0) {
+    const defaultUser = await prisma.user.create({
+      data: {
+        email: "admin@snippetvault.local",
+        passwordHash: hashPassword("admin12345"),
+        name: "Admin",
+        bio: "Главный администратор SnippetVault",
+      },
+    });
+    defaultUserId = defaultUser.id;
+  } else {
+    const firstUser = await prisma.user.findFirst({ select: { id: true } });
+    defaultUserId = firstUser?.id;
+  }
+
   const count = await prisma.snippet.count();
   if (count > 0) return;
 
@@ -11,6 +31,7 @@ export async function ensureSeedSnippets() {
       visibility: "PUBLIC",
       isFavorite: true,
       tags: "react, typescript, hooks, frontend",
+      userId: defaultUserId,
       files: {
         create: [
           {
@@ -82,6 +103,7 @@ export function SearchBar() {
       visibility: "PUBLIC",
       isFavorite: true,
       tags: "python, fastapi, jwt, backend, security",
+      userId: defaultUserId,
       files: {
         create: [
           {
@@ -137,6 +159,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
       visibility: "PUBLIC",
       isFavorite: false,
       tags: "docker, postgresql, devops, database",
+      userId: defaultUserId,
       files: {
         create: [
           {

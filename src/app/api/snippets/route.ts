@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { detectLanguageFromFilename } from "@/lib/languages";
 import { ensureSeedSnippets } from "@/lib/seed";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -100,6 +101,8 @@ export async function POST(request: NextRequest) {
       ? tags.trim()
       : "";
 
+    const currentUser = await getCurrentUser();
+
     const created = await prisma.snippet.create({
       data: {
         title: title.trim(),
@@ -109,6 +112,7 @@ export async function POST(request: NextRequest) {
           : "PUBLIC",
         isFavorite: Boolean(isFavorite),
         tags: formattedTags,
+        userId: currentUser?.id || null,
         files: {
           create: files.map((file: any, index: number) => {
             const filename = (file.filename || `snippet-${index + 1}`).trim();

@@ -8,6 +8,22 @@ generator client {
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
 }
 
+model User {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String
+  name             String?
+  bio              String?
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  snippets         Snippet[]
+
+  @@index([email])
+}
+
 model Snippet {
   id          String        @id @default(uuid())
   title       String
@@ -19,11 +35,15 @@ model Snippet {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  userId      String?
+  user        User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   files       SnippetFile[]
 
   @@index([visibility])
   @@index([isFavorite])
   @@index([createdAt])
+  @@index([userId])
 }
 
 model SnippetFile {

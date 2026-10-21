@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus, Search, Settings, Sparkles, Terminal } from "lucide-react";
+import { Plus, Search, Settings, Terminal, User } from "lucide-react";
 
 interface NavbarProps {
   searchQuery: string;
@@ -9,6 +9,11 @@ interface NavbarProps {
   onOpenCreateModal: () => void;
   onOpenSettingsModal: () => void;
   onOpenCommandPalette: () => void;
+  currentUser?: {
+    id: string;
+    email: string;
+    name: string | null;
+  } | null;
 }
 
 export function Navbar({
@@ -17,13 +22,16 @@ export function Navbar({
   onOpenCreateModal,
   onOpenSettingsModal,
   onOpenCommandPalette,
+  currentUser,
 }: NavbarProps) {
+  const initial = (currentUser?.name || currentUser?.email || "U")[0].toUpperCase();
+
   return (
     <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-sky-500 shadow-lg shadow-indigo-500/20 text-white font-mono font-bold text-lg">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-sky-500 shadow-lg shadow-indigo-500/20 text-white font-mono font-bold text-lg flex-shrink-0">
             <Terminal className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -58,7 +66,7 @@ export function Navbar({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           <button
             onClick={onOpenCommandPalette}
             className="md:hidden p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all hover:scale-105 active:scale-95"
@@ -67,18 +75,23 @@ export function Navbar({
             <Search className="w-4 h-4" />
           </button>
 
+          {/* User Profile / Settings button */}
           <button
             onClick={onOpenSettingsModal}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all hover:scale-105 active:scale-95"
-            title="Настройки AI"
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all hover:scale-105 active:scale-95"
+            title="Личный кабинет и настройки"
           >
-            <Settings className="w-4 h-4" />
-            <span className="hidden sm:inline">Настройки</span>
+            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold">
+              {initial}
+            </div>
+            <span className="hidden sm:inline max-w-[100px] truncate">
+              {currentUser?.name || "Настройки"}
+            </span>
           </button>
 
           <button
             onClick={onOpenCreateModal}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 hover:shadow-violet-600/40 hover:-translate-y-0.5 active:scale-95 transition-all duration-150"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 hover:shadow-violet-600/40 hover:-translate-y-0.5 active:scale-95 transition-all duration-150"
           >
             <Plus className="w-4 h-4" />
             <span>Сниппет</span>

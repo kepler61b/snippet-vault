@@ -43,6 +43,7 @@ export default function HomePage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // AI Modal
   const [aiModal, setAiModal] = useState<{
@@ -77,7 +78,20 @@ export default function HomePage() {
     }
   };
 
+  const fetchCurrentUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = await res.json();
+      if (data.success && data.user) {
+        setCurrentUser(data.user);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
+    fetchCurrentUser();
     fetchSnippets();
   }, []);
 
@@ -301,6 +315,7 @@ export default function HomePage() {
         onOpenCreateModal={() => setIsCreateOpen(true)}
         onOpenSettingsModal={() => setIsSettingsOpen(true)}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        currentUser={currentUser}
       />
 
       {/* Main Content Area */}
@@ -501,6 +516,8 @@ export default function HomePage() {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        currentUser={currentUser}
+        onUserUpdated={fetchCurrentUser}
       />
 
       {/* Command Palette */}
