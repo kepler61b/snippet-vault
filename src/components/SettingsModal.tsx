@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { SUPPORTED_LANGUAGES } from "@/lib/languages";
 import { ViewMode, SortOption, SORT_OPTIONS } from "@/types/snippet";
+import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -904,17 +905,22 @@ export function SettingsModal({
                 <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
                   Язык по умолчанию для новых сниппетов
                 </label>
-                <select
+                <CustomSelect
                   value={defaultLanguage}
-                  onChange={(e) => setDefaultLanguage(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 outline-none focus:border-violet-500 cursor-pointer"
-                >
-                  {SUPPORTED_LANGUAGES.map((lang) => (
-                    <option key={lang.id} value={lang.id}>
-                      {lang.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setDefaultLanguage}
+                  options={SUPPORTED_LANGUAGES.map((l) => ({
+                    value: l.id,
+                    label: l.name,
+                    icon: (
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: l.color }}
+                      />
+                    ),
+                  }))}
+                  searchable
+                  searchPlaceholder="Поиск языка..."
+                />
               </div>
 
               {/* Default View Mode */}
@@ -966,20 +972,14 @@ export function SettingsModal({
                 <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
                   Сортировка сниппетов по умолчанию
                 </label>
-                <div className="relative">
-                  <select
-                    value={defaultSortBy}
-                    onChange={(e) => setDefaultSortBy(e.target.value as SortOption)}
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 outline-none focus:border-violet-500 cursor-pointer appearance-none pr-8"
-                  >
-                    {SORT_OPTIONS.map((opt) => (
-                      <option key={opt.id} value={opt.id}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                <CustomSelect
+                  value={defaultSortBy}
+                  onChange={(val) => setDefaultSortBy(val as SortOption)}
+                  options={SORT_OPTIONS.map((opt) => ({
+                    value: opt.id,
+                    label: opt.label,
+                  }))}
+                />
               </div>
 
               <div className="flex justify-end pt-2">

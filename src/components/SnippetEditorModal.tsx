@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
   Code,
   FileCode,
+  Folder,
   Globe,
   Loader2,
   Lock,
@@ -17,6 +18,8 @@ import {
 } from "lucide-react";
 import { SnippetItem, SnippetFileItem, CollectionItem } from "@/types/snippet";
 import { detectLanguageFromFilename, SUPPORTED_LANGUAGES } from "@/lib/languages";
+import { CollectionIcon } from "@/lib/collection-icons";
+import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
 
 interface SnippetEditorModalProps {
   isOpen: boolean;
@@ -222,6 +225,60 @@ export function SnippetEditorModal({
 
   const currentLines = (currentFile?.content || "").split("\n");
 
+  const collectionOptions: CustomSelectOption[] = [
+    {
+      value: "",
+      label: "Без коллекции",
+      icon: <Folder className="w-4 h-4 text-zinc-500" />,
+    },
+    ...collections.map((col) => ({
+      value: col.id,
+      label: col.name,
+      icon: (
+        <CollectionIcon
+          iconType={col.iconType}
+          iconValue={col.iconValue}
+          color={col.color}
+          className="w-4 h-4"
+        />
+      ),
+      badge: col._count?.snippets ? `${col._count.snippets}` : undefined,
+      description: col.description || undefined,
+    })),
+  ];
+
+  const visibilityOptions: CustomSelectOption[] = [
+    {
+      value: "PUBLIC",
+      label: "Публичный (видно всем)",
+      icon: <Globe className="w-4 h-4 text-emerald-400" />,
+      description: "Виден всем пользователям",
+    },
+    {
+      value: "UNLISTED",
+      label: "По секретной ссылке",
+      icon: <Share2 className="w-4 h-4 text-sky-400" />,
+      description: "Доступ только по прямой ссылке",
+    },
+    {
+      value: "PRIVATE",
+      label: "Приватный (только для вас)",
+      icon: <Lock className="w-4 h-4 text-zinc-400" />,
+      description: "Виден только в вашем аккаунте",
+    },
+  ];
+
+  const languageOptions: CustomSelectOption[] = SUPPORTED_LANGUAGES.map((lang) => ({
+    value: lang.id,
+    label: lang.name,
+    icon: (
+      <span
+        className="w-2 h-2 rounded-full"
+        style={{ backgroundColor: lang.color }}
+      />
+    ),
+  }));
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
       <div className="relative w-full max-w-5xl h-[96vh] sm:h-[92vh] flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content">
@@ -287,40 +344,26 @@ export function SnippetEditorModal({
               <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Коллекция
               </label>
-              <select
+              <CustomSelect
                 value={collectionId}
-                onChange={(e) => setCollectionId(e.target.value)}
-                className="w-full px-3.5 py-2 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 focus:bg-zinc-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 outline-none appearance-none transition-all cursor-pointer"
-              >
-                <option value="">Без коллекции</option>
-                {collections.map((col) => (
-                  <option key={col.id} value={col.id}>
-                    📁 {col.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setCollectionId}
+                options={collectionOptions}
+                placeholder="Без коллекции"
+                searchable={collections.length > 5}
+                searchPlaceholder="Поиск коллекции..."
+              />
             </div>
 
+            {/* Visibility Selector */}
             <div className="space-y-1.5">
               <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Видимость / Доступ
               </label>
-              <div className="relative">
-                <select
-                  value={visibility}
-                  onChange={(e) => setVisibility(e.target.value as any)}
-                  className="w-full px-3.5 py-2 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 focus:bg-zinc-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 outline-none appearance-none transition-all cursor-pointer"
-                >
-                  <option value="PUBLIC">Публичный (видно всем)</option>
-                  <option value="UNLISTED">По секретной ссылке</option>
-                  <option value="PRIVATE">Приватный (только для вас)</option>
-                </select>
-                <div className="absolute right-3.5 top-2.5 sm:top-3 pointer-events-none text-zinc-400">
-                  {visibility === "PUBLIC" && <Globe className="w-4 h-4 text-emerald-400" />}
-                  {visibility === "UNLISTED" && <Share2 className="w-4 h-4 text-sky-400" />}
-                  {visibility === "PRIVATE" && <Lock className="w-4 h-4 text-zinc-500" />}
-                </div>
-              </div>
+              <CustomSelect
+                value={visibility}
+                onChange={(val) => setVisibility(val as any)}
+                options={visibilityOptions}
+              />
             </div>
           </div>
 
@@ -526,18 +569,15 @@ export function SnippetEditorModal({
                 />
               </div>
 
-              <div className="w-full sm:w-48">
-                <select
+              <div className="w-full sm:w-52">
+                <CustomSelect
                   value={currentFile.language}
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 focus:bg-zinc-950 focus:border-zinc-700 text-xs text-zinc-300 outline-none transition-all cursor-pointer"
-                >
-                  {SUPPORTED_LANGUAGES.map((lang) => (
-                    <option key={lang.id} value={lang.id}>
-                      {lang.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={handleLanguageChange}
+                  options={languageOptions}
+                  searchable
+                  searchPlaceholder="Поиск языка..."
+                  triggerClassName="py-1.5 px-3 text-xs rounded-lg bg-zinc-900 border-zinc-800"
+                />
               </div>
             </div>
 
