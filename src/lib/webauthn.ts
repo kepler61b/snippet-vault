@@ -19,16 +19,16 @@ export function getWebAuthnConfig(request: NextRequest) {
     request.headers.get("host") ||
     "localhost:3000";
 
-  // Determine protocol: x-forwarded-proto or fallback based on localhost
+  // Determine protocol: x-forwarded-proto or request.nextUrl.protocol
   let proto = request.headers.get("x-forwarded-proto");
   if (!proto) {
-    proto = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
+    proto = request.nextUrl.protocol ? request.nextUrl.protocol.replace(":", "") : "http";
   }
 
-  // RP ID is domain without port (e.g. "localhost", "example.com")
+  // RP ID is domain without port (e.g. "localhost", "example.com", "192.168.1.100")
   const hostname = host.split(":")[0];
 
-  // Origin is full URL with protocol and host (e.g. "http://localhost:3000")
+  // Origin is full URL with protocol and host (e.g. "http://localhost:3000", "https://nas.domain.com")
   const origin = `${proto}://${host}`;
 
   return {
@@ -41,12 +41,16 @@ export function getWebAuthnConfig(request: NextRequest) {
 /**
  * Stores temporary challenge in an encrypted/signed short-lived HTTP-only cookie (5 minutes)
  */
-export async function setPasskeyChallenge(challenge: string, userId?: string) {
+export async function setPasskeyChallenge(challenge: string, userId?: string, request?: NextRequest) {
   const token = await signToken({ challenge, userId }, 300);
   const cookieStore = await cookies();
+  const forwardedProto = request?.headers.get("x-forwarded-proto");
+  const isHttps = forwardedProto === "https" || request?.nextUrl.protocol === "https:";
+  const secure = process.env.COOKIE_SECURE === "true" || (process.env.NODE_ENV === "production" && isHttps);
+
   cookieStore.set(PASSKEY_CHALLENGE_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: secure,
     sameSite: "lax",
     path: "/",
     maxAge: 300,
@@ -70,7 +74,7 @@ export async function getPasskeyChallenge(): Promise<ChallengePayload | null> {
 }
 
 /**
- * Clears the temporary challenge cookie
+ * Clears the temporary challenge cookie after verification
  */
 export async function clearPasskeyChallenge() {
   const cookieStore = await cookies();
@@ -78,19 +82,24 @@ export async function clearPasskeyChallenge() {
 }
 
 /**
- * Converts a Uint8Array / Buffer to Base64
+ * Utility: Converts Base64 string to Uint8Array for SimpleWebAuthn
  */
-export function uint8ArrayToBase64(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString("base64");
+export function base64ToUint8Array(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
 }
 
 /**
- * Converts Base64 to Uint8Array
+ * Utility: Converts Uint8Array to Base64 string for database storage
  */
-export function base64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
-  const buf = Buffer.from(base64, "base64");
-  const ab = new ArrayBuffer(buf.byteLength);
-  const uint8 = new Uint8Array(ab);
-  uint8.set(buf);
-  return uint8;
+export function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }

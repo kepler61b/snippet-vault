@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       expectedRPID: rpID,
       credential: {
         id: passkey.credentialId,
-        publicKey: base64ToUint8Array(passkey.publicKey),
+        publicKey: base64ToUint8Array(passkey.publicKey) as any,
         counter: passkey.counter,
         transports: passkey.transports ? JSON.parse(passkey.transports) : undefined,
       },

@@ -1358,8 +1358,13 @@ export function SettingsModal({
                 </div>
 
                 {!passkeySupported && (
-                  <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs">
-                    Ваш текущий браузер или окружение не поддерживает стандарт WebAuthn / Passkeys.
+                  <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs space-y-1">
+                    <div className="font-semibold flex items-center gap-1.5">
+                      <span>⚠️ Стандарт WebAuthn / Passkeys недоступен в этом окружении</span>
+                    </div>
+                    <p className="text-[11px] text-amber-300/80 leading-relaxed">
+                      Браузеры разрешают использование биометрии и ключей доступа только в защищенном контексте: через <strong>HTTPS</strong> или <strong>localhost</strong>. При доступе по обычному локальному HTTP (IP-адресу) браузер автоматически отключает WebAuthn API в целях безопасности.
+                    </p>
                   </div>
                 )}
 

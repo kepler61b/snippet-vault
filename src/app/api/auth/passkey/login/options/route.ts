@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       allowCredentials,
     });
 
-    await setPasskeyChallenge(options.challenge);
+    await setPasskeyChallenge(options.challenge, undefined, request);
 
     return NextResponse.json({ success: true, options });
   } catch (error: any) {

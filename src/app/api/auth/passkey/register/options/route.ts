@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Store challenge in signed temporary cookie
-    await setPasskeyChallenge(options.challenge, user.id);
+    await setPasskeyChallenge(options.challenge, user.id, request);
 
     return NextResponse.json({ success: true, options });
   } catch (error: any) {
