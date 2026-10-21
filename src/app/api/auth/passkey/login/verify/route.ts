@@ -42,6 +42,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (passkey.user.isBanned) {
+      await clearPasskeyChallenge();
+      return NextResponse.json(
+        { success: false, error: "Ваш аккаунт заблокирован администратором" },
+        { status: 403 }
+      );
+    }
+
     const { origin, rpID } = getWebAuthnConfig(request);
 
     const verification = await verifyAuthenticationResponse({
@@ -89,6 +97,7 @@ export async function POST(request: NextRequest) {
         email: passkey.user.email,
         name: passkey.user.name,
         bio: passkey.user.bio,
+        role: passkey.user.role,
         twoFactorEnabled: passkey.user.twoFactorEnabled,
       },
     });

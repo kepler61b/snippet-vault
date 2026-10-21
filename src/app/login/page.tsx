@@ -37,8 +37,32 @@ export default function LoginPage() {
   const [passkeySupported, setPasskeySupported] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // System status
+  const [authStatus, setAuthStatus] = useState<{
+    hasUsers: boolean;
+    registrationDisabled: boolean;
+    localAdminEmail?: string;
+  } | null>(null);
+
   React.useEffect(() => {
     setPasskeySupported(browserSupportsWebAuthn());
+
+    // Load auth status
+    fetch("/api/auth/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setAuthStatus({
+            hasUsers: data.hasUsers,
+            registrationDisabled: data.registrationDisabled,
+            localAdminEmail: data.localAdminEmail,
+          });
+          if (data.registrationDisabled && mode === "register") {
+            setMode("login");
+          }
+        }
+      })
+      .catch((err) => console.error("Error loading auth status:", err));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -203,6 +227,27 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl p-6 sm:p-8 shadow-2xl animate-modal-content">
           {!require2FA ? (
             <>
+              {/* First-time local admin banner when database has 0 users */}
+              {authStatus && !authStatus.hasUsers && (
+                <div className="mb-5 p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs space-y-2">
+                  <div className="flex items-center gap-2 font-semibold text-amber-300">
+                    <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Первичная настройка системы</span>
+                  </div>
+                  <p className="text-[11px] text-amber-200/80 leading-relaxed">
+                    В базе данных еще нет пользователей. Доступен вход под локальным администратором для первоначальной настройки и создания учетных записей.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={fillDemoCredentials}
+                    className="w-full py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Заполнить: admin@snippetvault.local / admin12345</span>
+                  </button>
+                </div>
+              )}
+
               {/* Tab Switcher: Login / Register */}
               <div className="grid grid-cols-2 p-1 mb-6 rounded-xl bg-zinc-950/80 border border-zinc-800/80 text-xs font-semibold">
                 <button
@@ -221,17 +266,25 @@ export default function LoginPage() {
                 </button>
                 <button
                   type="button"
+                  disabled={authStatus?.registrationDisabled}
                   onClick={() => {
+                    if (authStatus?.registrationDisabled) return;
                     setMode("register");
                     setError(null);
                   }}
-                  className={`py-2 rounded-lg transition-all ${
-                    mode === "register"
+                  title={authStatus?.registrationDisabled ? "Регистрация отключена администратором" : undefined}
+                  className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    authStatus?.registrationDisabled
+                      ? "opacity-40 cursor-not-allowed text-zinc-500"
+                      : mode === "register"
                       ? "bg-violet-600 text-white shadow-sm"
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  Регистрация
+                  <span>Регистрация</span>
+                  {authStatus?.registrationDisabled && (
+                    <Lock className="w-3 h-3 text-zinc-500" />
+                  )}
                 </button>
               </div>
 
@@ -345,20 +398,22 @@ export default function LoginPage() {
                 </>
               )}
 
-              {/* Demo user quick action */}
-              <div className="mt-5 pt-4 border-t border-zinc-800/80 flex flex-col items-center gap-2">
-                <span className="text-[11px] text-zinc-500">
-                  Демо-аккаунт для быстрого тестирования:
-                </span>
-                <button
-                  type="button"
-                  onClick={fillDemoCredentials}
-                  className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-xs text-zinc-300 hover:text-white transition-all flex items-center gap-1.5"
-                >
-                  <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                  <span>admin@snippetvault.local / admin12345</span>
-                </button>
-              </div>
+              {/* Initial local admin quick action (only if no users exist in DB) */}
+              {authStatus && !authStatus.hasUsers && (
+                <div className="mt-5 pt-4 border-t border-zinc-800/80 flex flex-col items-center gap-2">
+                  <span className="text-[11px] text-zinc-500">
+                    Локальный администратор по умолчанию:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={fillDemoCredentials}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-xs text-zinc-300 hover:text-white transition-all flex items-center gap-1.5"
+                  >
+                    <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                    <span>admin@snippetvault.local / admin12345</span>
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             /* 2FA Step */

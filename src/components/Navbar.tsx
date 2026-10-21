@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus, Search, Settings, Terminal, User } from "lucide-react";
+import { Plus, Search, Settings, ShieldCheck, Terminal, User } from "lucide-react";
 
 interface NavbarProps {
   searchQuery: string;
@@ -9,10 +9,12 @@ interface NavbarProps {
   onOpenCreateModal: () => void;
   onOpenSettingsModal: () => void;
   onOpenCommandPalette: () => void;
+  onOpenAdminModal?: () => void;
   currentUser?: {
     id: string;
     email: string;
     name: string | null;
+    role?: string;
   } | null;
 }
 
@@ -22,9 +24,11 @@ export function Navbar({
   onOpenCreateModal,
   onOpenSettingsModal,
   onOpenCommandPalette,
+  onOpenAdminModal,
   currentUser,
 }: NavbarProps) {
   const initial = (currentUser?.name || currentUser?.email || "U")[0].toUpperCase();
+  const isAdmin = currentUser?.role === "ADMIN";
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
@@ -74,6 +78,18 @@ export function Navbar({
           >
             <Search className="w-4 h-4" />
           </button>
+
+          {/* Admin Panel button (only for ADMIN) */}
+          {isAdmin && onOpenAdminModal && (
+            <button
+              onClick={onOpenAdminModal}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-violet-300 hover:text-white bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 hover:border-violet-500/50 transition-all hover:scale-105 active:scale-95 shadow-sm shadow-violet-500/10"
+              title="Панель администратора"
+            >
+              <ShieldCheck className="w-4 h-4 text-violet-400" />
+              <span className="hidden md:inline">Админка</span>
+            </button>
+          )}
 
           {/* User Profile / Settings button */}
           <button

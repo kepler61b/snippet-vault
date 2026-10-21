@@ -50,6 +50,7 @@ interface SettingsModalProps {
     email: string;
     name: string | null;
     bio: string | null;
+    role?: string;
     twoFactorEnabled: boolean;
   } | null;
   onUserUpdated?: () => void;

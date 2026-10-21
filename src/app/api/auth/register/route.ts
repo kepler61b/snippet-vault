@@ -4,6 +4,17 @@ import { hashPassword, signToken, setSessionCookie } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if registration is disabled by administrator
+    const regDisabledSetting = await prisma.setting.findUnique({
+      where: { key: "registration_disabled" },
+    });
+    if (regDisabledSetting?.value === "true") {
+      return NextResponse.json(
+        { success: false, error: "Регистрация новых пользователей отключена администратором" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { email, password, name } = body;
 
@@ -35,17 +46,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const totalUsers = await prisma.user.count();
+    const role = totalUsers === 0 ? "ADMIN" : "USER";
+
     const passwordHash = hashPassword(password);
     const user = await prisma.user.create({
       data: {
         email: cleanEmail,
         passwordHash,
         name: name?.trim() || cleanEmail.split("@")[0],
+        role,
       },
       select: {
         id: true,
         email: true,
         name: true,
+        role: true,
         twoFactorEnabled: true,
         createdAt: true,
       },

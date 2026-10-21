@@ -63,13 +63,25 @@ export async function getCurrentUser() {
         email: true,
         name: true,
         bio: true,
+        role: true,
+        isBanned: true,
         twoFactorEnabled: true,
         createdAt: true,
       },
     });
 
+    if (!user || user.isBanned) return null;
+
     return user;
   } catch {
     return null;
   }
+}
+
+export async function requireAdmin() {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    return null;
+  }
+  return user;
 }

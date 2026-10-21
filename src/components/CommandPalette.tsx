@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   Settings,
+  ShieldCheck,
   Sparkles,
   Star,
   Upload,
@@ -24,6 +25,8 @@ interface CommandPaletteProps {
   onOpenCreateModal: () => void;
   onOpenSettingsModal: () => void;
   onShowFavorites: () => void;
+  onOpenAdminModal?: () => void;
+  currentUser?: { role?: string } | null;
 }
 
 export function CommandPalette({
@@ -34,6 +37,8 @@ export function CommandPalette({
   onOpenCreateModal,
   onOpenSettingsModal,
   onShowFavorites,
+  onOpenAdminModal,
+  currentUser,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -124,6 +129,19 @@ export function CommandPalette({
         onOpenSettingsModal();
       },
     },
+    ...(currentUser?.role === "ADMIN" && onOpenAdminModal
+      ? [
+          {
+            id: "admin-panel",
+            title: "Панель администратора (пользователи и доступ)",
+            icon: ShieldCheck,
+            run: () => {
+              onClose();
+              onOpenAdminModal();
+            },
+          },
+        ]
+      : []),
   ];
 
   const totalItems = actions.length + filteredSnippets.length;

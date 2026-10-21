@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { verifyPassword, signToken, setSessionCookie } from "@/lib/auth";
+import { verifyPassword, signToken, setSessionCookie, hashPassword } from "@/lib/auth";
 import { ensureSeedSnippets } from "@/lib/seed";
 
 export async function POST(request: NextRequest) {
@@ -18,6 +18,37 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanEmail = email.trim().toLowerCase();
+
+    // Check if database has 0 users -> allow initial local admin login
+    const totalUsers = await prisma.user.count();
+    if (totalUsers === 0) {
+      if (cleanEmail === "admin@snippetvault.local" || cleanEmail === "admin") {
+        if (password === "admin" || password === "admin12345") {
+          const newAdmin = await prisma.user.create({
+            data: {
+              email: "admin@snippetvault.local",
+              name: "Администратор",
+              role: "ADMIN",
+              passwordHash: hashPassword(password),
+            },
+          });
+          const token = await signToken({ userId: newAdmin.id, email: newAdmin.email });
+          await setSessionCookie(token, request);
+          return NextResponse.json({
+            success: true,
+            require2FA: false,
+            user: {
+              id: newAdmin.id,
+              email: newAdmin.email,
+              name: newAdmin.name,
+              role: newAdmin.role,
+              twoFactorEnabled: false,
+            },
+          });
+        }
+      }
+    }
+
     const user = await prisma.user.findUnique({
       where: { email: cleanEmail },
     });
@@ -26,6 +57,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Неверный email или пароль" },
         { status: 401 }
+      );
+    }
+
+    if (user.isBanned) {
+      return NextResponse.json(
+        { success: false, error: "Ваш аккаунт заблокирован администратором" },
+        { status: 403 }
       );
     }
 
@@ -63,6 +101,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         name: user.name,
         bio: user.bio,
+        role: user.role,
         twoFactorEnabled: user.twoFactorEnabled,
       },
     });

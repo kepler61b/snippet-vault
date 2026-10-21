@@ -2,6 +2,21 @@ import prisma from "./db";
 import { hashPassword } from "./auth";
 
 export async function ensureSeedSnippets() {
+  // Always ensure at least one administrator exists in the database
+  const userCount = await prisma.user.count();
+  if (userCount > 0) {
+    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
+    if (adminCount === 0) {
+      const firstUser = await prisma.user.findFirst({ select: { id: true } });
+      if (firstUser) {
+        await prisma.user.update({
+          where: { id: firstUser.id },
+          data: { role: "ADMIN" },
+        });
+      }
+    }
+  }
+
   // If seed was already completed in this database, never re-seed
   const seedSetting = await prisma.setting.findUnique({
     where: { key: "seed_completed" },
@@ -10,8 +25,6 @@ export async function ensureSeedSnippets() {
     return;
   }
 
-  // Ensure default demo user exists
-  const userCount = await prisma.user.count();
   let defaultUserId: string | undefined = undefined;
 
   if (userCount === 0) {
@@ -20,6 +33,7 @@ export async function ensureSeedSnippets() {
         email: "admin@snippetvault.local",
         passwordHash: hashPassword("admin12345"),
         name: "Admin",
+        role: "ADMIN",
         bio: "Главный администратор SnippetVault",
       },
     });

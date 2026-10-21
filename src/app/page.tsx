@@ -38,6 +38,7 @@ import { CollectionIcon } from "@/lib/collection-icons";
 import { AIModal } from "@/components/AIModal";
 import { SettingsModal } from "@/components/SettingsModal";
 import { CommandPalette } from "@/components/CommandPalette";
+import { AdminModal } from "@/components/AdminModal";
 
 export default function HomePage() {
   const [snippets, setSnippets] = useState<SnippetItem[]>([]);
@@ -67,6 +68,7 @@ export default function HomePage() {
   const [editingSnippet, setEditingSnippet] = useState<SnippetItem | null>(null);
   const [viewingSnippet, setViewingSnippet] = useState<SnippetItem | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -483,6 +485,7 @@ export default function HomePage() {
         onOpenCreateModal={() => setIsCreateOpen(true)}
         onOpenSettingsModal={() => setIsSettingsOpen(true)}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+        onOpenAdminModal={() => setIsAdminModalOpen(true)}
         currentUser={currentUser}
       />
 
@@ -519,6 +522,8 @@ export default function HomePage() {
           tags={tags}
           isMobileOpen={isMobileFilterOpen}
           onCloseMobile={() => setIsMobileFilterOpen(false)}
+          currentUser={currentUser}
+          onOpenAdminModal={() => setIsAdminModalOpen(true)}
         />
 
         {/* Right Main Grid */}
@@ -904,7 +909,23 @@ export default function HomePage() {
         onOpenCreateModal={() => setIsCreateOpen(true)}
         onOpenSettingsModal={() => setIsSettingsOpen(true)}
         onShowFavorites={() => setSelectedFilter("FAVORITES")}
+        currentUser={currentUser}
+        onOpenAdminModal={() => setIsAdminModalOpen(true)}
       />
+
+      {/* Admin Panel Modal (only accessible by ADMIN) */}
+      {currentUser?.role === "ADMIN" && (
+        <AdminModal
+          isOpen={isAdminModalOpen}
+          onClose={() => setIsAdminModalOpen(false)}
+          currentUser={currentUser}
+          onUserChanged={() => {
+            fetchCurrentUser();
+            fetchSnippets();
+            fetchCollections();
+          }}
+        />
+      )}
     </div>
   );
 }
