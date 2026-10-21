@@ -38,7 +38,8 @@ import {
 } from "lucide-react";
 import { startRegistration, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { SUPPORTED_LANGUAGES } from "@/lib/languages";
-import { ViewMode, SortOption, SORT_OPTIONS } from "@/types/snippet";
+import { ViewMode, SortOption, SORT_OPTIONS, CollectionItem } from "@/types/snippet";
+import { CollectionIcon } from "@/lib/collection-icons";
 import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
 
 interface SettingsModalProps {
@@ -68,8 +69,8 @@ export function SettingsModal({
   const [activeTab, setActiveTab] = useState<"profile" | "ai" | "general" | "data">("profile");
 
   // Data Export & Import State
-  const [userCollections, setUserCollections] = useState<{ id: string; name: string }[]>([]);
-  const [selectedExportColId, setSelectedExportColId] = useState<string>("all");
+  const [userCollections, setUserCollections] = useState<CollectionItem[]>([]);
+  const [selectedExportColId, setSelectedExportColId] = useState<string>("");
   const [importing, setImporting] = useState(false);
   const [clearingDb, setClearingDb] = useState(false);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
@@ -469,6 +470,12 @@ export function SettingsModal({
       const data = await res.json();
       if (data.success && data.collections) {
         setUserCollections(data.collections);
+        setSelectedExportColId((prev) => {
+          if (prev && data.collections.some((c: CollectionItem) => c.id === prev)) {
+            return prev;
+          }
+          return data.collections[0]?.id || "";
+        });
       }
     } catch {}
   };
@@ -483,10 +490,7 @@ export function SettingsModal({
   };
 
   const handleExportSelectedCollection = () => {
-    if (!selectedExportColId || selectedExportColId === "all") {
-      handleExportFull();
-      return;
-    }
+    if (!selectedExportColId) return;
     const a = document.createElement("a");
     a.href = `/api/export?type=collection&id=${selectedExportColId}`;
     const colName =
@@ -577,6 +581,21 @@ export function SettingsModal({
       onClose();
     }
   };
+
+  const exportCollectionOptions: CustomSelectOption[] = userCollections.map((col) => ({
+    value: col.id,
+    label: col.name,
+    icon: (
+      <CollectionIcon
+        iconType={col.iconType}
+        iconValue={col.iconValue}
+        color={col.color}
+        className="w-4 h-4"
+      />
+    ),
+    badge: col._count?.snippets !== undefined ? `${col._count.snippets}` : undefined,
+    description: col.description || undefined,
+  }));
 
   if (!isOpen) return null;
 
@@ -1502,23 +1521,25 @@ export function SettingsModal({
                     </div>
 
                     <div className="space-y-2">
-                      <select
+                      <CustomSelect
                         value={selectedExportColId}
-                        onChange={(e) => setSelectedExportColId(e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-xl border border-zinc-800 bg-zinc-900 text-xs text-zinc-200 outline-none focus:border-violet-500"
-                      >
-                        <option value="all">Все коллекции (полный архив)</option>
-                        {userCollections.map((col) => (
-                          <option key={col.id} value={col.id}>
-                            {col.name}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setSelectedExportColId}
+                        options={exportCollectionOptions}
+                        placeholder={
+                          userCollections.length === 0
+                            ? "Нет доступных коллекций"
+                            : "Выберите коллекцию..."
+                        }
+                        disabled={userCollections.length === 0}
+                        searchable={userCollections.length > 5}
+                        searchPlaceholder="Поиск коллекции..."
+                      />
 
                       <button
                         type="button"
                         onClick={handleExportSelectedCollection}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/60 text-zinc-200 hover:text-white font-medium text-xs transition-all active:scale-[0.98]"
+                        disabled={!selectedExportColId || userCollections.length === 0}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/60 text-zinc-200 hover:text-white font-medium text-xs transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Download className="w-3.5 h-3.5" />
                         <span>Скачать коллекцию (.json)</span>
