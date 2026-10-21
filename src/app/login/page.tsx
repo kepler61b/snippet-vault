@@ -59,8 +59,7 @@ export default function LoginPage() {
         }
 
         // Login success
-        router.push("/");
-        router.refresh();
+        window.location.href = "/";
       } else {
         // Register
         const res = await fetch("/api/auth/register", {
@@ -75,8 +74,7 @@ export default function LoginPage() {
         }
 
         // Register success
-        router.push("/");
-        router.refresh();
+        window.location.href = "/";
       }
     } catch (err: any) {
       setError(err.message || "Произошла ошибка при отправке запроса");
@@ -110,8 +108,7 @@ export default function LoginPage() {
       }
 
       // 2FA Success -> redirect to dashboard
-      router.push("/");
-      router.refresh();
+      window.location.href = "/";
     } catch (err: any) {
       setError(err.message || "Ошибка проверки двухфакторного кода");
       setLoading(false);

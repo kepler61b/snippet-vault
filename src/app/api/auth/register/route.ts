@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const token = signToken({ userId: user.id, email: user.email });
+    const token = await signToken({ userId: user.id, email: user.email });
     const cookieStore = await cookies();
     cookieStore.set(COOKIE_NAME, token, {
       httpOnly: true,

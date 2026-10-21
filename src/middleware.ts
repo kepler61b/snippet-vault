@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { COOKIE_NAME, verifyToken } from "@/lib/jwt";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow static files, Next.js internals, public assets
@@ -15,23 +16,36 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie = request.cookies.get("snippetvault_session")?.value;
+  const sessionCookie = request.cookies.get(COOKIE_NAME)?.value;
+  const verified = sessionCookie ? await verifyToken(sessionCookie) : null;
+  const isValidSession = Boolean(verified);
 
   // If user is accessing /login
   if (pathname === "/login") {
-    if (sessionCookie) {
-      // If already has session cookie, redirect to dashboard
+    if (isValidSession) {
+      // If already has valid session cookie, redirect to dashboard
       return NextResponse.redirect(new URL("/", request.url));
     }
-    return NextResponse.next();
+    const response = NextResponse.next();
+    if (sessionCookie && !isValidSession) {
+      response.cookies.delete(COOKIE_NAME);
+    }
+    return response;
   }
 
-  // If user is accessing protected routes and has no session cookie
-  if (!sessionCookie) {
+  // If user is accessing protected routes and has no valid session
+  if (!isValidSession) {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      const response = NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+      if (sessionCookie) response.cookies.delete(COOKIE_NAME);
+      return response;
     }
-    return NextResponse.redirect(new URL("/login", request.url));
+    const response = NextResponse.redirect(new URL("/login", request.url));
+    if (sessionCookie) response.cookies.delete(COOKIE_NAME);
+    return response;
   }
 
   return NextResponse.next();

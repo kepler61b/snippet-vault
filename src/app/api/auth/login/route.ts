@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     // Check if 2FA is enabled
     if (user.twoFactorEnabled && user.twoFactorSecret) {
       // Create temporary token for 2FA challenge (valid for 5 minutes)
-      const tempToken = signToken(
+      const tempToken = await signToken(
         { userId: user.id, email: user.email, stage: "2fa_challenge" },
         300
       );
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Direct login
-    const token = signToken({ userId: user.id, email: user.email });
+    const token = await signToken({ userId: user.id, email: user.email });
     const cookieStore = await cookies();
     cookieStore.set(COOKIE_NAME, token, {
       httpOnly: true,

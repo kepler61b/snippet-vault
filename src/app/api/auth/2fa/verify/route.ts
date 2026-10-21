@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const payload = verifyToken<any>(tempToken);
+    const payload = await verifyToken<any>(tempToken);
     if (!payload?.userId || payload.stage !== "2fa_challenge") {
       return NextResponse.json(
         { success: false, error: "Сессия двухфакторной аутентификации истекла. Войдите снова." },
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Set full session cookie
-    const token = signToken({ userId: user.id, email: user.email });
+    const token = await signToken({ userId: user.id, email: user.email });
     const cookieStore = await cookies();
     cookieStore.set(COOKIE_NAME, token, {
       httpOnly: true,

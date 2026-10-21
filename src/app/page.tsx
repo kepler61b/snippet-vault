@@ -73,13 +73,17 @@ export default function HomePage() {
       setLoading(true);
       setError(null);
       const res = await fetch("/api/snippets");
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Ошибка загрузки сниппетов");
       }
       setSnippets(data.snippets || []);
     } catch (err: any) {
-      console.error(err);
+      console.warn("fetchSnippets warning:", err);
       setError(err.message || "Не удалось загрузить сниппеты");
     } finally {
       setLoading(false);
@@ -89,24 +93,32 @@ export default function HomePage() {
   const fetchCurrentUser = async () => {
     try {
       const res = await fetch("/api/auth/me");
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
       const data = await res.json();
       if (data.success && data.user) {
         setCurrentUser(data.user);
       }
     } catch (e) {
-      console.error(e);
+      console.warn("fetchCurrentUser warning:", e);
     }
   };
 
   const fetchCollections = async () => {
     try {
       const res = await fetch("/api/collections");
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
       const data = await res.json();
       if (data.success && data.collections) {
         setCollections(data.collections);
       }
     } catch (e) {
-      console.error(e);
+      console.warn("fetchCollections warning:", e);
     }
   };
 
@@ -523,8 +535,21 @@ export default function HomePage() {
 
           {/* Error notice */}
           {error && (
-            <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs">
-              {error}
+            <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-rose-200">Не удалось загрузить данные</p>
+                <p className="text-rose-300/80 mt-0.5">{error}</p>
+              </div>
+              <button
+                onClick={() => {
+                  fetchCurrentUser();
+                  fetchCollections();
+                  fetchSnippets();
+                }}
+                className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 font-medium transition-colors whitespace-nowrap active:scale-95 self-start sm:self-auto"
+              >
+                Повторить попытку
+              </button>
             </div>
           )}
 

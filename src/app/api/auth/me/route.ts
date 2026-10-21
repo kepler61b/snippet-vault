@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getCurrentUser, hashPassword, verifyPassword } from "@/lib/auth";
+import { getCurrentUser, hashPassword, verifyPassword, COOKIE_NAME } from "@/lib/auth";
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    const response = NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    response.cookies.delete(COOKIE_NAME);
+    return response;
   }
   return NextResponse.json({ success: true, user });
 }
@@ -14,7 +16,9 @@ export async function PUT(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      const response = NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      response.cookies.delete(COOKIE_NAME);
+      return response;
     }
 
     const body = await request.json();
