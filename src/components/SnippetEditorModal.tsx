@@ -215,25 +215,25 @@ export function SnippetEditorModal({
   const currentLines = (currentFile?.content || "").split("\n");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl h-[92vh] flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-5xl h-[96vh] sm:h-[92vh] flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/70">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-600/20 text-violet-400 border border-violet-500/30">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/70">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-600/20 text-violet-400 border border-violet-500/30 flex-shrink-0">
               <FileCode className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-base font-semibold text-white">
+            <div className="truncate">
+              <h2 className="text-sm sm:text-base font-semibold text-white truncate">
                 {isEditing ? "Редактировать сниппет" : "Создать новый сниппет"}
               </h2>
-              <p className="text-xs text-zinc-400">
+              <p className="text-[11px] sm:text-xs text-zinc-400 truncate">
                 Мульти-файлы, подсветка и встроенный AI-ассистент
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             <button
               onClick={() => setIsFavorite(!isFavorite)}
               className={`p-2 rounded-xl transition-colors ${
@@ -255,11 +255,11 @@ export function SnippetEditorModal({
         </div>
 
         {/* Form Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
           {/* Metadata Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="md:col-span-2 space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+              <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Название сниппета <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
@@ -269,26 +269,26 @@ export function SnippetEditorModal({
                   placeholder="Например: Fast Debounce Hook или Docker Compose для PostgreSQL"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 focus:bg-zinc-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-all"
+                  className="w-full px-3.5 py-2 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 focus:bg-zinc-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-all"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+              <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Видимость / Доступ
               </label>
               <div className="relative">
                 <select
                   value={visibility}
                   onChange={(e) => setVisibility(e.target.value as any)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 focus:bg-zinc-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 outline-none appearance-none transition-all cursor-pointer"
+                  className="w-full px-3.5 py-2 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 focus:bg-zinc-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 outline-none appearance-none transition-all cursor-pointer"
                 >
                   <option value="PUBLIC">Публичный (видно всем)</option>
                   <option value="UNLISTED">По секретной ссылке</option>
                   <option value="PRIVATE">Приватный (только для вас)</option>
                 </select>
-                <div className="absolute right-3.5 top-3 pointer-events-none text-zinc-400">
+                <div className="absolute right-3.5 top-2.5 sm:top-3 pointer-events-none text-zinc-400">
                   {visibility === "PUBLIC" && <Globe className="w-4 h-4 text-emerald-400" />}
                   {visibility === "UNLISTED" && <Share2 className="w-4 h-4 text-sky-400" />}
                   {visibility === "PRIVATE" && <Lock className="w-4 h-4 text-zinc-500" />}
@@ -299,22 +299,22 @@ export function SnippetEditorModal({
 
           {/* Description & AI Autofill Button */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Описание / Заметки
               </label>
               <button
                 type="button"
                 onClick={handleAiAutoFill}
                 disabled={Boolean(aiLoading)}
-                className="flex items-center gap-1.5 text-xs font-medium text-violet-400 hover:text-violet-300 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-medium text-violet-400 hover:text-violet-300 disabled:opacity-50 transition-colors self-start sm:self-auto"
               >
                 {aiLoading === "autofill" ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
                   <Wand2 className="w-3.5 h-3.5" />
                 )}
-                <span>AI: Заполнить название, описание и теги по коду</span>
+                <span>AI: Заполнить название и теги по коду</span>
               </button>
             </div>
             <textarea
@@ -328,7 +328,7 @@ export function SnippetEditorModal({
 
           {/* Tags */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+            <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
               Теги
             </label>
             <div className="flex flex-wrap items-center gap-2 p-2 rounded-xl border border-zinc-800 bg-zinc-900/60">
@@ -354,7 +354,7 @@ export function SnippetEditorModal({
                   ))}
               <input
                 type="text"
-                placeholder="+ Добавить тег (нажмите Enter)"
+                placeholder="+ Добавить тег"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -363,21 +363,22 @@ export function SnippetEditorModal({
                     handleAddTag();
                   }
                 }}
-                className="flex-1 min-w-[140px] bg-transparent text-xs text-zinc-100 placeholder-zinc-500 outline-none px-2 py-1"
+                className="flex-1 min-w-[120px] bg-transparent text-xs text-zinc-100 placeholder-zinc-500 outline-none px-2 py-1"
               />
             </div>
           </div>
 
           {/* File Tabs & Editor Container */}
           <div className="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950">
-            {/* File Tabs bar */}
-            <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-2 overflow-x-auto">
-              <div className="flex items-center gap-1 py-1">
+            {/* File Tabs & AI Actions Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-2 py-1 gap-1">
+              {/* File tabs scrollable */}
+              <div className="flex items-center gap-1 overflow-x-auto py-1 max-w-full">
                 {files.map((file, idx) => (
                   <div
                     key={idx}
                     onClick={() => setActiveFileIndex(idx)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all flex-shrink-0 ${
                       activeFileIndex === idx
                         ? "bg-zinc-800 text-white shadow-sm border border-zinc-700/60"
                         : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
@@ -402,7 +403,7 @@ export function SnippetEditorModal({
                 <button
                   type="button"
                   onClick={handleAddFile}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors flex-shrink-0"
                   title="Добавить еще один файл в этот сниппет"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -411,7 +412,7 @@ export function SnippetEditorModal({
               </div>
 
               {/* AI Code Actions Bar */}
-              <div className="flex items-center gap-1.5 py-1">
+              <div className="flex items-center gap-1 overflow-x-auto py-1 border-t sm:border-t-0 border-zinc-800/60">
                 <button
                   type="button"
                   onClick={async () => {
@@ -425,7 +426,7 @@ export function SnippetEditorModal({
                     }
                   }}
                   disabled={Boolean(aiLoading) || !currentFile.content.trim()}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 disabled:opacity-40 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 disabled:opacity-40 transition-colors flex-shrink-0"
                   title="Объяснить код файла"
                 >
                   {aiLoading === "explain" ? (
@@ -433,7 +434,7 @@ export function SnippetEditorModal({
                   ) : (
                     <Sparkles className="w-3.5 h-3.5" />
                   )}
-                  <span className="hidden sm:inline">Объяснить</span>
+                  <span>Объяснить</span>
                 </button>
 
                 <button
@@ -449,7 +450,7 @@ export function SnippetEditorModal({
                     }
                   }}
                   disabled={Boolean(aiLoading) || !currentFile.content.trim()}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 transition-colors flex-shrink-0"
                   title="Оптимизировать код файла"
                 >
                   {aiLoading === "refactor" ? (
@@ -457,7 +458,7 @@ export function SnippetEditorModal({
                   ) : (
                     <Wand2 className="w-3.5 h-3.5" />
                   )}
-                  <span className="hidden sm:inline">Рефакторинг</span>
+                  <span>Рефакторинг</span>
                 </button>
 
                 <button
@@ -473,7 +474,7 @@ export function SnippetEditorModal({
                     }
                   }}
                   disabled={Boolean(aiLoading) || !currentFile.content.trim()}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 transition-colors flex-shrink-0"
                   title="Добавить комментарии и типы"
                 >
                   {aiLoading === "document" ? (
@@ -481,14 +482,14 @@ export function SnippetEditorModal({
                   ) : (
                     <Code className="w-3.5 h-3.5" />
                   )}
-                  <span className="hidden sm:inline">Документировать</span>
+                  <span>Документация</span>
                 </button>
               </div>
             </div>
 
             {/* File Settings Row: Filename & Language */}
-            <div className="flex flex-wrap items-center gap-3 p-3 bg-zinc-900/40 border-b border-zinc-800">
-              <div className="flex-1 min-w-[200px]">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 p-3 bg-zinc-900/40 border-b border-zinc-800">
+              <div className="flex-1 min-w-0">
                 <input
                   type="text"
                   placeholder="Имя файла (напр. app.py, utils.ts, Dockerfile)"
@@ -498,7 +499,7 @@ export function SnippetEditorModal({
                 />
               </div>
 
-              <div className="w-48">
+              <div className="w-full sm:w-48">
                 <select
                   value={currentFile.language}
                   onChange={(e) => handleLanguageChange(e.target.value)}
@@ -514,10 +515,10 @@ export function SnippetEditorModal({
             </div>
 
             {/* Editor Textarea with line numbers */}
-            <div className="relative flex bg-zinc-950 font-mono text-xs sm:text-sm min-h-[340px] max-h-[50vh] overflow-hidden">
+            <div className="relative flex bg-zinc-950 font-mono text-xs sm:text-sm min-h-[280px] sm:min-h-[340px] max-h-[50vh] overflow-hidden">
               {/* Line numbers column */}
               <div
-                className="select-none py-3 px-3 text-right text-zinc-600 bg-zinc-950 border-r border-zinc-800/80 font-mono text-xs sm:text-sm leading-6"
+                className="select-none py-3 px-2.5 sm:px-3 text-right text-zinc-600 bg-zinc-950 border-r border-zinc-800/80 font-mono text-xs sm:text-sm leading-6 flex-shrink-0"
                 aria-hidden="true"
               >
                 {currentLines.map((_, i) => (
@@ -539,16 +540,16 @@ export function SnippetEditorModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800 bg-zinc-900/60">
-          <span className="text-xs text-zinc-500">
-            {files.length} {files.length === 1 ? "файл" : "файлов"} в сниппете
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-t border-zinc-800 bg-zinc-900/60">
+          <span className="text-[11px] sm:text-xs text-zinc-500">
+            {files.length} {files.length === 1 ? "файл" : "файлов"}
           </span>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="px-3 sm:px-4 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
             >
               Отмена
             </button>
@@ -556,10 +557,10 @@ export function SnippetEditorModal({
               type="button"
               onClick={handleSubmit}
               disabled={saving}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/30 active:scale-[0.98] transition-all disabled:opacity-50"
+              className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/30 active:scale-[0.98] transition-all disabled:opacity-50"
             >
               {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              <span>{isEditing ? "Сохранить изменения" : "Создать сниппет"}</span>
+              <span>{isEditing ? "Сохранить" : "Создать"}</span>
             </button>
           </div>
         </div>

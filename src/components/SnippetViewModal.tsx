@@ -98,12 +98,12 @@ export function SnippetViewModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl h-[92vh] flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-5xl h-[96vh] sm:h-[92vh] flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-start justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/70">
-          <div className="space-y-1 max-w-2xl">
-            <div className="flex items-center gap-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/70">
+          <div className="space-y-1 max-w-2xl min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
               {snippet.visibility === "PUBLIC" && (
                 <span className="flex items-center gap-1 text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   <Globe className="w-3 h-3" />
@@ -122,7 +122,7 @@ export function SnippetViewModal({
                   Приватный
                 </span>
               )}
-              <h2 className="text-lg font-bold text-white tracking-tight">
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight break-words">
                 {snippet.title}
               </h2>
             </div>
@@ -146,7 +146,7 @@ export function SnippetViewModal({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0">
             <button
               onClick={() => onToggleFavorite(snippet.id)}
               className={`p-2 rounded-xl transition-colors ${
@@ -190,7 +190,7 @@ export function SnippetViewModal({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {/* Tags */}
           {tagList.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pb-2 border-b border-zinc-800/60">
@@ -208,22 +208,22 @@ export function SnippetViewModal({
           {/* Files Container */}
           <div className="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950">
             {/* File Tabs */}
-            <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-2 overflow-x-auto">
-              <div className="flex items-center gap-1 py-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-2 py-1 gap-1">
+              <div className="flex items-center gap-1 overflow-x-auto py-1 max-w-full">
                 {snippet.files.map((file, idx) => {
                   const meta = getLanguageMeta(file.language);
                   return (
                     <button
                       key={idx}
                       onClick={() => setActiveFileIndex(idx)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
                         activeFileIndex === idx
                           ? "bg-zinc-800 text-white shadow-sm border border-zinc-700/60"
                           : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
                       }`}
                     >
                       <span
-                        className="w-2 h-2 rounded-full"
+                        className="w-2 h-2 rounded-full flex-shrink-0"
                         style={{ backgroundColor: meta.color }}
                       />
                       <span>{file.filename}</span>
@@ -233,32 +233,32 @@ export function SnippetViewModal({
               </div>
 
               {/* AI & Quick action buttons */}
-              <div className="flex items-center gap-1.5 py-1">
+              <div className="flex items-center gap-1 overflow-x-auto py-1 border-t sm:border-t-0 border-zinc-800/60">
                 <button
                   onClick={() =>
                     onTriggerAI("explain", currentFile.content, currentFile.language)
                   }
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 transition-colors flex-shrink-0"
                   title="Объяснить код файла через AI"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">AI Объяснить</span>
+                  <span>Объяснить</span>
                 </button>
 
                 <button
                   onClick={() =>
                     onTriggerAI("refactor", currentFile.content, currentFile.language)
                   }
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors flex-shrink-0"
                   title="Оптимизировать код через AI"
                 >
                   <Wand2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">AI Оптимизация</span>
+                  <span>Оптимизация</span>
                 </button>
 
                 <button
                   onClick={handleCopyAsMarkdown}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 hover:bg-zinc-800 transition-colors flex-shrink-0"
                   title="Скопировать как Markdown"
                 >
                   {copiedMarkdown ? (
@@ -266,12 +266,12 @@ export function SnippetViewModal({
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
-                  <span className="hidden sm:inline">Markdown</span>
+                  <span>Markdown</span>
                 </button>
 
                 <button
                   onClick={handleDownloadFile}
-                  className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                  className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors flex-shrink-0"
                   title="Скачать этот файл"
                 >
                   <Download className="w-3.5 h-3.5" />
@@ -291,7 +291,7 @@ export function SnippetViewModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800 bg-zinc-900/60">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-t border-zinc-800 bg-zinc-900/60">
           <button
             onClick={handleCopyShareLink}
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700 transition-colors"
@@ -299,12 +299,12 @@ export function SnippetViewModal({
             {copiedLink ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Ссылка скопирована!</span>
+                <span className="text-emerald-400">Скопировано!</span>
               </>
             ) : (
               <>
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>Поделиться ссылкой</span>
+                <span>Поделиться</span>
               </>
             )}
           </button>

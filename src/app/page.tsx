@@ -8,8 +8,10 @@ import {
   Loader2,
   Plus,
   Search,
+  SlidersHorizontal,
   Sparkles,
   Terminal,
+  X,
 } from "lucide-react";
 import { SnippetItem, SnippetFileItem } from "@/types/snippet";
 import { Navbar } from "@/components/Navbar";
@@ -40,6 +42,7 @@ export default function HomePage() {
   const [viewingSnippet, setViewingSnippet] = useState<SnippetItem | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   // AI Modal
   const [aiModal, setAiModal] = useState<{
@@ -314,11 +317,50 @@ export default function HomePage() {
           onSelectTag={setSelectedTag}
           languages={languages}
           tags={tags}
+          isMobileOpen={isMobileFilterOpen}
+          onCloseMobile={() => setIsMobileFilterOpen(false)}
         />
 
         {/* Right Main Grid */}
         <main className="flex-1 min-w-0 space-y-6">
-          {/* Top Bar inside content: Quick Count and search indicator */}
+          {/* Mobile Filter & Search Bar */}
+          <div className="flex items-center gap-2 lg:hidden w-full">
+            <div className="flex-1 flex items-center px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900/80 text-xs text-zinc-300">
+              <Search className="w-3.5 h-3.5 text-zinc-400 mr-2 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Поиск по коду, тегам..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-transparent outline-none w-full text-xs"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="text-zinc-500 hover:text-white">
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setIsMobileFilterOpen(true)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors flex-shrink-0 ${
+                selectedFilter !== "ALL" || selectedLanguage !== null || selectedTag !== null
+                  ? "bg-violet-600/20 border-violet-500/50 text-violet-300"
+                  : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white"
+              }`}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Фильтры</span>
+              {(selectedFilter !== "ALL" || selectedLanguage !== null || selectedTag !== null) && (
+                <span className="w-4 h-4 rounded-full bg-violet-600 text-white text-[10px] flex items-center justify-center font-bold">
+                  {(selectedFilter !== "ALL" ? 1 : 0) +
+                    (selectedLanguage ? 1 : 0) +
+                    (selectedTag ? 1 : 0)}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Top Bar inside content: Quick Count and active criteria */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-800/80">
             <div>
               <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
@@ -336,20 +378,6 @@ export default function HomePage() {
                   ? `Фильтр по языку: ${selectedLanguage}`
                   : "Все сохраненные фрагменты кода"}
               </p>
-            </div>
-
-            {/* Mobile search bar */}
-            <div className="md:hidden">
-              <div className="flex items-center px-3 py-1.5 rounded-xl border border-zinc-800 bg-zinc-900 text-xs text-zinc-300">
-                <Search className="w-3.5 h-3.5 text-zinc-500 mr-2" />
-                <input
-                  type="text"
-                  placeholder="Поиск сниппетов..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent outline-none w-full"
-                />
-              </div>
             </div>
           </div>
 
