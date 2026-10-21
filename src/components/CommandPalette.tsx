@@ -92,7 +92,7 @@ export function CommandPalette({
     },
     {
       id: "settings",
-      title: "Настройки AI (API ключ и модель)",
+      title: "Настройки (Профиль, 2FA, AI)",
       icon: Settings,
       run: () => {
         onClose();

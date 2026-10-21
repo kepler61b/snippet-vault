@@ -11,6 +11,7 @@ export async function GET(
     const snippet = await prisma.snippet.findUnique({
       where: { id },
       include: {
+        collection: true,
         files: {
           orderBy: { order: "asc" },
         },
@@ -41,7 +42,7 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, description, visibility, isFavorite, tags, files } = body;
+    const { title, description, visibility, isFavorite, tags, files, collectionId } = body;
 
     const existing = await prisma.snippet.findUnique({
       where: { id },
@@ -93,8 +94,10 @@ export async function PUT(
           ...(visibility !== undefined && { visibility }),
           ...(isFavorite !== undefined && { isFavorite: Boolean(isFavorite) }),
           ...(formattedTags !== undefined && { tags: formattedTags }),
+          ...(collectionId !== undefined && { collectionId: collectionId || null }),
         },
         include: {
+          collection: true,
           files: {
             orderBy: { order: "asc" },
           },

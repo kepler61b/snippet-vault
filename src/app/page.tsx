@@ -13,12 +13,14 @@ import {
   Terminal,
   X,
 } from "lucide-react";
-import { SnippetItem, SnippetFileItem } from "@/types/snippet";
+import { SnippetItem, SnippetFileItem, CollectionItem } from "@/types/snippet";
 import { Navbar } from "@/components/Navbar";
 import { Sidebar } from "@/components/Sidebar";
 import { SnippetCard } from "@/components/SnippetCard";
 import { SnippetEditorModal } from "@/components/SnippetEditorModal";
 import { SnippetViewModal } from "@/components/SnippetViewModal";
+import { CollectionModal } from "@/components/CollectionModal";
+import { CollectionIcon } from "@/lib/collection-icons";
 import { AIModal } from "@/components/AIModal";
 import { SettingsModal } from "@/components/SettingsModal";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -35,6 +37,12 @@ export default function HomePage() {
   >("ALL");
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+  // Collections
+  const [collections, setCollections] = useState<CollectionItem[]>([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [editingCollection, setEditingCollection] = useState<CollectionItem | null>(null);
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -90,8 +98,21 @@ export default function HomePage() {
     }
   };
 
+  const fetchCollections = async () => {
+    try {
+      const res = await fetch("/api/collections");
+      const data = await res.json();
+      if (data.success && data.collections) {
+        setCollections(data.collections);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     fetchCurrentUser();
+    fetchCollections();
     fetchSnippets();
   }, []);
 
@@ -131,6 +152,11 @@ export default function HomePage() {
     return { languages: lList, tags: tList, favoriteCount: favCount };
   }, [snippets]);
 
+  // Active collection
+  const activeCollection = useMemo(() => {
+    return collections.find((c) => c.id === selectedCollectionId) || null;
+  }, [collections, selectedCollectionId]);
+
   // Filtered snippets
   const filteredSnippets = useMemo(() => {
     return snippets.filter((s) => {
@@ -147,6 +173,9 @@ export default function HomePage() {
         );
         if (!inTitle && !inDesc && !inTags && !inFiles) return false;
       }
+
+      // Filter by custom collection
+      if (selectedCollectionId && s.collectionId !== selectedCollectionId) return false;
 
       // Filter category
       if (selectedFilter === "FAVORITES" && !s.isFavorite) return false;
@@ -246,6 +275,44 @@ export default function HomePage() {
       setSnippets((prev) => [result.snippet, ...prev]);
       setIsCreateOpen(false);
     }
+    fetchCollections();
+  };
+
+  const handleSaveCollection = async (data: any) => {
+    if (editingCollection) {
+      const res = await fetch(`/api/collections/${editingCollection.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.error);
+      setCollections((prev) =>
+        prev.map((c) => (c.id === editingCollection.id ? result.collection : c))
+      );
+      setEditingCollection(null);
+    } else {
+      const res = await fetch("/api/collections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.error);
+      setCollections((prev) => [...prev, result.collection]);
+      setIsCollectionModalOpen(false);
+    }
+    fetchSnippets();
+  };
+
+  const handleDeleteCollection = async (id: string) => {
+    const res = await fetch(`/api/collections/${id}`, { method: "DELETE" });
+    const result = await res.json();
+    if (!res.ok || !result.success) throw new Error(result.error);
+    setCollections((prev) => prev.filter((c) => c.id !== id));
+    if (selectedCollectionId === id) setSelectedCollectionId(null);
+    setEditingCollection(null);
+    fetchSnippets();
   };
 
   // AI Trigger
@@ -324,8 +391,25 @@ export default function HomePage() {
         <Sidebar
           totalCount={snippets.length}
           favoriteCount={favoriteCount}
+          collections={collections}
+          selectedCollectionId={selectedCollectionId}
+          onSelectCollection={(id) => {
+            setSelectedCollectionId(id);
+            if (id) setSelectedFilter("ALL");
+          }}
+          onOpenCreateCollection={() => {
+            setEditingCollection(null);
+            setIsCollectionModalOpen(true);
+          }}
+          onEditCollection={(col) => {
+            setEditingCollection(col);
+            setIsCollectionModalOpen(true);
+          }}
           selectedFilter={selectedFilter}
-          onSelectFilter={setSelectedFilter}
+          onSelectFilter={(f) => {
+            setSelectedFilter(f);
+            if (f !== "ALL") setSelectedCollectionId(null);
+          }}
           selectedLanguage={selectedLanguage}
           onSelectLanguage={setSelectedLanguage}
           selectedTag={selectedTag}
@@ -376,24 +460,65 @@ export default function HomePage() {
           </div>
 
           {/* Top Bar inside content: Quick Count and active criteria */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-zinc-800/80">
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                <span>Сниппеты</span>
-                <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
-                  {filteredSnippets.length}
-                </span>
-              </h1>
-              <p className="text-xs text-zinc-500">
-                {selectedFilter === "FAVORITES"
-                  ? "Только избранные сниппеты"
-                  : selectedTag
-                  ? `Фильтр по тегу #${selectedTag}`
-                  : selectedLanguage
-                  ? `Фильтр по языку: ${selectedLanguage}`
-                  : "Все сохраненные фрагменты кода"}
-              </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-zinc-800/80">
+            <div className="flex items-start sm:items-center gap-3">
+              {activeCollection && (
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                  style={{
+                    backgroundColor: activeCollection.color ? `${activeCollection.color}15` : undefined,
+                    borderColor: activeCollection.color ? `${activeCollection.color}35` : undefined,
+                    color: activeCollection.color || undefined,
+                  }}
+                >
+                  <CollectionIcon
+                    iconType={activeCollection.iconType}
+                    iconValue={activeCollection.iconValue}
+                    className="w-5 h-5"
+                  />
+                </div>
+              )}
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                  <span>{activeCollection ? activeCollection.name : "Сниппеты"}</span>
+                  <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
+                    {filteredSnippets.length}
+                  </span>
+                </h1>
+                <p className="text-xs text-zinc-500">
+                  {activeCollection?.description
+                    ? activeCollection.description
+                    : activeCollection
+                    ? "Пользовательская коллекция"
+                    : selectedFilter === "FAVORITES"
+                    ? "Только избранные сниппеты"
+                    : selectedFilter === "PUBLIC"
+                    ? "Публичные сниппеты"
+                    : selectedFilter === "UNLISTED"
+                    ? "Сниппеты по секретной ссылке"
+                    : selectedFilter === "PRIVATE"
+                    ? "Приватные сниппеты"
+                    : selectedTag
+                    ? `Фильтр по тегу #${selectedTag}`
+                    : selectedLanguage
+                    ? `Фильтр по языку: ${selectedLanguage}`
+                    : "Все сохраненные фрагменты кода"}
+                </p>
+              </div>
             </div>
+            {activeCollection && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setEditingCollection(activeCollection);
+                    setIsCollectionModalOpen(true);
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-medium bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-all flex items-center gap-1.5 active:scale-95"
+                >
+                  <span>Настроить коллекцию</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Error notice */}
@@ -469,6 +594,8 @@ export default function HomePage() {
         <SnippetEditorModal
           isOpen={isCreateOpen || Boolean(editingSnippet)}
           snippet={editingSnippet}
+          collections={collections}
+          defaultCollectionId={selectedCollectionId}
           onClose={() => {
             setIsCreateOpen(false);
             setEditingSnippet(null);
@@ -481,6 +608,20 @@ export default function HomePage() {
               return handleTriggerAI(action, activeFile.content, activeFile.language);
             }
           }}
+        />
+      )}
+
+      {/* Collection Create/Edit Modal */}
+      {(isCollectionModalOpen || editingCollection) && (
+        <CollectionModal
+          isOpen={isCollectionModalOpen || Boolean(editingCollection)}
+          collection={editingCollection}
+          onClose={() => {
+            setIsCollectionModalOpen(false);
+            setEditingCollection(null);
+          }}
+          onSave={handleSaveCollection}
+          onDelete={handleDeleteCollection}
         />
       )}
 

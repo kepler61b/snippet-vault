@@ -9,41 +9,63 @@ generator client {
 }
 
 model User {
-  id               String    @id @default(uuid())
-  email            String    @unique
+  id               String       @id @default(uuid())
+  email            String       @unique
   passwordHash     String
   name             String?
   bio              String?
-  twoFactorEnabled Boolean   @default(false)
+  twoFactorEnabled Boolean      @default(false)
   twoFactorSecret  String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   snippets         Snippet[]
+  collections      Collection[]
 
   @@index([email])
 }
 
-model Snippet {
-  id          String        @id @default(uuid())
-  title       String
+model Collection {
+  id          String    @id @default(uuid())
+  name        String
   description String?
-  visibility  String        @default("PUBLIC") // "PUBLIC", "UNLISTED", "PRIVATE"
-  shareToken  String        @unique @default(uuid())
-  isFavorite  Boolean       @default(false)
-  tags        String        @default("") // comma-separated tags: "react, hooks, ui"
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
+  iconType    String    @default("lucide") // "lucide" or "custom_image"
+  iconValue   String    @default("Folder") // Lucide icon name (e.g. "Folder", "Terminal") or base64 data URL
+  color       String?   @default("#8b5cf6")
   userId      String?
-  user        User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  files       SnippetFile[]
+  snippets    Snippet[]
+
+  @@index([userId])
+}
+
+model Snippet {
+  id           String        @id @default(uuid())
+  title        String
+  description  String?
+  visibility   String        @default("PUBLIC") // "PUBLIC", "UNLISTED", "PRIVATE"
+  shareToken   String        @unique @default(uuid())
+  isFavorite   Boolean       @default(false)
+  tags         String        @default("") // comma-separated tags: "react, hooks, ui"
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  userId       String?
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  collectionId String?
+  collection   Collection?   @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  files        SnippetFile[]
 
   @@index([visibility])
   @@index([isFavorite])
   @@index([createdAt])
   @@index([userId])
+  @@index([collectionId])
 }
 
 model SnippetFile {

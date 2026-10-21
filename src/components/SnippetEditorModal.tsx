@@ -15,13 +15,15 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import { SnippetItem, SnippetFileItem } from "@/types/snippet";
+import { SnippetItem, SnippetFileItem, CollectionItem } from "@/types/snippet";
 import { detectLanguageFromFilename, SUPPORTED_LANGUAGES } from "@/lib/languages";
 
 interface SnippetEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   snippet?: SnippetItem | null;
+  collections?: CollectionItem[];
+  defaultCollectionId?: string | null;
   onSave: (data: any) => Promise<void>;
   onTriggerAI: (
     action: "meta" | "explain" | "refactor" | "document",
@@ -34,6 +36,8 @@ export function SnippetEditorModal({
   isOpen,
   onClose,
   snippet,
+  collections = [],
+  defaultCollectionId = null,
   onSave,
   onTriggerAI,
 }: SnippetEditorModalProps) {
@@ -41,6 +45,9 @@ export function SnippetEditorModal({
 
   const [title, setTitle] = useState(snippet?.title || "");
   const [description, setDescription] = useState(snippet?.description || "");
+  const [collectionId, setCollectionId] = useState(
+    snippet?.collectionId || defaultCollectionId || ""
+  );
   const [visibility, setVisibility] = useState<"PUBLIC" | "UNLISTED" | "PRIVATE">(
     snippet?.visibility || "PUBLIC"
   );
@@ -202,6 +209,7 @@ export function SnippetEditorModal({
         visibility,
         isFavorite,
         tags,
+        collectionId: collectionId || null,
         files,
       });
       onClose();
@@ -257,8 +265,8 @@ export function SnippetEditorModal({
         {/* Form Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
           {/* Metadata Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-            <div className="md:col-span-2 space-y-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="sm:col-span-2 space-y-1.5">
               <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Название сниппета <span className="text-rose-500">*</span>
               </label>
@@ -272,6 +280,25 @@ export function SnippetEditorModal({
                   className="w-full px-3.5 py-2 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 focus:bg-zinc-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-all"
                 />
               </div>
+            </div>
+
+            {/* Collection Selector */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                Коллекция
+              </label>
+              <select
+                value={collectionId}
+                onChange={(e) => setCollectionId(e.target.value)}
+                className="w-full px-3.5 py-2 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 focus:bg-zinc-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 outline-none appearance-none transition-all cursor-pointer"
+              >
+                <option value="">Без коллекции</option>
+                {collections.map((col) => (
+                  <option key={col.id} value={col.id}>
+                    📁 {col.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-1.5">

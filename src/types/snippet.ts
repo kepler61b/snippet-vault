@@ -7,6 +7,21 @@ export interface SnippetFileItem {
   order?: number;
 }
 
+export interface CollectionItem {
+  id: string;
+  name: string;
+  description: string | null;
+  iconType: string;
+  iconValue: string;
+  color: string | null;
+  userId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count?: {
+    snippets: number;
+  };
+}
+
 export interface SnippetItem {
   id: string;
   title: string;
@@ -15,6 +30,9 @@ export interface SnippetItem {
   shareToken: string;
   isFavorite: boolean;
   tags: string;
+  userId?: string | null;
+  collectionId?: string | null;
+  collection?: CollectionItem | null;
   createdAt: string;
   updatedAt: string;
   files: SnippetFileItem[];

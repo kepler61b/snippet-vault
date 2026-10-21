@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { SnippetItem } from "@/types/snippet";
 import { getLanguageMeta } from "@/lib/languages";
+import { CollectionIcon } from "@/lib/collection-icons";
 
 interface SnippetCardProps {
   snippet: SnippetItem;
@@ -100,6 +101,27 @@ export function SnippetCard({
                   <Lock className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
                 </span>
               )}
+
+              {snippet.collection && (
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border mr-1 flex-shrink-0"
+                  style={{
+                    backgroundColor: `${snippet.collection.color || "#8b5cf6"}15`,
+                    borderColor: `${snippet.collection.color || "#8b5cf6"}35`,
+                    color: snippet.collection.color || "#a78bfa",
+                  }}
+                  title={`Коллекция: ${snippet.collection.name}`}
+                >
+                  <CollectionIcon
+                    iconType={snippet.collection.iconType}
+                    iconValue={snippet.collection.iconValue}
+                    color={snippet.collection.color}
+                    className="w-3 h-3"
+                  />
+                  <span className="truncate max-w-[100px]">{snippet.collection.name}</span>
+                </span>
+              )}
+
               <h3 className="text-base font-semibold text-zinc-100 group-hover:text-white truncate transition-colors">
                 {snippet.title}
               </h3>

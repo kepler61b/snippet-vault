@@ -22,6 +22,7 @@ import {
 import { SnippetItem, SnippetFileItem } from "@/types/snippet";
 import { CodeBlock } from "./CodeBlock";
 import { getLanguageMeta } from "@/lib/languages";
+import { CollectionIcon } from "@/lib/collection-icons";
 
 interface SnippetViewModalProps {
   isOpen: boolean;
@@ -122,6 +123,26 @@ export function SnippetViewModal({
                   Приватный
                 </span>
               )}
+
+              {snippet.collection && (
+                <span
+                  className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border"
+                  style={{
+                    backgroundColor: `${snippet.collection.color || "#8b5cf6"}15`,
+                    borderColor: `${snippet.collection.color || "#8b5cf6"}35`,
+                    color: snippet.collection.color || "#a78bfa",
+                  }}
+                >
+                  <CollectionIcon
+                    iconType={snippet.collection.iconType}
+                    iconValue={snippet.collection.iconValue}
+                    color={snippet.collection.color}
+                    className="w-3.5 h-3.5"
+                  />
+                  <span>{snippet.collection.name}</span>
+                </span>
+              )}
+
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight break-words">
                 {snippet.title}
               </h2>

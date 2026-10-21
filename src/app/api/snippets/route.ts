@@ -13,11 +13,16 @@ export async function GET(request: NextRequest) {
     const language = searchParams.get("language")?.trim().toLowerCase();
     const favorite = searchParams.get("favorite") === "true";
     const visibility = searchParams.get("visibility"); // "PUBLIC", "UNLISTED", "PRIVATE"
+    const collectionId = searchParams.get("collectionId");
 
     const where: any = {};
 
     if (favorite) {
       where.isFavorite = true;
+    }
+
+    if (collectionId) {
+      where.collectionId = collectionId;
     }
 
     if (visibility && ["PUBLIC", "UNLISTED", "PRIVATE"].includes(visibility)) {
@@ -60,6 +65,7 @@ export async function GET(request: NextRequest) {
       where,
       orderBy: { createdAt: "desc" },
       include: {
+        collection: true,
         files: {
           orderBy: { order: "asc" },
         },
@@ -79,7 +85,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, description, visibility, isFavorite, tags, files } = body;
+    const { title, description, visibility, isFavorite, tags, files, collectionId } = body;
 
     if (!title || typeof title !== "string") {
       return NextResponse.json(
@@ -113,6 +119,7 @@ export async function POST(request: NextRequest) {
         isFavorite: Boolean(isFavorite),
         tags: formattedTags,
         userId: currentUser?.id || null,
+        collectionId: collectionId || null,
         files: {
           create: files.map((file: any, index: number) => {
             const filename = (file.filename || `snippet-${index + 1}`).trim();
@@ -128,6 +135,7 @@ export async function POST(request: NextRequest) {
         },
       },
       include: {
+        collection: true,
         files: {
           orderBy: { order: "asc" },
         },
