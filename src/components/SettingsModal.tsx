@@ -65,8 +65,8 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const router = useRouter();
 
-  // Active Tab: "profile" | "ai" | "general" | "data"
-  const [activeTab, setActiveTab] = useState<"profile" | "ai" | "general" | "data">("profile");
+  // Active Tab: "general" | "profile" | "security" | "ai" | "data"
+  const [activeTab, setActiveTab] = useState<"general" | "profile" | "security" | "ai" | "data">("general");
 
   // Modal Smooth Height Animation State & Refs
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -101,6 +101,8 @@ export function SettingsModal({
       return;
     }
 
+    setActiveTab("general");
+
     // Initial measurement
     updateModalHeight();
 
@@ -131,7 +133,7 @@ export function SettingsModal({
     };
   }, [isOpen]);
 
-  const handleTabChange = (tab: "profile" | "ai" | "general" | "data") => {
+  const handleTabChange = (tab: "general" | "profile" | "security" | "ai" | "data") => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     if (tab === "data") {
@@ -156,11 +158,16 @@ export function SettingsModal({
   // User Profile State
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
   const [profileError, setProfileError] = useState<string | null>(null);
+
+  // Security & Password State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // 2FA Setup State
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -287,25 +294,66 @@ export function SettingsModal({
         body: JSON.stringify({
           name,
           bio,
-          currentPassword: currentPassword || undefined,
-          newPassword: newPassword || undefined,
         }),
       });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Не удалось обновить профиль");
+        throw new Error(data.error || "Не удалось сохранить профиль");
       }
 
-      setProfileSuccess("Профиль успешно обновлен!");
-      setCurrentPassword("");
-      setNewPassword("");
+      setProfileSuccess("Профиль успешно сохранен!");
       onUserUpdated?.();
       setTimeout(() => setProfileSuccess(null), 2500);
     } catch (err: any) {
       setProfileError(err.message);
     } finally {
       setProfileSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!currentPassword) {
+      setPasswordError("Введите текущий пароль");
+      return;
+    }
+    if (!newPassword) {
+      setPasswordError("Введите новый пароль");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("Новый пароль должен содержать минимум 6 символов");
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const res = await fetch("/api/auth/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Не удалось изменить пароль");
+      }
+
+      setPasswordSuccess("Пароль успешно обновлен!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setTimeout(() => setPasswordSuccess(null), 2500);
+    } catch (err: any) {
+      setPasswordError(err.message);
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -736,6 +784,19 @@ export function SettingsModal({
         >
           <button
             type="button"
+            onClick={() => handleTabChange("general")}
+            className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "general"
+                ? "border-violet-500 text-white"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5" />
+            <span>Общие настройки</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => handleTabChange("profile")}
             className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
               activeTab === "profile"
@@ -744,7 +805,20 @@ export function SettingsModal({
             }`}
           >
             <UserIcon className="w-3.5 h-3.5" />
-            <span>Профиль & Безопасность</span>
+            <span>Профиль</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleTabChange("security")}
+            className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "security"
+                ? "border-violet-500 text-white"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Безопасность</span>
           </button>
 
           <button
@@ -758,19 +832,6 @@ export function SettingsModal({
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>AI Ассистент</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleTabChange("general")}
-            className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
-              activeTab === "general"
-                ? "border-violet-500 text-white"
-                : "border-transparent text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Общие настройки</span>
           </button>
 
           <button
@@ -796,124 +857,271 @@ export function SettingsModal({
             ref={innerContentRef}
             className="p-6 text-xs text-zinc-200 space-y-6"
           >
-            {/* TAB 1: PROFILE & 2FA */}
-            {activeTab === "profile" && (
-              <div className="space-y-6 animate-in fade-in duration-200">
-              {profileError && (
-                <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300">
-                  {profileError}
-                </div>
-              )}
-              {profileSuccess && (
-                <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 flex items-center gap-2">
-                  <Check className="w-4 h-4" />
-                  <span>{profileSuccess}</span>
-                </div>
-              )}
-
-              {/* Personal Info Form */}
-              <form onSubmit={handleUpdateProfile} className="space-y-4">
-                <div className="border-b border-zinc-800/80 pb-4 space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                    <UserIcon className="w-3.5 h-3.5 text-violet-400" />
-                    <span>Информация о себе</span>
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-zinc-400 text-[11px] font-medium">
-                        Имя / Псевдоним
-                      </label>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Ваше имя"
-                        className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-zinc-400 text-[11px] font-medium">
-                        Email адрес (логин)
-                      </label>
-                      <input
-                        type="email"
-                        disabled
-                        value={currentUser?.email || ""}
-                        className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 cursor-not-allowed opacity-75"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-zinc-400 text-[11px] font-medium">
-                      О себе / Краткое описание
-                    </label>
-                    <textarea
-                      rows={2}
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      placeholder="Senior Fullstack Developer / DevOps / etc."
-                      className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 resize-none"
-                    />
-                  </div>
+            {/* TAB: GENERAL SETTINGS */}
+            {activeTab === "general" && (
+              <form onSubmit={handleSaveGeneral} className="space-y-5 animate-in fade-in duration-200">
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
+                    Язык по умолчанию для новых сниппетов
+                  </label>
+                  <CustomSelect
+                    value={defaultLanguage}
+                    onChange={setDefaultLanguage}
+                    options={SUPPORTED_LANGUAGES.map((l) => ({
+                      value: l.id,
+                      label: l.name,
+                      icon: (
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: l.color }}
+                        />
+                      ),
+                    }))}
+                    searchable
+                    searchPlaceholder="Поиск языка..."
+                  />
                 </div>
 
-                {/* Change Password Sub-block */}
-                <div className="border-b border-zinc-800/80 pb-4 space-y-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                    <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Смена пароля</span>
-                  </h3>
+                {/* Default View Mode */}
+                <div className="space-y-2">
+                  <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
+                    Отображение списка сниппетов по умолчанию
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDefaultViewMode("grid")}
+                      className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
+                        defaultViewMode === "grid"
+                          ? "border-violet-500 bg-violet-600/10 text-white font-medium"
+                          : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-zinc-800/80 text-violet-400 shrink-0">
+                        <LayoutGrid className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-white text-xs mb-0.5">Сетка карточек</div>
+                        <div className="text-[10px] text-zinc-400">С подсветкой кода и вкладками</div>
+                      </div>
+                    </button>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-zinc-400 text-[11px] font-medium">
-                        Текущий пароль
-                      </label>
-                      <input
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-zinc-400 text-[11px] font-medium">
-                        Новый пароль
-                      </label>
-                      <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Минимум 6 символов"
-                        className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500"
-                      />
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDefaultViewMode("list")}
+                      className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
+                        defaultViewMode === "list"
+                          ? "border-violet-500 bg-violet-600/10 text-white font-medium"
+                          : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      <div className="p-2 rounded-lg bg-zinc-800/80 text-violet-400 shrink-0">
+                        <List className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-white text-xs mb-0.5">Компактный список</div>
+                        <div className="text-[10px] text-zinc-400">Табличные строки для быстрой навигации</div>
+                      </div>
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex justify-end">
+                {/* Default Sort Order */}
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
+                    Сортировка сниппетов по умолчанию
+                  </label>
+                  <CustomSelect
+                    value={defaultSortBy}
+                    onChange={(val) => setDefaultSortBy(val as SortOption)}
+                    options={SORT_OPTIONS.map((opt) => ({
+                      value: opt.id,
+                      label: opt.label,
+                    }))}
+                  />
+                </div>
+
+                <div className="flex justify-end pt-2">
                   <button
                     type="submit"
-                    disabled={profileSaving}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-white bg-violet-600 hover:bg-violet-500 active:scale-[0.98] transition-all disabled:opacity-50"
+                    disabled={generalSaving}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-white bg-violet-600 hover:bg-violet-500 active:scale-[0.98] transition-all text-xs"
                   >
-                    {profileSaving ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    {generalSuccess ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-300" />
                     ) : (
                       <Save className="w-3.5 h-3.5" />
                     )}
-                    <span>Сохранить профиль</span>
+                    <span>{generalSuccess ? "Сохранено!" : "Сохранить параметры"}</span>
                   </button>
                 </div>
               </form>
+            )}
 
-              {/* 2FA Security Section */}
-              <div className="border border-zinc-800/80 rounded-2xl p-4 bg-zinc-900/40 space-y-4">
+            {/* TAB: PROFILE */}
+            {activeTab === "profile" && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {profileError && (
+                  <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs">
+                    {profileError}
+                  </div>
+                )}
+                {profileSuccess && (
+                  <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 flex items-center gap-2 text-xs">
+                    <Check className="w-4 h-4 flex-shrink-0" />
+                    <span>{profileSuccess}</span>
+                  </div>
+                )}
+
+                {/* Personal Info Form */}
+                <form onSubmit={handleUpdateProfile} className="space-y-4">
+                  <div className="border border-zinc-800/80 rounded-2xl p-5 bg-zinc-900/40 space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                        <UserIcon className="w-4 h-4 text-violet-400" />
+                        <span>Информация о себе</span>
+                      </h3>
+                      <p className="text-[11px] text-zinc-400">
+                        Персональные данные вашего профиля
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div className="space-y-1">
+                        <label className="text-zinc-400 text-[11px] font-medium">
+                          Имя / Псевдоним
+                        </label>
+                        <input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Ваше имя"
+                          className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-zinc-400 text-[11px] font-medium">
+                          Email адрес (логин)
+                        </label>
+                        <input
+                          type="email"
+                          disabled
+                          value={currentUser?.email || ""}
+                          className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-400 cursor-not-allowed opacity-75 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-zinc-400 text-[11px] font-medium">
+                        О себе / Краткое описание
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value)}
+                        placeholder="Senior Fullstack Developer / DevOps / etc."
+                        className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 resize-none text-xs"
+                      />
+                    </div>
+
+                    <div className="flex justify-end pt-2 border-t border-zinc-800/60">
+                      <button
+                        type="submit"
+                        disabled={profileSaving}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-white bg-violet-600 hover:bg-violet-500 active:scale-[0.98] transition-all disabled:opacity-50 text-xs shadow-sm shadow-violet-600/20"
+                      >
+                        {profileSaving ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        <span>Сохранить профиль</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* TAB: SECURITY */}
+            {activeTab === "security" && (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                {/* 1. Change Password Block */}
+                <div className="border border-zinc-800/80 rounded-2xl p-5 bg-zinc-900/40 space-y-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <KeyRound className="w-4 h-4 text-amber-400" />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                        Смена пароля
+                      </h3>
+                    </div>
+                    <p className="text-[11px] text-zinc-400">
+                      Обновите ваш пароль для входа в аккаунт
+                    </p>
+                  </div>
+
+                  {passwordSuccess && (
+                    <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 flex items-center gap-2 text-xs">
+                      <Check className="w-4 h-4 flex-shrink-0" />
+                      <span>{passwordSuccess}</span>
+                    </div>
+                  )}
+                  {passwordError && (
+                    <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs">
+                      {passwordError}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleChangePassword} className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div className="space-y-1">
+                        <label className="text-zinc-400 text-[11px] font-medium">
+                          Текущий пароль
+                        </label>
+                        <input
+                          type="password"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-zinc-400 text-[11px] font-medium">
+                          Новый пароль
+                        </label>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Минимум 6 символов"
+                          className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="submit"
+                        disabled={passwordSaving || !currentPassword || !newPassword}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-white bg-violet-600 hover:bg-violet-500 active:scale-[0.98] transition-all disabled:opacity-50 text-xs shadow-sm shadow-violet-600/20"
+                      >
+                        {passwordSaving ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        <span>Обновить пароль</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* 2FA Security Section */}
+                <div className="border border-zinc-800/80 rounded-2xl p-5 bg-zinc-900/40 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
@@ -1117,8 +1325,8 @@ export function SettingsModal({
                 )}
               </div>
 
-              {/* Passkeys Security Section */}
-              <div className="border border-zinc-800/80 rounded-2xl p-4 bg-zinc-900/40 space-y-4">
+                {/* Passkeys Security Section */}
+                <div className="border border-zinc-800/80 rounded-2xl p-5 bg-zinc-900/40 space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
@@ -1419,108 +1627,7 @@ export function SettingsModal({
             </form>
           )}
 
-          {/* TAB 3: GENERAL SETTINGS */}
-          {activeTab === "general" && (
-            <form onSubmit={handleSaveGeneral} className="space-y-5 animate-in fade-in duration-200">
-              <div className="space-y-1.5">
-                <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                  Язык по умолчанию для новых сниппетов
-                </label>
-                <CustomSelect
-                  value={defaultLanguage}
-                  onChange={setDefaultLanguage}
-                  options={SUPPORTED_LANGUAGES.map((l) => ({
-                    value: l.id,
-                    label: l.name,
-                    icon: (
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: l.color }}
-                      />
-                    ),
-                  }))}
-                  searchable
-                  searchPlaceholder="Поиск языка..."
-                />
-              </div>
-
-              {/* Default View Mode */}
-              <div className="space-y-2">
-                <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                  Отображение списка сниппетов по умолчанию
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDefaultViewMode("grid")}
-                    className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
-                      defaultViewMode === "grid"
-                        ? "border-violet-500 bg-violet-600/10 text-white font-medium"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    <div className="p-2 rounded-lg bg-zinc-800/80 text-violet-400 shrink-0">
-                      <LayoutGrid className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-white text-xs mb-0.5">Сетка карточек</div>
-                      <div className="text-[10px] text-zinc-400">С подсветкой кода и вкладками</div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setDefaultViewMode("list")}
-                    className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
-                      defaultViewMode === "list"
-                        ? "border-violet-500 bg-violet-600/10 text-white font-medium"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    <div className="p-2 rounded-lg bg-zinc-800/80 text-violet-400 shrink-0">
-                      <List className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-white text-xs mb-0.5">Компактный список</div>
-                      <div className="text-[10px] text-zinc-400">Табличные строки для быстрой навигации</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Default Sort Order */}
-              <div className="space-y-1.5">
-                <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                  Сортировка сниппетов по умолчанию
-                </label>
-                <CustomSelect
-                  value={defaultSortBy}
-                  onChange={(val) => setDefaultSortBy(val as SortOption)}
-                  options={SORT_OPTIONS.map((opt) => ({
-                    value: opt.id,
-                    label: opt.label,
-                  }))}
-                />
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <button
-                  type="submit"
-                  disabled={generalSaving}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-white bg-violet-600 hover:bg-violet-500 active:scale-[0.98] transition-all"
-                >
-                  {generalSuccess ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-300" />
-                  ) : (
-                    <Save className="w-3.5 h-3.5" />
-                  )}
-                  <span>{generalSuccess ? "Сохранено!" : "Сохранить параметры"}</span>
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* TAB 4: DATA BACKUP & RESTORE */}
+          {/* TAB: DATA */}
           {activeTab === "data" && (
             <div className="space-y-6 animate-in fade-in duration-200">
               {importSuccess && (
