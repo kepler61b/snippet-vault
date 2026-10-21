@@ -58,13 +58,11 @@ export function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const hasActiveFilters =
-    selectedCollectionId !== null ||
     selectedFilter !== "ALL" ||
     selectedLanguage !== null ||
     selectedTag !== null;
 
   const resetAllFilters = () => {
-    onSelectCollection(null);
     onSelectFilter("ALL");
     onSelectLanguage(null);
     onSelectTag(null);
@@ -76,7 +74,7 @@ export function Sidebar({
       <div className="flex lg:hidden items-center justify-between pb-3 border-b border-zinc-800">
         <div className="flex items-center gap-2 text-sm font-semibold text-white">
           <SlidersHorizontal className="w-4 h-4 text-violet-400" />
-          <span>Коллекции и фильтры</span>
+          <span>Навигация и фильтры</span>
         </div>
         <button
           onClick={onCloseMobile}
@@ -85,20 +83,6 @@ export function Sidebar({
           <X className="w-5 h-5" />
         </button>
       </div>
-
-      {/* Filter status & clear button */}
-      {hasActiveFilters && (
-        <div className="flex items-center justify-between px-3 py-2 bg-violet-950/30 border border-violet-800/40 rounded-xl text-xs text-violet-300">
-          <span>Фильтры активны</span>
-          <button
-            onClick={resetAllFilters}
-            className="flex items-center gap-1 font-medium hover:text-white transition-colors"
-          >
-            <X className="w-3.5 h-3.5" />
-            <span>Сбросить</span>
-          </button>
-        </div>
-      )}
 
       {/* БЛОК 1: КОЛЛЕКЦИИ (Все сниппеты + кастомные коллекции + кнопка создать) */}
       <div className="space-y-1">
@@ -196,8 +180,18 @@ export function Sidebar({
 
       {/* БЛОК 2: ФИЛЬТРЫ (Избранное, Публичные, По секретной ссылке, Приватные) */}
       <div className="space-y-1">
-        <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-          Фильтры
+        <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
+          <span>Фильтры</span>
+          {hasActiveFilters && (
+            <button
+              onClick={resetAllFilters}
+              className="flex items-center gap-1 text-[11px] font-medium text-violet-400 hover:text-violet-300 transition-colors normal-case"
+              title="Сбросить активные фильтры"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Сбросить</span>
+            </button>
+          )}
         </div>
 
         <button
