@@ -1,28 +1,25 @@
 services:
   snippetvault:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: snippetvault:latest
+    image: scfmcdck/snippet-vault:latest
     container_name: snippetvault
     restart: unless-stopped
     ports:
-      - "${PORT:-3000}:3000"
+      - "3000:3000"
     environment:
       - DATABASE_URL=file:/app/data/snippetvault.db
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      # AI Settings (можно также настраивать прямо из интерфейса во вкладке "Настройки")
-      - AI_PROVIDER=${AI_PROVIDER:-openai}
-      - AI_API_KEY=${AI_API_KEY:-}
-      - AI_BASE_URL=${AI_BASE_URL:-https://api.openai.com/v1}
-      - AI_MODEL=${AI_MODEL:-gpt-4o-mini}
+      # Настройки AI (можно также настроить прямо в веб-интерфейсе в "Параметры -> AI Ассистент")
+      - AI_PROVIDER=openai
+      - AI_API_KEY=
+      - AI_BASE_URL=https://api.openai.com/v1
+      - AI_MODEL=gpt-4o-mini
     volumes:
-      # Постоянное хранилище базы данных SQLite на хосте
+      # Постоянное хранилище базы данных SQLite (папка на Synology: /volume1/docker/snippetvault/data)
       - ./data:/app/data
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1"]
-      interval: 15s
+      interval: 20s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
