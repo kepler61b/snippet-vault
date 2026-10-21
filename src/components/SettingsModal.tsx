@@ -3,12 +3,15 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  ArrowUpDown,
   Check,
   Copy,
   Eye,
   EyeOff,
   Globe,
   KeyRound,
+  LayoutGrid,
+  List,
   Loader2,
   Lock,
   LogOut,
@@ -22,6 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { SUPPORTED_LANGUAGES } from "@/lib/languages";
+import { ViewMode, SortOption, SORT_OPTIONS } from "@/types/snippet";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -34,6 +38,7 @@ interface SettingsModalProps {
     twoFactorEnabled: boolean;
   } | null;
   onUserUpdated?: () => void;
+  onSettingsChanged?: () => void;
 }
 
 export function SettingsModal({
@@ -41,6 +46,7 @@ export function SettingsModal({
   onClose,
   currentUser,
   onUserUpdated,
+  onSettingsChanged,
 }: SettingsModalProps) {
   const router = useRouter();
 
@@ -87,6 +93,8 @@ export function SettingsModal({
   // General App Preferences
   const [defaultVisibility, setDefaultVisibility] = useState<"PUBLIC" | "UNLISTED" | "PRIVATE">("PUBLIC");
   const [defaultLanguage, setDefaultLanguage] = useState("typescript");
+  const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("grid");
+  const [defaultSortBy, setDefaultSortBy] = useState<SortOption>("CREATED_DESC");
   const [generalSaving, setGeneralSaving] = useState(false);
   const [generalSuccess, setGeneralSuccess] = useState(false);
 
@@ -139,6 +147,10 @@ export function SettingsModal({
     if (savedVis) setDefaultVisibility(savedVis);
     const savedLang = localStorage.getItem("snippetvault_default_language");
     if (savedLang) setDefaultLanguage(savedLang);
+    const savedView = localStorage.getItem("snippetvault_view_mode") as ViewMode;
+    if (savedView === "grid" || savedView === "list") setDefaultViewMode(savedView);
+    const savedSort = localStorage.getItem("snippetvault_sort_by") as SortOption;
+    if (savedSort && SORT_OPTIONS.some((o) => o.id === savedSort)) setDefaultSortBy(savedSort);
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -287,6 +299,9 @@ export function SettingsModal({
     setGeneralSaving(true);
     localStorage.setItem("snippetvault_default_visibility", defaultVisibility);
     localStorage.setItem("snippetvault_default_language", defaultLanguage);
+    localStorage.setItem("snippetvault_view_mode", defaultViewMode);
+    localStorage.setItem("snippetvault_sort_by", defaultSortBy);
+    onSettingsChanged?.();
     setGeneralSuccess(true);
     setTimeout(() => {
       setGeneralSaving(false);
@@ -900,6 +915,71 @@ export function SettingsModal({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Default View Mode */}
+              <div className="space-y-2">
+                <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
+                  Отображение списка сниппетов по умолчанию
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDefaultViewMode("grid")}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
+                      defaultViewMode === "grid"
+                        ? "border-violet-500 bg-violet-600/10 text-white font-medium"
+                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    <div className="p-2 rounded-lg bg-zinc-800/80 text-violet-400 shrink-0">
+                      <LayoutGrid className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-white text-xs mb-0.5">Сетка карточек</div>
+                      <div className="text-[10px] text-zinc-400">С подсветкой кода и вкладками</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDefaultViewMode("list")}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
+                      defaultViewMode === "list"
+                        ? "border-violet-500 bg-violet-600/10 text-white font-medium"
+                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    <div className="p-2 rounded-lg bg-zinc-800/80 text-violet-400 shrink-0">
+                      <List className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-white text-xs mb-0.5">Компактный список</div>
+                      <div className="text-[10px] text-zinc-400">Табличные строки для быстрой навигации</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Default Sort Order */}
+              <div className="space-y-1.5">
+                <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
+                  Сортировка сниппетов по умолчанию
+                </label>
+                <div className="relative">
+                  <select
+                    value={defaultSortBy}
+                    onChange={(e) => setDefaultSortBy(e.target.value as SortOption)}
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 outline-none focus:border-violet-500 cursor-pointer appearance-none pr-8"
+                  >
+                    {SORT_OPTIONS.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ArrowUpDown className="w-3.5 h-3.5 text-zinc-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
               </div>
 
               <div className="flex justify-end pt-2">

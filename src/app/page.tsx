@@ -2,9 +2,14 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import {
+  ArrowUpDown,
+  Check,
+  ChevronDown,
   Code2,
   FileCode,
   FolderGit2,
+  LayoutGrid,
+  List,
   Loader2,
   Plus,
   Search,
@@ -13,10 +18,18 @@ import {
   Terminal,
   X,
 } from "lucide-react";
-import { SnippetItem, SnippetFileItem, CollectionItem } from "@/types/snippet";
+import {
+  SnippetItem,
+  SnippetFileItem,
+  CollectionItem,
+  ViewMode,
+  SortOption,
+  SORT_OPTIONS,
+} from "@/types/snippet";
 import { Navbar } from "@/components/Navbar";
 import { Sidebar } from "@/components/Sidebar";
 import { SnippetCard } from "@/components/SnippetCard";
+import { SnippetListItem } from "@/components/SnippetListItem";
 import { SnippetEditorModal } from "@/components/SnippetEditorModal";
 import { SnippetViewModal } from "@/components/SnippetViewModal";
 import { CollectionModal } from "@/components/CollectionModal";
@@ -29,6 +42,11 @@ export default function HomePage() {
   const [snippets, setSnippets] = useState<SnippetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // View Mode & Sorting
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [sortBy, setSortBy] = useState<SortOption>("CREATED_DESC");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -122,10 +140,39 @@ export default function HomePage() {
     }
   };
 
+  const loadPreferences = () => {
+    try {
+      const savedView = localStorage.getItem("snippetvault_view_mode") as ViewMode;
+      if (savedView === "grid" || savedView === "list") {
+        setViewMode(savedView);
+      }
+      const savedSort = localStorage.getItem("snippetvault_sort_by") as SortOption;
+      if (savedSort && SORT_OPTIONS.some((o) => o.id === savedSort)) {
+        setSortBy(savedSort);
+      }
+    } catch {}
+  };
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("snippetvault_view_mode", mode);
+    } catch {}
+  };
+
+  const handleSortChange = (sort: SortOption) => {
+    setSortBy(sort);
+    setSortMenuOpen(false);
+    try {
+      localStorage.setItem("snippetvault_sort_by", sort);
+    } catch {}
+  };
+
   useEffect(() => {
     fetchCurrentUser();
     fetchCollections();
     fetchSnippets();
+    loadPreferences();
   }, []);
 
   // Compute languages & tags with counts
@@ -214,6 +261,31 @@ export default function HomePage() {
       return true;
     });
   }, [snippets, searchQuery, selectedFilter, selectedLanguage, selectedTag]);
+
+  // Sorted snippets
+  const sortedSnippets = useMemo(() => {
+    return [...filteredSnippets].sort((a, b) => {
+      switch (sortBy) {
+        case "CREATED_DESC":
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "CREATED_ASC":
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "UPDATED_DESC":
+          return (
+            new Date(b.updatedAt || b.createdAt).getTime() -
+            new Date(a.updatedAt || a.createdAt).getTime()
+          );
+        case "TITLE_ASC":
+          return a.title.localeCompare(b.title, "ru", { sensitivity: "base" });
+        case "TITLE_DESC":
+          return b.title.localeCompare(a.title, "ru", { sensitivity: "base" });
+        case "FILES_DESC":
+          return (b.files?.length || 0) - (a.files?.length || 0);
+        default:
+          return 0;
+      }
+    });
+  }, [filteredSnippets, sortBy]);
 
   // Toggle favorite
   const handleToggleFavorite = async (id: string) => {
@@ -518,8 +590,9 @@ export default function HomePage() {
                 </p>
               </div>
             </div>
-            {activeCollection && (
-              <div className="flex items-center gap-2">
+            {/* Actions Toolbar: Collection Edit, Sorting, View Toggle */}
+            <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+              {activeCollection && (
                 <button
                   onClick={() => {
                     setEditingCollection(activeCollection);
@@ -527,10 +600,90 @@ export default function HomePage() {
                   }}
                   className="px-3 py-1.5 rounded-xl text-xs font-medium bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-all flex items-center gap-1.5 active:scale-95"
                 >
-                  <span>Настроить коллекцию</span>
+                  <span>Настроить</span>
+                </button>
+              )}
+
+              {/* Sorting Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSortMenuOpen(!sortMenuOpen)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all active:scale-95 ${
+                    sortMenuOpen
+                      ? "bg-zinc-800 border-zinc-700 text-white"
+                      : "bg-zinc-900 hover:bg-zinc-800/80 border-zinc-800 text-zinc-300 hover:text-white"
+                  }`}
+                  title="Сортировка сниппетов"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5 text-violet-400" />
+                  <span className="hidden sm:inline text-zinc-400">Сортировка:</span>
+                  <span className="font-semibold text-zinc-100">
+                    {SORT_OPTIONS.find((o) => o.id === sortBy)?.label || "Сортировка"}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-zinc-500" />
+                </button>
+
+                {sortMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-20"
+                      onClick={() => setSortMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-1.5 w-52 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl z-30 p-1 animate-in fade-in zoom-in-95 duration-100">
+                      <div className="px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider border-b border-zinc-800/60 mb-1">
+                        Сортировать сниппеты
+                      </div>
+                      {SORT_OPTIONS.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => handleSortChange(option.id)}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+                            sortBy === option.id
+                              ? "bg-violet-600/20 text-violet-300 font-medium"
+                              : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                          }`}
+                        >
+                          <span>{option.label}</span>
+                          {sortBy === option.id && (
+                            <Check className="w-3.5 h-3.5 text-violet-400" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* View Mode Toggle: Grid vs List */}
+              <div className="flex items-center p-0.5 rounded-xl border border-zinc-800 bg-zinc-900">
+                <button
+                  type="button"
+                  onClick={() => handleViewModeChange("grid")}
+                  className={`p-1.5 rounded-lg text-xs transition-all ${
+                    viewMode === "grid"
+                      ? "bg-zinc-800 text-violet-300 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                  }`}
+                  title="Отображение карточками (Сетка)"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleViewModeChange("list")}
+                  className={`p-1.5 rounded-lg text-xs transition-all ${
+                    viewMode === "list"
+                      ? "bg-zinc-800 text-violet-300 shadow-sm"
+                      : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                  }`}
+                  title="Отображение компактным списком"
+                >
+                  <List className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Error notice */}
@@ -581,11 +734,26 @@ export default function HomePage() {
                 <span>Создать первый сниппет</span>
               </button>
             </div>
-          ) : (
+          ) : viewMode === "grid" ? (
             /* Snippets Grid */
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {filteredSnippets.map((snippet) => (
+              {sortedSnippets.map((snippet) => (
                 <SnippetCard
+                  key={snippet.id}
+                  snippet={snippet}
+                  onView={(s) => setViewingSnippet(s)}
+                  onEdit={(s) => setEditingSnippet(s)}
+                  onDelete={handleDeleteSnippet}
+                  onToggleFavorite={handleToggleFavorite}
+                  onSelectTag={(t) => setSelectedTag(t)}
+                />
+              ))}
+            </div>
+          ) : (
+            /* Snippets Compact List */
+            <div className="flex flex-col gap-2">
+              {sortedSnippets.map((snippet) => (
+                <SnippetListItem
                   key={snippet.id}
                   snippet={snippet}
                   onView={(s) => setViewingSnippet(s)}
@@ -684,6 +852,7 @@ export default function HomePage() {
         onClose={() => setIsSettingsOpen(false)}
         currentUser={currentUser}
         onUserUpdated={fetchCurrentUser}
+        onSettingsChanged={loadPreferences}
       />
 
       {/* Command Palette */}
