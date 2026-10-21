@@ -86,14 +86,16 @@ export function Sidebar({
       <div className="space-y-1">
         <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
           <span>Коллекции</span>
-          <button
-            onClick={onOpenCreateCollection}
-            className="flex items-center gap-1 text-[11px] font-medium text-violet-400 hover:text-violet-300 transition-colors"
-            title="Создать свою коллекцию"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Новая</span>
-          </button>
+          {collections.length > 0 && (
+            <button
+              onClick={onOpenCreateCollection}
+              className="flex items-center gap-1 text-[11px] font-medium text-violet-400 hover:text-violet-300 transition-colors"
+              title="Создать свою коллекцию"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Новая</span>
+            </button>
+          )}
         </div>
 
         {/* Все сниппеты */}
