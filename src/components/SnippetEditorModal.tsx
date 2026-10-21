@@ -17,7 +17,14 @@ import {
   X,
 } from "lucide-react";
 import { SnippetItem, SnippetFileItem, CollectionItem } from "@/types/snippet";
-import { detectLanguageFromFilename, SUPPORTED_LANGUAGES } from "@/lib/languages";
+import {
+  detectLanguageFromFilename,
+  detectLanguageFromCode,
+  getDefaultExtensionForLanguage,
+  replaceFileExtension,
+  getLanguageMeta,
+  SUPPORTED_LANGUAGES,
+} from "@/lib/languages";
 import { CollectionIcon } from "@/lib/collection-icons";
 import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
 
@@ -73,16 +80,20 @@ export function SnippetEditorModal({
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState<string | null>(null);
+  const [autoDetectedLang, setAutoDetectedLang] = useState<string | null>(null);
+  const [manualLanguageMap, setManualLanguageMap] = useState<Record<number, boolean>>({});
 
   if (!isOpen) return null;
 
   const currentFile = files[activeFileIndex] || files[0];
 
   const handleAddFile = () => {
+    const currentLang = currentFile?.language || "typescript";
+    const ext = getDefaultExtensionForLanguage(currentLang);
     const newFileNumber = files.length + 1;
     const newFile: SnippetFileItem = {
-      filename: `file${newFileNumber}.ts`,
-      language: "typescript",
+      filename: `file${newFileNumber}.${ext}`,
+      language: currentLang,
       content: "",
     };
     setFiles([...files, newFile]);
@@ -101,30 +112,78 @@ export function SnippetEditorModal({
   const handleFilenameChange = (filename: string) => {
     const detected = detectLanguageFromFilename(filename);
     const updated = [...files];
+    const prevLang = updated[activeFileIndex].language;
+    const langChanged = detected !== "plaintext" && detected !== prevLang;
+
     updated[activeFileIndex] = {
       ...updated[activeFileIndex],
       filename,
-      language: detected !== "plaintext" ? detected : updated[activeFileIndex].language,
+      language: detected !== "plaintext" ? detected : prevLang,
     };
     setFiles(updated);
+
+    if (langChanged) {
+      setManualLanguageMap((prev) => ({ ...prev, [activeFileIndex]: true }));
+      setAutoDetectedLang(detected);
+      setTimeout(() => setAutoDetectedLang(null), 3500);
+    }
   };
 
   const handleLanguageChange = (language: string) => {
     const updated = [...files];
+    const currentName = updated[activeFileIndex].filename;
+    const newFilename = replaceFileExtension(currentName, language);
+
     updated[activeFileIndex] = {
       ...updated[activeFileIndex],
       language,
+      filename: newFilename,
     };
     setFiles(updated);
+    setManualLanguageMap((prev) => ({ ...prev, [activeFileIndex]: true }));
+    setAutoDetectedLang(null);
   };
 
   const handleCodeChange = (content: string) => {
     const updated = [...files];
+    const file = updated[activeFileIndex];
+    let nextLang = file.language;
+    let nextFilename = file.filename;
+
+    // Detect language from code if not manually chosen by user
+    if (!manualLanguageMap[activeFileIndex]) {
+      const detected = detectLanguageFromCode(content);
+      if (detected && detected !== file.language) {
+        nextLang = detected;
+        nextFilename = replaceFileExtension(file.filename, detected);
+        setAutoDetectedLang(detected);
+        setTimeout(() => setAutoDetectedLang(null), 3500);
+      }
+    }
+
     updated[activeFileIndex] = {
-      ...updated[activeFileIndex],
+      ...file,
       content,
+      language: nextLang,
+      filename: nextFilename,
     };
     setFiles(updated);
+  };
+
+  const handleAutoDetectLanguage = () => {
+    const detected = detectLanguageFromCode(currentFile.content);
+    if (detected) {
+      const newFilename = replaceFileExtension(currentFile.filename, detected);
+      const updated = [...files];
+      updated[activeFileIndex] = {
+        ...updated[activeFileIndex],
+        language: detected,
+        filename: newFilename,
+      };
+      setFiles(updated);
+      setAutoDetectedLang(detected);
+      setTimeout(() => setAutoDetectedLang(null), 3500);
+    }
   };
 
   // Indent with 2 spaces on Tab key press
@@ -569,17 +628,48 @@ export function SnippetEditorModal({
                 />
               </div>
 
-              <div className="w-full sm:w-52">
-                <CustomSelect
-                  value={currentFile.language}
-                  onChange={handleLanguageChange}
-                  options={languageOptions}
-                  searchable
-                  searchPlaceholder="Поиск языка..."
-                  triggerClassName="py-1.5 px-3 text-xs rounded-lg bg-zinc-900 border-zinc-800"
-                />
+              <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                <div className="w-full sm:w-52">
+                  <CustomSelect
+                    value={currentFile.language}
+                    onChange={handleLanguageChange}
+                    options={languageOptions}
+                    searchable
+                    searchPlaceholder="Поиск языка..."
+                    triggerClassName="py-1.5 px-3 text-xs rounded-lg bg-zinc-900 border-zinc-800"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAutoDetectLanguage}
+                  className="p-1.5 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-violet-300 transition-colors shrink-0"
+                  title="Определить язык по коду"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+                </button>
               </div>
             </div>
+
+            {/* Auto-detection Notification Banner */}
+            {autoDetectedLang && (
+              <div className="px-3.5 py-1.5 bg-violet-950/40 border-b border-violet-800/40 text-[11px] text-violet-300 flex items-center justify-between animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-violet-400 animate-pulse" />
+                  <span>
+                    Язык автоматически определен:{" "}
+                    <strong className="text-white">{getLanguageMeta(autoDetectedLang).name}</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAutoDetectedLang(null)}
+                  className="text-violet-400 hover:text-white p-0.5 rounded transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
 
             {/* Editor Textarea with line numbers */}
             <div className="relative flex bg-zinc-950 font-mono text-xs sm:text-sm min-h-[280px] sm:min-h-[340px] max-h-[50vh] overflow-hidden">
