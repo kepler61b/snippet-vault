@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowUpDown,
@@ -67,6 +67,81 @@ export function SettingsModal({
 
   // Active Tab: "profile" | "ai" | "general" | "data"
   const [activeTab, setActiveTab] = useState<"profile" | "ai" | "general" | "data">("profile");
+
+  // Modal Smooth Height Animation State & Refs
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const innerContentRef = useRef<HTMLDivElement>(null);
+
+  const [modalHeight, setModalHeight] = useState<number | undefined>(undefined);
+  const [hasTransition, setHasTransition] = useState(false);
+  const isReadyForTransitionRef = useRef(false);
+
+  const updateModalHeight = () => {
+    if (!headerRef.current || !tabsRef.current || !innerContentRef.current) return;
+    const headerH = headerRef.current.offsetHeight;
+    const tabsH = tabsRef.current.offsetHeight;
+    const footerH = footerRef.current ? footerRef.current.offsetHeight : 0;
+    const contentH = innerContentRef.current.offsetHeight;
+    if (contentH === 0) return;
+    const targetH = headerH + tabsH + contentH + footerH;
+    const maxH = window.innerHeight * 0.92;
+    const finalH = Math.min(targetH, maxH);
+    setModalHeight(Math.round(finalH));
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      isReadyForTransitionRef.current = false;
+      setHasTransition(false);
+      setModalHeight(undefined);
+      return;
+    }
+
+    // Initial measurement
+    updateModalHeight();
+
+    // Enable smooth height transitions after entrance animation (0.28s) completes
+    const timer = setTimeout(() => {
+      isReadyForTransitionRef.current = true;
+      setHasTransition(true);
+      updateModalHeight();
+    }, 280);
+
+    let observer: ResizeObserver | null = null;
+    if (innerContentRef.current && typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(() => {
+        updateModalHeight();
+      });
+      observer.observe(innerContentRef.current);
+    }
+
+    const handleResize = () => {
+      updateModalHeight();
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      clearTimeout(timer);
+      if (observer) observer.disconnect();
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isOpen]);
+
+  const handleTabChange = (tab: "profile" | "ai" | "general" | "data") => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    if (tab === "data") {
+      loadCollectionsList();
+    }
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
+    requestAnimationFrame(() => {
+      updateModalHeight();
+    });
+  };
 
   // Data Export & Import State
   const [userCollections, setUserCollections] = useState<CollectionItem[]>([]);
@@ -601,9 +676,21 @@ export function SettingsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative w-full max-w-2xl max-h-[92vh] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content">
+      <div
+        ref={dialogRef}
+        style={{
+          height: modalHeight ? `${modalHeight}px` : undefined,
+          transition: hasTransition
+            ? "height 0.32s cubic-bezier(0.16, 1, 0.3, 1)"
+            : undefined,
+        }}
+        className="relative w-full max-w-2xl max-h-[92vh] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height]"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60">
+        <div
+          ref={headerRef}
+          className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0"
+        >
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-600/20 text-violet-400 border border-violet-500/30">
               <SettingsIcon className="w-4 h-4" />
@@ -626,10 +713,13 @@ export function SettingsModal({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center px-6 border-b border-zinc-800 bg-zinc-950/90 text-xs font-semibold gap-1 overflow-x-auto">
+        <div
+          ref={tabsRef}
+          className="flex items-center px-6 border-b border-zinc-800 bg-zinc-950/90 text-xs font-semibold gap-1 overflow-x-auto shrink-0"
+        >
           <button
             type="button"
-            onClick={() => setActiveTab("profile")}
+            onClick={() => handleTabChange("profile")}
             className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
               activeTab === "profile"
                 ? "border-violet-500 text-white"
@@ -642,7 +732,7 @@ export function SettingsModal({
 
           <button
             type="button"
-            onClick={() => setActiveTab("ai")}
+            onClick={() => handleTabChange("ai")}
             className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
               activeTab === "ai"
                 ? "border-violet-500 text-white"
@@ -655,7 +745,7 @@ export function SettingsModal({
 
           <button
             type="button"
-            onClick={() => setActiveTab("general")}
+            onClick={() => handleTabChange("general")}
             className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
               activeTab === "general"
                 ? "border-violet-500 text-white"
@@ -668,10 +758,7 @@ export function SettingsModal({
 
           <button
             type="button"
-            onClick={() => {
-              setActiveTab("data");
-              loadCollectionsList();
-            }}
+            onClick={() => handleTabChange("data")}
             className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
               activeTab === "data"
                 ? "border-violet-500 text-white"
@@ -684,10 +771,17 @@ export function SettingsModal({
         </div>
 
         {/* Tab Contents */}
-        <div className="flex-1 overflow-y-auto p-6 text-xs text-zinc-200 space-y-6">
-          {/* TAB 1: PROFILE & 2FA */}
-          {activeTab === "profile" && (
-            <div className="space-y-6">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0"
+        >
+          <div
+            ref={innerContentRef}
+            className="p-6 text-xs text-zinc-200 space-y-6"
+          >
+            {/* TAB 1: PROFILE & 2FA */}
+            {activeTab === "profile" && (
+              <div className="space-y-6 animate-in fade-in duration-200">
               {profileError && (
                 <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300">
                   {profileError}
@@ -1172,7 +1266,7 @@ export function SettingsModal({
 
           {/* TAB 2: AI ASSISTANT */}
           {activeTab === "ai" && (
-            <form onSubmit={handleSaveAI} className="space-y-4">
+            <form onSubmit={handleSaveAI} className="space-y-4 animate-in fade-in duration-200">
               <div className="space-y-1.5">
                 <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
                   Провайдер AI
@@ -1310,7 +1404,7 @@ export function SettingsModal({
 
           {/* TAB 3: GENERAL SETTINGS */}
           {activeTab === "general" && (
-            <form onSubmit={handleSaveGeneral} className="space-y-5">
+            <form onSubmit={handleSaveGeneral} className="space-y-5 animate-in fade-in duration-200">
               <div className="space-y-2">
                 <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
                   Видимость сниппетов по умолчанию
@@ -1457,7 +1551,7 @@ export function SettingsModal({
 
           {/* TAB 4: DATA BACKUP & RESTORE */}
           {activeTab === "data" && (
-            <div className="space-y-6">
+            <div className="space-y-6 animate-in fade-in duration-200">
               {importSuccess && (
                 <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 flex items-center gap-2.5 text-xs">
                   <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
@@ -1629,10 +1723,14 @@ export function SettingsModal({
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Footer with Logout Button */}
-        <div className="flex items-center justify-between px-6 py-3.5 border-t border-zinc-800 bg-zinc-900/40">
+        <div
+          ref={footerRef}
+          className="flex items-center justify-between px-6 py-3.5 border-t border-zinc-800 bg-zinc-900/40 shrink-0"
+        >
           <button
             type="button"
             onClick={handleLogout}
