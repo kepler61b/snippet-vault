@@ -260,7 +260,7 @@ export default function HomePage() {
 
       return true;
     });
-  }, [snippets, searchQuery, selectedFilter, selectedLanguage, selectedTag]);
+  }, [snippets, searchQuery, selectedCollectionId, selectedFilter, selectedLanguage, selectedTag]);
 
   // Sorted snippets
   const sortedSnippets = useMemo(() => {
