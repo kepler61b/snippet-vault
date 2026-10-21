@@ -92,6 +92,16 @@ export function SnippetViewModal({
     URL.revokeObjectURL(url);
   };
 
+  const handleExportSnippet = () => {
+    if (!snippet) return;
+    const a = document.createElement("a");
+    a.href = `/api/export?type=snippet&id=${snippet.id}`;
+    a.download = `${snippet.title || "snippet"}.snippetvault.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   const formattedDate = new Date(snippet.createdAt).toLocaleDateString("ru-RU", {
     year: "numeric",
     month: "long",
@@ -186,6 +196,14 @@ export function SnippetViewModal({
               title="Редактировать сниппет"
             >
               <Edit3 className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={handleExportSnippet}
+              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors"
+              title="Экспортировать сниппет в JSON"
+            >
+              <Download className="w-4 h-4" />
             </button>
 
             <button

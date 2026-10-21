@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import {
   Code,
+  Download,
   FileCode,
   FolderGit2,
   Plus,
@@ -10,6 +11,7 @@ import {
   Settings,
   Sparkles,
   Star,
+  Upload,
   X,
 } from "lucide-react";
 import { SnippetItem } from "@/types/snippet";
@@ -88,6 +90,29 @@ export function CommandPalette({
       run: () => {
         onClose();
         onShowFavorites();
+      },
+    },
+    {
+      id: "export-all",
+      title: "Экспортировать всю базу сниппетов (.json)",
+      icon: Download,
+      run: () => {
+        onClose();
+        const a = document.createElement("a");
+        a.href = "/api/export?type=all";
+        a.download = `snippetvault-backup-${new Date().toISOString().split("T")[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      },
+    },
+    {
+      id: "import-backup",
+      title: "Импортировать сниппеты и коллекции (.json)...",
+      icon: Upload,
+      run: () => {
+        onClose();
+        onOpenSettingsModal();
       },
     },
     {

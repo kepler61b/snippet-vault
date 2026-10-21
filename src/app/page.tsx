@@ -6,6 +6,7 @@ import {
   Check,
   ChevronDown,
   Code2,
+  Download,
   FileCode,
   FolderGit2,
   LayoutGrid,
@@ -615,15 +616,33 @@ export default function HomePage() {
             {/* Actions Toolbar: Collection Edit, Sorting, View Toggle */}
             <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
               {activeCollection && (
-                <button
-                  onClick={() => {
-                    setEditingCollection(activeCollection);
-                    setIsCollectionModalOpen(true);
-                  }}
-                  className="px-3 py-1.5 rounded-xl text-xs font-medium bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-all flex items-center gap-1.5 active:scale-95"
-                >
-                  <span>Настроить</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = `/api/export?type=collection&id=${activeCollection.id}`;
+                      a.download = `${activeCollection.name}.collection.snippetvault.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                    }}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-all flex items-center gap-1.5 active:scale-95"
+                    title="Экспортировать сниппеты коллекции в JSON"
+                  >
+                    <Download className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Экспорт</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setEditingCollection(activeCollection);
+                      setIsCollectionModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 rounded-xl text-xs font-medium bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-all flex items-center gap-1.5 active:scale-95"
+                  >
+                    <span>Настроить</span>
+                  </button>
+                </>
               )}
 
               {/* Sorting Dropdown */}
@@ -874,7 +893,11 @@ export default function HomePage() {
         onClose={() => setIsSettingsOpen(false)}
         currentUser={currentUser}
         onUserUpdated={fetchCurrentUser}
-        onSettingsChanged={loadPreferences}
+        onSettingsChanged={() => {
+          loadPreferences();
+          fetchSnippets();
+          fetchCollections();
+        }}
       />
 
       {/* Command Palette */}

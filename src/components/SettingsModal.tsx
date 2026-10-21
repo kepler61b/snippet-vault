@@ -6,11 +6,16 @@ import {
   ArrowUpDown,
   Check,
   Copy,
+  Database,
+  Download,
   Edit2,
   Eye,
   EyeOff,
+  FileUp,
   Fingerprint,
+  FolderGit2,
   Globe,
+  HardDrive,
   KeyRound,
   Laptop,
   LayoutGrid,
@@ -27,6 +32,7 @@ import {
   Smartphone,
   Sparkles,
   Trash2,
+  Upload,
   User as UserIcon,
   X,
 } from "lucide-react";
@@ -58,8 +64,15 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const router = useRouter();
 
-  // Active Tab: "profile" | "ai" | "general"
-  const [activeTab, setActiveTab] = useState<"profile" | "ai" | "general">("profile");
+  // Active Tab: "profile" | "ai" | "general" | "data"
+  const [activeTab, setActiveTab] = useState<"profile" | "ai" | "general" | "data">("profile");
+
+  // Data Export & Import State
+  const [userCollections, setUserCollections] = useState<{ id: string; name: string }[]>([]);
+  const [selectedExportColId, setSelectedExportColId] = useState<string>("all");
+  const [importing, setImporting] = useState(false);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   // User Profile State
   const [name, setName] = useState("");
@@ -180,6 +193,9 @@ export function SettingsModal({
     // 4. Passkeys
     setPasskeySupported(browserSupportsWebAuthn());
     loadPasskeys();
+
+    // 5. Collections for export
+    loadCollectionsList();
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -445,6 +461,81 @@ export function SettingsModal({
     }, 1500);
   };
 
+  // Data Export & Import Handlers
+  const loadCollectionsList = async () => {
+    try {
+      const res = await fetch("/api/collections");
+      const data = await res.json();
+      if (data.success && data.collections) {
+        setUserCollections(data.collections);
+      }
+    } catch {}
+  };
+
+  const handleExportFull = () => {
+    const a = document.createElement("a");
+    a.href = "/api/export?type=all";
+    a.download = `snippetvault-backup-${new Date().toISOString().split("T")[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleExportSelectedCollection = () => {
+    if (!selectedExportColId || selectedExportColId === "all") {
+      handleExportFull();
+      return;
+    }
+    const a = document.createElement("a");
+    a.href = `/api/export?type=collection&id=${selectedExportColId}`;
+    const colName =
+      userCollections.find((c) => c.id === selectedExportColId)?.name || "collection";
+    a.download = `${colName}.collection.snippetvault.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportError(null);
+    setImportSuccess(null);
+    setImporting(true);
+
+    try {
+      const text = await file.text();
+      let jsonPayload;
+      try {
+        jsonPayload = JSON.parse(text);
+      } catch {
+        throw new Error("Выбранный файл не является валидным JSON");
+      }
+
+      const res = await fetch("/api/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(jsonPayload),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Ошибка импорта данных");
+      }
+
+      setImportSuccess(data.message || `Импортировано сниппетов: ${data.importedSnippets}`);
+      await loadCollectionsList();
+      onSettingsChanged?.();
+      onUserUpdated?.();
+      e.target.value = "";
+    } catch (err: any) {
+      setImportError(err.message || "Не удалось импортировать файл");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleLogout = async () => {
     if (confirm("Вы действительно хотите выйти из аккаунта?")) {
       try {
@@ -524,6 +615,22 @@ export function SettingsModal({
           >
             <Globe className="w-3.5 h-3.5" />
             <span>Общие настройки</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("data");
+              loadCollectionsList();
+            }}
+            className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "data"
+                ? "border-violet-500 text-white"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>Резервные копии & Данные</span>
           </button>
         </div>
 
@@ -1297,6 +1404,148 @@ export function SettingsModal({
                 </button>
               </div>
             </form>
+          )}
+
+          {/* TAB 4: DATA BACKUP & RESTORE */}
+          {activeTab === "data" && (
+            <div className="space-y-6">
+              {importSuccess && (
+                <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 flex items-center gap-2.5 text-xs">
+                  <Check className="w-4 h-4 flex-shrink-0 text-emerald-400" />
+                  <span>{importSuccess}</span>
+                </div>
+              )}
+
+              {importError && (
+                <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs">
+                  {importError}
+                </div>
+              )}
+
+              {/* Export Section */}
+              <div className="border border-zinc-800/80 rounded-2xl p-5 bg-zinc-900/40 space-y-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Download className="w-4 h-4 text-violet-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Экспорт данных (Резервное копирование)
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">
+                    Скачивайте структурированный JSON файл со сниппетами, многофайловым кодом, тегами и коллекциями для сохранения или переноса на другой сервер.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* Full Backup */}
+                  <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-950/60 flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="font-semibold text-white text-xs flex items-center gap-1.5">
+                        <HardDrive className="w-3.5 h-3.5 text-violet-400" />
+                        <span>Вся база сниппетов</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400">
+                        Полная резервная копия всех сниппетов, коллекций и метаданных аккаунта в одном файле.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleExportFull}
+                      className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs transition-all active:scale-[0.98] shadow-sm shadow-violet-600/20"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Экспортировать всю базу (.json)</span>
+                    </button>
+                  </div>
+
+                  {/* Collection Export */}
+                  <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-950/60 flex flex-col justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="font-semibold text-white text-xs flex items-center gap-1.5">
+                        <FolderGit2 className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Отдельная коллекция</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400">
+                        Экспорт только выбранной коллекции со всеми входящими в неё сниппетами.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <select
+                        value={selectedExportColId}
+                        onChange={(e) => setSelectedExportColId(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-xl border border-zinc-800 bg-zinc-900 text-xs text-zinc-200 outline-none focus:border-violet-500"
+                      >
+                        <option value="all">Все коллекции (полный архив)</option>
+                        {userCollections.map((col) => (
+                          <option key={col.id} value={col.id}>
+                            {col.name}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={handleExportSelectedCollection}
+                        className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/60 text-zinc-200 hover:text-white font-medium text-xs transition-all active:scale-[0.98]"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Скачать коллекцию (.json)</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Import Section */}
+              <div className="border border-zinc-800/80 rounded-2xl p-5 bg-zinc-900/40 space-y-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Upload className="w-4 h-4 text-emerald-400" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Импорт и восстановление данных
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-zinc-400">
+                    Загрузите файл резервной копии SnippetVault (`.json`). Все коллекции и сниппеты с их файлами, тегами и свойствами будут автоматически восстановлены.
+                  </p>
+                </div>
+
+                <div className="p-6 rounded-2xl border-2 border-dashed border-zinc-800 hover:border-violet-500/50 bg-zinc-950/40 transition-colors flex flex-col items-center justify-center text-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
+                    {importing ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+                    ) : (
+                      <FileUp className="w-6 h-6" />
+                    )}
+                  </div>
+
+                  <div className="space-y-1 max-w-sm">
+                    <p className="font-semibold text-white text-xs">
+                      {importing ? "Импортирование данных..." : "Выберите файл резервной копии для восстановления"}
+                    </p>
+                    <p className="text-[11px] text-zinc-500">
+                      Поддерживаются файлы `.json` полной базы, отдельной коллекции или одиночного сниппета
+                    </p>
+                  </div>
+
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      disabled={importing}
+                      onChange={handleImportFile}
+                      className="hidden"
+                    />
+                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs transition-all active:scale-[0.98] shadow-sm shadow-violet-600/20">
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{importing ? "Обработка файла..." : "Выбрать файл резервной копии (.json)"}</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 

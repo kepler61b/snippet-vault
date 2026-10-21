@@ -5,6 +5,7 @@ import {
   Check,
   Code2,
   Copy,
+  Download,
   Edit3,
   ExternalLink,
   Eye,
@@ -69,6 +70,17 @@ export function SnippetCard({
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleExportSnippet = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMenuOpen(false);
+    const a = document.createElement("a");
+    a.href = `/api/export?type=snippet&id=${snippet.id}`;
+    a.download = `${snippet.title || "snippet"}.snippetvault.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   // Extract preview lines (max 4 lines)
@@ -184,6 +196,13 @@ export function SnippetCard({
                   >
                     <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
                     <span>{copiedLink ? "Ссылка скопирована!" : "Скопировать ссылку"}</span>
+                  </button>
+                  <button
+                    onClick={handleExportSnippet}
+                    className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                  >
+                    <Download className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Экспорт (.json)</span>
                   </button>
                   <div className="my-1 border-t border-zinc-800" />
                   <button

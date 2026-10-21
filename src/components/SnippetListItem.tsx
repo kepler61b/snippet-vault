@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
   Check,
   Copy,
+  Download,
   Edit3,
   ExternalLink,
   FileCode,
@@ -250,6 +251,23 @@ export function SnippetListItem({
             title="Редактировать сниппет"
           >
             <Edit3 className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              const a = document.createElement("a");
+              a.href = `/api/export?type=snippet&id=${snippet.id}`;
+              a.download = `${snippet.title || "snippet"}.snippetvault.json`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            }}
+            className="p-1.5 rounded-lg bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-400 hover:text-white transition-colors"
+            title="Экспортировать сниппет (.json)"
+          >
+            <Download className="w-3.5 h-3.5" />
           </button>
 
           <button

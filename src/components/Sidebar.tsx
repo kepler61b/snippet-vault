@@ -3,6 +3,7 @@
 import React from "react";
 import {
   Code2,
+  Download,
   Edit2,
   FolderGit2,
   Globe,
@@ -149,6 +150,22 @@ export function Sidebar({
 
               <div className="flex items-center gap-1 pr-2">
                 <span className="text-xs opacity-60 px-1">{count}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const a = document.createElement("a");
+                    a.href = `/api/export?type=collection&id=${col.id}`;
+                    a.download = `${col.name}.collection.snippetvault.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }}
+                  className="opacity-0 group-hover/col:opacity-100 p-1 text-zinc-500 hover:text-white rounded transition-opacity"
+                  title="Экспортировать коллекцию в JSON"
+                >
+                  <Download className="w-3 h-3" />
+                </button>
                 <button
                   type="button"
                   onClick={(e) => {
