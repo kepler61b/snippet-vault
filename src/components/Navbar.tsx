@@ -61,7 +61,7 @@ export function Navbar({
         <div className="flex items-center gap-2.5">
           <button
             onClick={onOpenCommandPalette}
-            className="md:hidden p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800/60 border border-zinc-800 transition-colors"
+            className="md:hidden p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all hover:scale-105 active:scale-95"
             title="Поиск (Ctrl+K)"
           >
             <Search className="w-4 h-4" />
@@ -69,7 +69,7 @@ export function Navbar({
 
           <button
             onClick={onOpenSettingsModal}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all hover:scale-105 active:scale-95"
             title="Настройки AI"
           >
             <Settings className="w-4 h-4" />
@@ -78,7 +78,7 @@ export function Navbar({
 
           <button
             onClick={onOpenCreateModal}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 active:scale-[0.98] transition-all duration-150"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 hover:shadow-violet-600/40 hover:-translate-y-0.5 active:scale-95 transition-all duration-150"
           >
             <Plus className="w-4 h-4" />
             <span>Сниппет</span>

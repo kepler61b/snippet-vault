@@ -78,7 +78,7 @@ export function SnippetCard({
   return (
     <div
       onClick={() => onView(snippet)}
-      className="group relative flex flex-col justify-between rounded-2xl border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-zinc-700/80 p-5 transition-all duration-200 cursor-pointer hover:shadow-xl hover:shadow-indigo-500/5 backdrop-blur-sm"
+      className="group relative flex flex-col justify-between rounded-2xl border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-zinc-700/80 p-5 cursor-pointer hover:shadow-xl hover:shadow-indigo-500/10 backdrop-blur-sm card-lift"
     >
       <div>
         {/* Top Header */}
@@ -100,7 +100,7 @@ export function SnippetCard({
                   <Lock className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
                 </span>
               )}
-              <h3 className="text-base font-semibold text-zinc-100 group-hover:text-white truncate">
+              <h3 className="text-base font-semibold text-zinc-100 group-hover:text-white truncate transition-colors">
                 {snippet.title}
               </h3>
             </div>
@@ -118,14 +118,14 @@ export function SnippetCard({
                 e.stopPropagation();
                 onToggleFavorite(snippet.id);
               }}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-colors"
+              className="p-1.5 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-all active:scale-90"
               title={snippet.isFavorite ? "Убрать из избранного" : "В избранное"}
             >
               <Star
-                className={`w-4 h-4 ${
+                className={`w-4 h-4 transition-all duration-200 ${
                   snippet.isFavorite
-                    ? "fill-amber-400 text-amber-400"
-                    : "text-zinc-500 hover:text-amber-400"
+                    ? "fill-amber-400 text-amber-400 scale-110"
+                    : "text-zinc-500 hover:text-amber-400 hover:scale-115"
                 }`}
               />
             </button>

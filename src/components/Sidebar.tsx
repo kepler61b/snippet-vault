@@ -271,11 +271,11 @@ export function Sidebar({
       {isMobileOpen && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm lg:hidden flex justify-start animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm lg:hidden flex justify-start animate-modal-backdrop"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-4/5 max-w-xs h-full bg-zinc-950 border-r border-zinc-800 p-5 overflow-y-auto shadow-2xl animate-in slide-in-from-left duration-250"
+            className="w-4/5 max-w-xs h-full bg-zinc-950 border-r border-zinc-800 p-5 overflow-y-auto shadow-2xl animate-drawer"
           >
             {content}
           </div>
