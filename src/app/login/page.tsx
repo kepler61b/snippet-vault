@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Eye,
   EyeOff,
+  Fingerprint,
   KeyRound,
   Loader2,
   Lock,
@@ -15,6 +16,7 @@ import {
   Terminal,
   User,
 } from "lucide-react";
+import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,9 +33,12 @@ export default function LoginPage() {
   const [tempToken, setTempToken] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [passkeySupported, setPasskeySupported] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   React.useEffect(() => {
+    setPasskeySupported(browserSupportsWebAuthn());
     try {
       if (!sessionStorage.getItem("snippetvault_tab_session")) {
         fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
@@ -123,6 +128,57 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(err.message || "Ошибка проверки двухфакторного кода");
       setLoading(false);
+    }
+  };
+
+  const handlePasskeyLogin = async () => {
+    setError(null);
+    setPasskeyLoading(true);
+
+    try {
+      // 1. Fetch challenge & authentication options from server
+      const res = await fetch("/api/auth/passkey/login/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() || undefined }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Не удалось получить параметры для Passkey");
+      }
+
+      // 2. Prompt browser WebAuthn authenticator (Touch ID, Windows Hello, Security Key)
+      const authResp = await startAuthentication({ optionsJSON: data.options });
+
+      // 3. Verify assertion with server
+      const verifyRes = await fetch("/api/auth/passkey/login/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response: authResp }),
+      });
+      const verifyData = await verifyRes.json();
+
+      if (!verifyRes.ok || !verifyData.success) {
+        throw new Error(verifyData.error || "Ошибка верификации Passkey");
+      }
+
+      // Success -> save tab session and redirect to dashboard
+      sessionStorage.setItem("snippetvault_tab_session", "active");
+      window.location.href = "/";
+    } catch (err: any) {
+      console.warn("Passkey login error:", err);
+      if (
+        err.name === "NotAllowedError" ||
+        err.message?.includes("cancelled") ||
+        err.message?.includes("aborted")
+      ) {
+        setError("Вход через Passkey был отменен пользователем");
+      } else {
+        setError(err.message || "Ошибка входа через Passkey");
+      }
+    } finally {
+      setPasskeyLoading(false);
     }
   };
 
@@ -269,6 +325,34 @@ export default function LoginPage() {
                   <span>{mode === "login" ? "Войти в аккаунт" : "Создать аккаунт"}</span>
                 </button>
               </form>
+
+              {/* Passkey 1-click login */}
+              {mode === "login" && passkeySupported && (
+                <>
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-zinc-800/80" />
+                    </div>
+                    <div className="relative flex justify-center text-[11px] uppercase">
+                      <span className="bg-zinc-900/90 px-2 text-zinc-500 font-medium">или</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handlePasskeyLogin}
+                    disabled={passkeyLoading || loading}
+                    className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-zinc-200 bg-zinc-950/80 hover:bg-zinc-800/80 hover:text-white border border-zinc-800 hover:border-zinc-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 group"
+                  >
+                    {passkeyLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
+                    ) : (
+                      <Fingerprint className="w-4 h-4 text-violet-400 group-hover:text-violet-300 transition-colors" />
+                    )}
+                    <span>Войти с помощью Passkey</span>
+                  </button>
+                </>
+              )}
 
               {/* Demo user quick action */}
               <div className="mt-5 pt-4 border-t border-zinc-800/80 flex flex-col items-center gap-2">

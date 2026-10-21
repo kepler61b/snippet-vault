@@ -6,24 +6,31 @@ import {
   ArrowUpDown,
   Check,
   Copy,
+  Edit2,
   Eye,
   EyeOff,
+  Fingerprint,
   Globe,
   KeyRound,
+  Laptop,
   LayoutGrid,
   List,
   Loader2,
   Lock,
   LogOut,
+  Plus,
   QrCode,
   Save,
   Settings as SettingsIcon,
   ShieldAlert,
   ShieldCheck,
+  Smartphone,
   Sparkles,
+  Trash2,
   User as UserIcon,
   X,
 } from "lucide-react";
+import { startRegistration, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { SUPPORTED_LANGUAGES } from "@/lib/languages";
 import { ViewMode, SortOption, SORT_OPTIONS } from "@/types/snippet";
 import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
@@ -78,6 +85,23 @@ export function SettingsModal({
   const [copiedSecret, setCopiedSecret] = useState(false);
   const [disablePassword, setDisablePassword] = useState("");
   const [showDisableConfirm, setShowDisableConfirm] = useState(false);
+
+  // Passkey State
+  const [passkeys, setPasskeys] = useState<{
+    id: string;
+    name: string;
+    deviceType: string | null;
+    backedUp: boolean;
+    createdAt: string;
+    lastUsedAt: string | null;
+  }[]>([]);
+  const [passkeysLoading, setPasskeysLoading] = useState(false);
+  const [passkeyCreating, setPasskeyCreating] = useState(false);
+  const [passkeySuccess, setPasskeySuccess] = useState<string | null>(null);
+  const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const [passkeySupported, setPasskeySupported] = useState(true);
+  const [editingPasskeyId, setEditingPasskeyId] = useState<string | null>(null);
+  const [editingPasskeyName, setEditingPasskeyName] = useState("");
 
   // AI State
   const [provider, setProvider] = useState<"openai" | "gemini" | "custom">("openai");
@@ -152,6 +176,10 @@ export function SettingsModal({
     if (savedView === "grid" || savedView === "list") setDefaultViewMode(savedView);
     const savedSort = localStorage.getItem("snippetvault_sort_by") as SortOption;
     if (savedSort && SORT_OPTIONS.some((o) => o.id === savedSort)) setDefaultSortBy(savedSort);
+
+    // 4. Passkeys
+    setPasskeySupported(browserSupportsWebAuthn());
+    loadPasskeys();
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -268,6 +296,113 @@ export function SettingsModal({
     }
   };
 
+  // Passkey Handlers
+  const loadPasskeys = async () => {
+    try {
+      setPasskeysLoading(true);
+      const res = await fetch("/api/auth/passkey/list");
+      const data = await res.json();
+      if (data.success && data.passkeys) {
+        setPasskeys(data.passkeys);
+      }
+    } catch (e) {
+      console.error("loadPasskeys error:", e);
+    } finally {
+      setPasskeysLoading(false);
+    }
+  };
+
+  const handleAddPasskey = async () => {
+    setPasskeyError(null);
+    setPasskeySuccess(null);
+    setPasskeyCreating(true);
+
+    try {
+      // 1. Fetch registration options
+      const res = await fetch("/api/auth/passkey/register/options", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Не удалось получить параметры регистрации Passkey");
+      }
+
+      // 2. Prompt browser authenticator (Windows Hello, Touch ID, Security Key)
+      const regResp = await startRegistration({ optionsJSON: data.options });
+
+      // 3. Ask for optional friendly name
+      const defaultName = "Passkey (" + new Date().toLocaleDateString("ru-RU") + ")";
+      const chosenName = window.prompt("Введите название для этого устройства:", defaultName) || defaultName;
+
+      // 4. Verify with server
+      const verifyRes = await fetch("/api/auth/passkey/register/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ response: regResp, name: chosenName }),
+      });
+      const verifyData = await verifyRes.json();
+
+      if (!verifyRes.ok || !verifyData.success) {
+        throw new Error(verifyData.error || "Ошибка подтверждения ключа Passkey");
+      }
+
+      setPasskeySuccess("Ключ доступа успешно добавлен!");
+      setTimeout(() => setPasskeySuccess(null), 4000);
+      await loadPasskeys();
+    } catch (err: any) {
+      console.warn("Passkey add error:", err);
+      if (
+        err.name === "NotAllowedError" ||
+        err.message?.includes("cancelled") ||
+        err.message?.includes("aborted")
+      ) {
+        setPasskeyError("Добавление ключа доступа было отменено");
+      } else {
+        setPasskeyError(err.message || "Ошибка добавления Passkey");
+      }
+    } finally {
+      setPasskeyCreating(false);
+    }
+  };
+
+  const handleDeletePasskey = async (id: string, name: string) => {
+    if (!confirm(`Вы действительно хотите удалить ключ доступа "${name}"?`)) {
+      return;
+    }
+    setPasskeyError(null);
+    try {
+      const res = await fetch(`/api/auth/passkey/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Ошибка при удалении ключа");
+      }
+      setPasskeySuccess("Ключ доступа успешно удален");
+      setTimeout(() => setPasskeySuccess(null), 3000);
+      await loadPasskeys();
+    } catch (err: any) {
+      setPasskeyError(err.message);
+    }
+  };
+
+  const handleSavePasskeyName = async (id: string) => {
+    if (!editingPasskeyName.trim()) return;
+    try {
+      const res = await fetch(`/api/auth/passkey/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editingPasskeyName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Ошибка переименования");
+      }
+      setEditingPasskeyId(null);
+      await loadPasskeys();
+    } catch (err: any) {
+      setPasskeyError(err.message);
+    }
+  };
+
   // AI Save
   const handleSaveAI = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -362,7 +497,7 @@ export function SettingsModal({
             }`}
           >
             <UserIcon className="w-3.5 h-3.5" />
-            <span>Личный кабинет & 2FA</span>
+            <span>Профиль & Безопасность</span>
           </button>
 
           <button
@@ -711,6 +846,168 @@ export function SettingsModal({
                         Отмена
                       </button>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Passkeys Security Section */}
+              <div className="border border-zinc-800/80 rounded-2xl p-4 bg-zinc-900/40 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Fingerprint className="w-4 h-4 text-violet-400" />
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                        Ключи доступа (Passkeys / WebAuthn)
+                      </h3>
+                      {passkeys.length > 0 && (
+                        <span className="text-[10px] font-semibold text-violet-300 bg-violet-600/20 border border-violet-500/30 px-2 py-0.5 rounded-full">
+                          {passkeys.length} {passkeys.length === 1 ? "ключ" : passkeys.length < 5 ? "ключа" : "ключей"}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-zinc-400">
+                      Вход без пароля по биометрии (Touch ID, Windows Hello, Face ID) или аппаратному ключу
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddPasskey}
+                    disabled={passkeyCreating || !passkeySupported}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-medium text-xs text-white bg-violet-600 hover:bg-violet-500 active:scale-[0.98] transition-all disabled:opacity-50 self-start sm:self-auto"
+                  >
+                    {passkeyCreating ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Plus className="w-3.5 h-3.5" />
+                    )}
+                    <span>Добавить Passkey</span>
+                  </button>
+                </div>
+
+                {!passkeySupported && (
+                  <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs">
+                    Ваш текущий браузер или окружение не поддерживает стандарт WebAuthn / Passkeys.
+                  </div>
+                )}
+
+                {passkeySuccess && (
+                  <div className="p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs flex items-center gap-2">
+                    <Check className="w-4 h-4 flex-shrink-0" />
+                    <span>{passkeySuccess}</span>
+                  </div>
+                )}
+
+                {passkeyError && (
+                  <div className="p-3 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs">
+                    {passkeyError}
+                  </div>
+                )}
+
+                {/* Passkeys List */}
+                {passkeysLoading ? (
+                  <div className="py-6 flex justify-center">
+                    <Loader2 className="w-5 h-5 text-violet-500 animate-spin" />
+                  </div>
+                ) : passkeys.length === 0 ? (
+                  <div className="py-4 px-3 text-center rounded-xl bg-zinc-950/40 border border-zinc-800/60 text-xs text-zinc-500">
+                    У вас пока нет добавленных Passkey-ключей. Нажмите &laquo;Добавить Passkey&raquo; для настройки быстрого входа.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {passkeys.map((pk) => (
+                      <div
+                        key={pk.id}
+                        className="flex items-center justify-between p-3 rounded-xl bg-zinc-950/70 border border-zinc-800/80 hover:border-zinc-700/80 transition-all text-xs"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center shrink-0">
+                            {pk.deviceType === "singleDevice" ? (
+                              <Laptop className="w-4 h-4" />
+                            ) : pk.backedUp ? (
+                              <Smartphone className="w-4 h-4" />
+                            ) : (
+                              <KeyRound className="w-4 h-4" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            {editingPasskeyId === pk.id ? (
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  value={editingPasskeyName}
+                                  onChange={(e) => setEditingPasskeyName(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSavePasskeyName(pk.id);
+                                    if (e.key === "Escape") setEditingPasskeyId(null);
+                                  }}
+                                  className="px-2 py-0.5 rounded bg-zinc-900 border border-violet-500 text-white text-xs outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleSavePasskeyName(pk.id)}
+                                  className="text-violet-400 hover:text-white"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingPasskeyId(null)}
+                                  className="text-zinc-500 hover:text-white"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-zinc-100 truncate">
+                                  {pk.name}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingPasskeyId(pk.id);
+                                    setEditingPasskeyName(pk.name);
+                                  }}
+                                  className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                                  title="Переименовать"
+                                >
+                                  <Edit2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2 text-[10px] text-zinc-500 mt-0.5">
+                              <span>
+                                Добавлен: {new Date(pk.createdAt).toLocaleDateString("ru-RU")}
+                              </span>
+                              {pk.lastUsedAt && (
+                                <>
+                                  <span>•</span>
+                                  <span>
+                                    Использован: {new Date(pk.lastUsedAt).toLocaleDateString("ru-RU")}
+                                  </span>
+                                </>
+                              )}
+                              {pk.backedUp && (
+                                <span className="px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                                  Синхронизирован
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePasskey(pk.id, pk.name)}
+                          className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0 ml-2"
+                          title="Удалить ключ доступа"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

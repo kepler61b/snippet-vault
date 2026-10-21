@@ -21,6 +21,7 @@ model User {
 
   snippets         Snippet[]
   collections      Collection[]
+  passkeys         Passkey[]
 
   @@index([email])
 }
@@ -88,4 +89,23 @@ model Setting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+model Passkey {
+  id           String    @id @default(uuid())
+  name         String    @default("Passkey")
+  credentialId String    @unique
+  publicKey    String
+  counter      Int       @default(0)
+  deviceType   String?
+  backedUp     Boolean   @default(false)
+  transports   String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([credentialId])
 }
