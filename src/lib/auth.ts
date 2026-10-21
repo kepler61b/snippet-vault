@@ -1,9 +1,34 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import { NextRequest } from "next/server";
 import prisma from "./db";
 import { COOKIE_NAME, verifyToken, SessionPayload } from "./jwt";
 
 export * from "./jwt";
+
+export function isRequestSecure(request?: NextRequest): boolean {
+  if (process.env.COOKIE_SECURE === "true") return true;
+  if (process.env.COOKIE_SECURE === "false") return false;
+  if (!request) return false;
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedProto) {
+    return forwardedProto.toLowerCase() === "https";
+  }
+  return request.nextUrl.protocol === "https:";
+}
+
+export async function setSessionCookie(token: string, request?: NextRequest) {
+  const cookieStore = await cookies();
+  const secure = isRequestSecure(request);
+
+  cookieStore.set(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: secure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 7 * 24 * 3600, // 7 days
+  });
+}
 
 export function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");

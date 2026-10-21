@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import prisma from "@/lib/db";
-import { COOKIE_NAME, signToken } from "@/lib/auth";
+import { signToken, setSessionCookie } from "@/lib/auth";
 import {
   getWebAuthnConfig,
   getPasskeyChallenge,
@@ -74,20 +73,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Sign session token and set session cookie (no maxAge -> browser session scoped)
+    // Sign session token and set session cookie
     const token = await signToken({
       userId: passkey.user.id,
       email: passkey.user.email,
     });
 
-    const cookieStore = await cookies();
-    cookieStore.set(COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
-
+    await setSessionCookie(token, request);
     await clearPasskeyChallenge();
 
     return NextResponse.json({

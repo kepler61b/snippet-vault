@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import prisma from "@/lib/db";
-import { verifyToken, signToken, COOKIE_NAME } from "@/lib/auth";
+import { verifyToken, signToken, setSessionCookie } from "@/lib/auth";
 import { verifyTOTP } from "@/lib/totp";
 
 export async function POST(request: NextRequest) {
@@ -45,13 +44,7 @@ export async function POST(request: NextRequest) {
 
     // Set full session cookie
     const token = await signToken({ userId: user.id, email: user.email });
-    const cookieStore = await cookies();
-    cookieStore.set(COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
+    await setSessionCookie(token, request);
 
     return NextResponse.json({
       success: true,

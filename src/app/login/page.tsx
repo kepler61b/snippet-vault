@@ -39,11 +39,6 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     setPasskeySupported(browserSupportsWebAuthn());
-    try {
-      if (!sessionStorage.getItem("snippetvault_tab_session")) {
-        fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
-      }
-    } catch {}
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,7 +67,6 @@ export default function LoginPage() {
         }
 
         // Login success
-        sessionStorage.setItem("snippetvault_tab_session", "active");
         window.location.href = "/";
       } else {
         // Register
@@ -88,7 +82,6 @@ export default function LoginPage() {
         }
 
         // Register success
-        sessionStorage.setItem("snippetvault_tab_session", "active");
         window.location.href = "/";
       }
     } catch (err: any) {
@@ -123,7 +116,6 @@ export default function LoginPage() {
       }
 
       // 2FA Success -> redirect to dashboard
-      sessionStorage.setItem("snippetvault_tab_session", "active");
       window.location.href = "/";
     } catch (err: any) {
       setError(err.message || "Ошибка проверки двухфакторного кода");
@@ -163,8 +155,7 @@ export default function LoginPage() {
         throw new Error(verifyData.error || "Ошибка верификации Passkey");
       }
 
-      // Success -> save tab session and redirect to dashboard
-      sessionStorage.setItem("snippetvault_tab_session", "active");
+      // Success -> redirect to dashboard
       window.location.href = "/";
     } catch (err: any) {
       console.warn("Passkey login error:", err);

@@ -175,18 +175,6 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    try {
-      const isTabActive = sessionStorage.getItem("snippetvault_tab_session");
-      if (!isTabActive) {
-        fetch("/api/auth/logout", { method: "POST" }).finally(() => {
-          window.location.href = "/login";
-        });
-        return;
-      }
-    } catch {
-      // In case sessionStorage is restricted in iframe/incognito
-    }
-
     setIsAuthChecking(false);
     fetchCurrentUser();
     fetchCollections();

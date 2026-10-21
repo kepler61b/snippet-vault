@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import prisma from "@/lib/db";
-import { hashPassword, signToken, COOKIE_NAME } from "@/lib/auth";
+import { hashPassword, signToken, setSessionCookie } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,13 +52,7 @@ export async function POST(request: NextRequest) {
     });
 
     const token = await signToken({ userId: user.id, email: user.email });
-    const cookieStore = await cookies();
-    cookieStore.set(COOKIE_NAME, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    });
+    await setSessionCookie(token, request);
 
     return NextResponse.json({ success: true, user });
   } catch (error: any) {
