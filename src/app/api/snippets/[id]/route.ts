@@ -1,0 +1,133 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { detectLanguageFromFilename } from "@/lib/languages";
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const snippet = await prisma.snippet.findUnique({
+      where: { id },
+      include: {
+        files: {
+          orderBy: { order: "asc" },
+        },
+      },
+    });
+
+    if (!snippet) {
+      return NextResponse.json(
+        { success: false, error: "Snippet not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true, snippet });
+  } catch (error: any) {
+    console.error("Error fetching snippet:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to fetch snippet" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const { title, description, visibility, isFavorite, tags, files } = body;
+
+    const existing = await prisma.snippet.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, error: "Snippet not found" },
+        { status: 404 }
+      );
+    }
+
+    const formattedTags = Array.isArray(tags)
+      ? tags.map((t: string) => t.trim().toLowerCase()).filter(Boolean).join(", ")
+      : typeof tags === "string"
+      ? tags.trim()
+      : undefined;
+
+    // Use a transaction to update snippet metadata and replace files
+    const updated = await prisma.$transaction(async (tx) => {
+      // Delete old files if new files provided
+      if (Array.isArray(files) && files.length > 0) {
+        await tx.snippetFile.deleteMany({
+          where: { snippetId: id },
+        });
+
+        await tx.snippetFile.createMany({
+          data: files.map((file: any, index: number) => {
+            const filename = (file.filename || `snippet-${index + 1}`).trim();
+            const language =
+              file.language?.trim() || detectLanguageFromFilename(filename);
+            return {
+              snippetId: id,
+              filename,
+              language,
+              content: file.content || "",
+              order: index,
+            };
+          }),
+        });
+      }
+
+      return tx.snippet.update({
+        where: { id },
+        data: {
+          ...(title !== undefined && { title: title.trim() }),
+          ...(description !== undefined && { description: description?.trim() || null }),
+          ...(visibility !== undefined && { visibility }),
+          ...(isFavorite !== undefined && { isFavorite: Boolean(isFavorite) }),
+          ...(formattedTags !== undefined && { tags: formattedTags }),
+        },
+        include: {
+          files: {
+            orderBy: { order: "asc" },
+          },
+        },
+      });
+    });
+
+    return NextResponse.json({ success: true, snippet: updated });
+  } catch (error: any) {
+    console.error("Error updating snippet:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to update snippet" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    await prisma.snippet.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true, message: "Snippet deleted" });
+  } catch (error: any) {
+    console.error("Error deleting snippet:", error);
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to delete snippet" },
+      { status: 500 }
+    );
+  }
+}
