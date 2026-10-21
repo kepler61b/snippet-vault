@@ -46,6 +46,15 @@ body {
   }
 }
 
+@keyframes modalBackdropOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 @keyframes modalContentIn {
   0% {
     opacity: 0;
@@ -54,6 +63,17 @@ body {
   100% {
     opacity: 1;
     transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modalContentOut {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
   }
 }
 
@@ -82,8 +102,16 @@ body {
   animation: modalBackdropIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+.animate-modal-backdrop-out {
+  animation: modalBackdropOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 .animate-modal-content {
   animation: modalContentIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-modal-content-out {
+  animation: modalContentOut 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-drawer {

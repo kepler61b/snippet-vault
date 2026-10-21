@@ -148,6 +148,8 @@ export function SettingsModal({
   const [selectedExportColId, setSelectedExportColId] = useState<string>("");
   const [importing, setImporting] = useState(false);
   const [clearingDb, setClearingDb] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isClosingClearConfirm, setIsClosingClearConfirm] = useState(false);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -616,15 +618,21 @@ export function SettingsModal({
     }
   };
 
-  const handleClearAllSnippets = async () => {
-    if (
-      !confirm(
-        "ВНИМАНИЕ: Вы действительно хотите удалить ВСЕ сниппеты из базы данных? Это действие необратимо!"
-      )
-    ) {
-      return;
-    }
+  const handleOpenClearConfirm = () => {
+    setShowClearConfirm(true);
+    setIsClosingClearConfirm(false);
+  };
 
+  const handleCloseClearConfirm = () => {
+    if (clearingDb) return;
+    setIsClosingClearConfirm(true);
+    setTimeout(() => {
+      setShowClearConfirm(false);
+      setIsClosingClearConfirm(false);
+    }, 200);
+  };
+
+  const handleConfirmClearAllSnippets = async () => {
     setImportError(null);
     setImportSuccess(null);
     setClearingDb(true);
@@ -638,12 +646,25 @@ export function SettingsModal({
       setImportSuccess(data.message || "Все сниппеты успешно удалены");
       onSettingsChanged?.();
       await loadCollectionsList();
+      handleCloseClearConfirm();
     } catch (err: any) {
       setImportError(err.message || "Ошибка при очистке базы сниппетов");
+      handleCloseClearConfirm();
     } finally {
       setClearingDb(false);
     }
   };
+
+  useEffect(() => {
+    if (!showClearConfirm) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !clearingDb) {
+        handleCloseClearConfirm();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showClearConfirm, clearingDb]);
 
   const handleLogout = async () => {
     if (confirm("Вы действительно хотите выйти из аккаунта?")) {
@@ -1708,16 +1729,12 @@ export function SettingsModal({
 
                   <button
                     type="button"
-                    onClick={handleClearAllSnippets}
+                    onClick={handleOpenClearConfirm}
                     disabled={clearingDb}
                     className="flex items-center gap-2 py-2 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs transition-all active:scale-[0.98] shadow-sm shadow-rose-600/25 shrink-0 disabled:opacity-50"
                   >
-                    {clearingDb ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-3.5 h-3.5" />
-                    )}
-                    <span>{clearingDb ? "Очистка..." : "Очистить базу сниппетов"}</span>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Очистить базу сниппетов</span>
                   </button>
                 </div>
               </div>
@@ -1749,6 +1766,64 @@ export function SettingsModal({
           </button>
         </div>
       </div>
+
+      {/* Confirmation Modal for Clearing Database */}
+      {showClearConfirm && (
+        <div
+          className={`fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm ${
+            isClosingClearConfirm ? "animate-modal-backdrop-out" : "animate-modal-backdrop"
+          }`}
+          onClick={handleCloseClearConfirm}
+        >
+          <div
+            className={`relative w-full max-w-md rounded-2xl border border-rose-500/30 bg-zinc-950 p-6 shadow-2xl flex flex-col gap-5 ${
+              isClosingClearConfirm ? "animate-modal-content-out" : "animate-modal-content"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 text-rose-400">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <h3 className="text-base font-bold text-white">
+                  Очистить базу сниппетов?
+                </h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Вы уверены, что хотите удалить <span className="text-rose-300 font-semibold">все сниппеты</span> из базы данных? Все файлы кода, теги и персональные заметки будут удалены навсегда.
+                </p>
+                <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-300 font-medium">
+                  ⚠️ Это действие необратимо. Рекомендуем предварительно сделать экспорт в JSON.
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-zinc-800/80">
+              <button
+                type="button"
+                onClick={handleCloseClearConfirm}
+                disabled={clearingDb}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              >
+                Отменить
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmClearAllSnippets}
+                disabled={clearingDb}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white font-semibold text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-rose-600/20"
+              >
+                {clearingDb ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                <span>{clearingDb ? "Удаление..." : "Удалить"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
