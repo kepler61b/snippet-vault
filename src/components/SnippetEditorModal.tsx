@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Check,
   Code,
   FileCode,
   Folder,
@@ -28,16 +27,6 @@ import {
 } from "@/lib/languages";
 import { CollectionIcon } from "@/lib/collection-icons";
 import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
-
-const QUICK_COLLECTION_COLORS = [
-  "#8b5cf6", // Violet
-  "#3b82f6", // Blue
-  "#06b6d4", // Cyan
-  "#10b981", // Emerald
-  "#f59e0b", // Amber
-  "#f43f5e", // Rose
-  "#ec4899", // Pink
-];
 
 interface SnippetEditorModalProps {
   isOpen: boolean;
@@ -71,7 +60,6 @@ export function SnippetEditorModal({
   const [localCollections, setLocalCollections] = useState<CollectionItem[]>(collections);
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState("");
-  const [newCollectionColor, setNewCollectionColor] = useState("#8b5cf6");
   const [isCreatingCollectionLoading, setIsCreatingCollectionLoading] = useState(false);
   const [collectionError, setCollectionError] = useState<string | null>(null);
   const newColInputRef = useRef<HTMLInputElement>(null);
@@ -107,7 +95,7 @@ export function SnippetEditorModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: trimmed,
-          color: newCollectionColor,
+          color: "#8b5cf6",
           iconType: "lucide",
           iconValue: "Folder",
         }),
@@ -550,55 +538,33 @@ export function SnippetEditorModal({
                           )}
                         </div>
 
-                        {/* Color dots & action buttons */}
-                        <div className="flex items-center justify-between gap-1 pt-1 border-t border-zinc-800/80">
-                          <div className="flex items-center gap-1.5">
-                            {QUICK_COLLECTION_COLORS.map((c) => (
-                              <button
-                                key={c}
-                                type="button"
-                                onClick={() => setNewCollectionColor(c)}
-                                className={`w-3.5 h-3.5 rounded-full transition-all flex items-center justify-center ${
-                                  newCollectionColor === c
-                                    ? "ring-2 ring-white scale-110"
-                                    : "opacity-75 hover:opacity-100 hover:scale-105"
-                                }`}
-                                style={{ backgroundColor: c }}
-                              >
-                                {newCollectionColor === c && (
-                                  <Check className="w-2 h-2 text-white" />
-                                )}
-                              </button>
-                            ))}
-                          </div>
-
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsCreatingCollection(false);
-                                setNewCollectionName("");
-                                setCollectionError(null);
-                              }}
-                              disabled={isCreatingCollectionLoading}
-                              className="px-2 py-0.5 text-[11px] rounded text-zinc-400 hover:text-white transition-colors"
-                            >
-                              Отмена
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleQuickCreateCollection(close)}
-                              disabled={isCreatingCollectionLoading || !newCollectionName.trim()}
-                              className="px-2.5 py-1 text-[11px] rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                            >
-                              {isCreatingCollectionLoading ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <Plus className="w-3 h-3" />
-                              )}
-                              <span>ОК</span>
-                            </button>
-                          </div>
+                        {/* Action buttons */}
+                        <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-zinc-800/80">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCreatingCollection(false);
+                              setNewCollectionName("");
+                              setCollectionError(null);
+                            }}
+                            disabled={isCreatingCollectionLoading}
+                            className="px-2.5 py-1 text-xs rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                          >
+                            Отмена
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickCreateCollection(close)}
+                            disabled={isCreatingCollectionLoading || !newCollectionName.trim()}
+                            className="px-3 py-1 text-xs rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 shadow-sm"
+                          >
+                            {isCreatingCollectionLoading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Plus className="w-3.5 h-3.5" />
+                            )}
+                            <span>Создать</span>
+                          </button>
                         </div>
                       </div>
                     )}
