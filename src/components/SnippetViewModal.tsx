@@ -107,43 +107,53 @@ export function SnippetViewModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative w-full max-w-5xl h-[96vh] sm:h-[92vh] flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+      <div className="relative w-full max-w-5xl h-[98dvh] sm:h-[92vh] max-h-[100dvh] flex flex-col rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/70">
-          <div className="space-y-1 max-w-2xl min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              {snippet.collection && (
-                <span
-                  className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border"
-                  style={{
-                    backgroundColor: `${snippet.collection.color || "#8b5cf6"}15`,
-                    borderColor: `${snippet.collection.color || "#8b5cf6"}35`,
-                    color: snippet.collection.color || "#a78bfa",
-                  }}
-                >
-                  <CollectionIcon
-                    iconType={snippet.collection.iconType}
-                    iconValue={snippet.collection.iconValue}
-                    color={snippet.collection.color}
-                    className="w-3.5 h-3.5"
-                  />
-                  <span>{snippet.collection.name}</span>
-                </span>
-              )}
+        <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/70 space-y-2 sm:space-y-0 sm:flex sm:items-start sm:justify-between sm:gap-4">
+          <div className="space-y-1.5 max-w-2xl min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2 sm:block">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                {snippet.collection && (
+                  <span
+                    className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border shrink-0"
+                    style={{
+                      backgroundColor: `${snippet.collection.color || "#8b5cf6"}15`,
+                      borderColor: `${snippet.collection.color || "#8b5cf6"}35`,
+                      color: snippet.collection.color || "#a78bfa",
+                    }}
+                  >
+                    <CollectionIcon
+                      iconType={snippet.collection.iconType}
+                      iconValue={snippet.collection.iconValue}
+                      color={snippet.collection.color}
+                      className="w-3.5 h-3.5"
+                    />
+                    <span>{snippet.collection.name}</span>
+                  </span>
+                )}
 
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-tight break-words">
-                {snippet.title}
-              </h2>
+                <h2 className="text-sm sm:text-lg font-bold text-white tracking-tight break-words">
+                  {snippet.title}
+                </h2>
+              </div>
+
+              {/* Close button for mobile only right in top-right */}
+              <button
+                onClick={onClose}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors sm:hidden shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             {snippet.description && (
-              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
+              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed break-words">
                 {snippet.description}
               </p>
             )}
 
-            <div className="flex items-center gap-4 text-xs text-zinc-500 pt-1">
+            <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-zinc-500 pt-0.5">
               <span className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5" />
                 {formattedDate}
@@ -156,10 +166,10 @@ export function SnippetViewModal({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-1.5 self-end sm:self-auto flex-shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-1.5 self-start shrink-0 pt-1 sm:pt-0">
             <button
               onClick={() => onToggleFavorite(snippet.id)}
-              className={`p-2 rounded-xl transition-colors ${
+              className={`p-1.5 sm:p-2 rounded-xl transition-colors ${
                 snippet.isFavorite
                   ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
@@ -171,7 +181,7 @@ export function SnippetViewModal({
 
             <button
               onClick={() => onEdit(snippet)}
-              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors"
+              className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors"
               title="Редактировать сниппет"
             >
               <Edit3 className="w-4 h-4" />
@@ -179,7 +189,7 @@ export function SnippetViewModal({
 
             <button
               onClick={handleExportSnippet}
-              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors"
+              className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors"
               title="Экспортировать сниппет в JSON"
             >
               <Download className="w-4 h-4" />
@@ -192,7 +202,7 @@ export function SnippetViewModal({
                   onClose();
                 }
               }}
-              className="p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-zinc-800 transition-colors"
+              className="p-1.5 sm:p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-zinc-800 transition-colors"
               title="Удалить"
             >
               <Trash2 className="w-4 h-4" />
@@ -200,7 +210,7 @@ export function SnippetViewModal({
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="hidden sm:flex p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -208,7 +218,7 @@ export function SnippetViewModal({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4">
           {/* Tags */}
           {tagList.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pb-2 border-b border-zinc-800/60">
@@ -224,17 +234,17 @@ export function SnippetViewModal({
           )}
 
           {/* Files Container */}
-          <div className="border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-950">
+          <div className="border border-zinc-800 rounded-xl sm:rounded-2xl overflow-hidden bg-zinc-950">
             {/* File Tabs */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-2 py-1 gap-1">
-              <div className="flex items-center gap-1 overflow-x-auto py-1 max-w-full">
+              <div className="flex items-center gap-1 overflow-x-auto py-1 max-w-full scrollbar-none">
                 {snippet.files.map((file, idx) => {
                   const meta = getLanguageMeta(file.language);
                   return (
                     <button
                       key={idx}
                       onClick={() => setActiveFileIndex(idx)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
+                      className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
                         activeFileIndex === idx
                           ? "bg-zinc-800 text-white shadow-sm border border-zinc-700/60"
                           : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40"
@@ -251,7 +261,7 @@ export function SnippetViewModal({
               </div>
 
               {/* AI & Quick action buttons */}
-              <div className="flex items-center gap-1 overflow-x-auto py-1 border-t sm:border-t-0 border-zinc-800/60">
+              <div className="flex items-center gap-1 overflow-x-auto py-1 border-t sm:border-t-0 border-zinc-800/60 scrollbar-none">
                 <button
                   onClick={() =>
                     onTriggerAI("explain", currentFile.content, currentFile.language)
@@ -309,10 +319,10 @@ export function SnippetViewModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-t border-zinc-800 bg-zinc-900/60">
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-4 border-t border-zinc-800 bg-zinc-900/60">
           <button
             onClick={handleCopyShareLink}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700 transition-colors"
           >
             {copiedLink ? (
               <>
@@ -329,7 +339,7 @@ export function SnippetViewModal({
 
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
           >
             Закрыть
           </button>

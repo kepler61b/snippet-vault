@@ -737,7 +737,7 @@ export function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
       <div
         ref={dialogRef}
         style={{
@@ -746,29 +746,29 @@ export function SettingsModal({
             ? "height 0.32s cubic-bezier(0.16, 1, 0.3, 1)"
             : undefined,
         }}
-        className="relative w-full max-w-2xl max-h-[92vh] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height]"
+        className="relative w-full max-w-2xl max-h-[96dvh] sm:max-h-[92vh] rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height]"
       >
         {/* Header */}
         <div
           ref={headerRef}
-          className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0"
+          className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0"
         >
-          <div className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-600/20 text-violet-400 border border-violet-500/30">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-600/20 text-violet-400 border border-violet-500/30 shrink-0">
               <SettingsIcon className="w-4 h-4" />
             </div>
-            <div>
-              <h2 className="text-base font-semibold text-white">
+            <div className="truncate">
+              <h2 className="text-sm sm:text-base font-semibold text-white truncate">
                 Параметры и Личный кабинет
               </h2>
-              <p className="text-xs text-zinc-400">
+              <p className="text-[11px] sm:text-xs text-zinc-400 truncate hidden sm:block">
                 Управление профилем, безопасностью и настройками приложения
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
@@ -777,12 +777,12 @@ export function SettingsModal({
         {/* Tab Navigation */}
         <div
           ref={tabsRef}
-          className="flex items-center px-6 border-b border-zinc-800 bg-zinc-950/90 text-xs font-semibold gap-1 overflow-x-auto shrink-0"
+          className="flex items-center px-2 sm:px-6 border-b border-zinc-800 bg-zinc-950/90 text-xs font-semibold gap-0.5 sm:gap-1 overflow-x-auto scrollbar-none shrink-0"
         >
           <button
             type="button"
             onClick={() => handleTabChange("general")}
-            className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3.5 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap ${
               activeTab === "general"
                 ? "border-violet-500 text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -795,7 +795,7 @@ export function SettingsModal({
           <button
             type="button"
             onClick={() => handleTabChange("profile")}
-            className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3.5 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap ${
               activeTab === "profile"
                 ? "border-violet-500 text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -808,7 +808,7 @@ export function SettingsModal({
           <button
             type="button"
             onClick={() => handleTabChange("security")}
-            className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3.5 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap ${
               activeTab === "security"
                 ? "border-violet-500 text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -821,7 +821,7 @@ export function SettingsModal({
           <button
             type="button"
             onClick={() => handleTabChange("ai")}
-            className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3.5 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap ${
               activeTab === "ai"
                 ? "border-violet-500 text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -834,7 +834,7 @@ export function SettingsModal({
           <button
             type="button"
             onClick={() => handleTabChange("data")}
-            className={`flex items-center gap-2 py-3 px-3.5 border-b-2 transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3.5 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap ${
               activeTab === "data"
                 ? "border-violet-500 text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -852,7 +852,7 @@ export function SettingsModal({
         >
           <div
             ref={innerContentRef}
-            className="p-6 text-xs text-zinc-200 space-y-6"
+            className="p-3.5 sm:p-6 text-xs text-zinc-200 space-y-5 sm:space-y-6"
           >
             {/* TAB: GENERAL SETTINGS */}
             {activeTab === "general" && (
@@ -1805,12 +1805,12 @@ export function SettingsModal({
         {/* Footer with Logout Button */}
         <div
           ref={footerRef}
-          className="flex items-center justify-between px-6 py-3.5 border-t border-zinc-800 bg-zinc-900/40 shrink-0"
+          className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-3.5 border-t border-zinc-800 bg-zinc-900/40 shrink-0"
         >
           <button
             type="button"
             onClick={handleLogout}
-            className="flex items-center gap-1.5 text-xs font-medium text-rose-400 hover:text-rose-300 px-2.5 py-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-medium text-rose-400 hover:text-rose-300 px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Выйти из аккаунта</span>
@@ -1819,7 +1819,7 @@ export function SettingsModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
           >
             Закрыть
           </button>
@@ -1829,40 +1829,40 @@ export function SettingsModal({
       {/* Confirmation Modal for Clearing Database */}
       {showClearConfirm && (
         <div
-          className={`fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm ${
+          className={`fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm ${
             isClosingClearConfirm ? "animate-modal-backdrop-out" : "animate-modal-backdrop"
           }`}
           onClick={handleCloseClearConfirm}
         >
           <div
-            className={`relative w-full max-w-md rounded-2xl border border-rose-500/30 bg-zinc-950 p-6 shadow-2xl flex flex-col gap-5 ${
+            className={`relative w-full max-w-md rounded-xl sm:rounded-2xl border border-rose-500/30 bg-zinc-950 p-4 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 ${
               isClosingClearConfirm ? "animate-modal-content-out" : "animate-modal-content"
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 text-rose-400">
-                <Trash2 className="w-5 h-5" />
+            <div className="flex items-start gap-3 sm:gap-3.5">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 text-rose-400">
+                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <div className="space-y-1.5 flex-1 min-w-0">
-                <h3 className="text-base font-bold text-white">
+              <div className="space-y-1 sm:space-y-1.5 flex-1 min-w-0">
+                <h3 className="text-sm sm:text-base font-bold text-white">
                   Очистить базу сниппетов и коллекций?
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
                   Вы уверены, что хотите удалить <span className="text-rose-300 font-semibold">все сниппеты и коллекции</span> из базы данных? Все файлы кода, теги и персональные заметки будут удалены навсегда.
                 </p>
-                <div className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-300 font-medium">
+                <div className="p-2 sm:p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-300 font-medium">
                   ⚠️ Это действие необратимо. Рекомендуем предварительно сделать экспорт в JSON.
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-zinc-800/80">
+            <div className="flex items-center justify-end gap-2 sm:gap-2.5 pt-2 border-t border-zinc-800/80">
               <button
                 type="button"
                 onClick={handleCloseClearConfirm}
                 disabled={clearingDb}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                className="px-3.5 sm:px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50"
               >
                 Отменить
               </button>
@@ -1870,7 +1870,7 @@ export function SettingsModal({
                 type="button"
                 onClick={handleConfirmClearAllSnippets}
                 disabled={clearingDb}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white font-semibold text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-rose-600/20"
+                className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white font-semibold text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-rose-600/20"
               >
                 {clearingDb ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

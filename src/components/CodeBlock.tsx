@@ -61,13 +61,13 @@ export function CodeBlock({
   return (
     <div className={`relative group rounded-xl overflow-hidden border border-zinc-800 bg-zinc-950 text-zinc-100 font-mono text-xs sm:text-sm ${className}`}>
       {/* Top action bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800/80 bg-zinc-900/60 text-zinc-400">
-        <span className="text-xs uppercase tracking-wider font-semibold text-zinc-400">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-1.5 sm:py-2 border-b border-zinc-800/80 bg-zinc-900/60 text-zinc-400">
+        <span className="text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-zinc-400">
           {language}
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-all duration-150"
+          className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 text-xs font-medium rounded-md bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-all duration-150"
           title="Копировать код"
         >
           {copied ? (
@@ -85,21 +85,21 @@ export function CodeBlock({
       </div>
 
       {/* Code body */}
-      <div className="overflow-x-auto p-4 flex">
+      <div className="overflow-x-auto p-2.5 sm:p-4 flex">
         {showLineNumbers && (
           <div
-            className="select-none pr-4 text-right text-zinc-600 font-mono text-xs sm:text-sm border-r border-zinc-800/60 mr-4"
+            className="select-none pr-2.5 sm:pr-4 text-right text-zinc-600 font-mono text-[11px] sm:text-sm leading-5 sm:leading-6 border-r border-zinc-800/60 mr-2.5 sm:mr-4 shrink-0"
             aria-hidden="true"
           >
             {lines.map((_, i) => (
-              <div key={i} className="leading-6">
+              <div key={i}>
                 {i + 1}
               </div>
             ))}
           </div>
         )}
 
-        <pre className="flex-1 font-mono leading-6 tab-size-2">
+        <pre className="flex-1 font-mono leading-5 sm:leading-6 tab-size-2 text-[11px] sm:text-sm">
           <code
             dangerouslySetInnerHTML={{
               __html: highlighted || escapeHtml(code || ""),
