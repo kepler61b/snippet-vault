@@ -9,7 +9,6 @@ import {
   ExternalLink,
   FileCode,
   MoreVertical,
-  Share2,
   Star,
   Trash2,
 } from "lucide-react";

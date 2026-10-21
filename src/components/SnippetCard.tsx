@@ -8,10 +8,8 @@ import {
   Download,
   Edit3,
   ExternalLink,
-  Eye,
   FileCode,
   MoreVertical,
-  Share2,
   Star,
   Trash2,
 } from "lucide-react";
@@ -285,16 +283,6 @@ export function SnippetCard({
               ) : (
                 <Copy className="w-3.5 h-3.5" />
               )}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onView(snippet);
-              }}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
-              title="Открыть просмотр"
-            >
-              <Eye className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
