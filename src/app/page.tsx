@@ -847,6 +847,13 @@ export default function HomePage() {
               return handleTriggerAI(action, activeFile.content, activeFile.language);
             }
           }}
+          onCollectionCreated={(newCol) => {
+            setCollections((prev) => {
+              if (prev.some((c) => c.id === newCol.id)) return prev;
+              return [...prev, newCol];
+            });
+          }}
+          onOpenCreateCollectionModal={() => setIsCollectionModalOpen(true)}
         />
       )}
 

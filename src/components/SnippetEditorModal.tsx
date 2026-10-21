@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
+  Check,
   Code,
   FileCode,
   Folder,
@@ -28,6 +29,16 @@ import {
 import { CollectionIcon } from "@/lib/collection-icons";
 import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
 
+const QUICK_COLLECTION_COLORS = [
+  "#8b5cf6", // Violet
+  "#3b82f6", // Blue
+  "#06b6d4", // Cyan
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#f43f5e", // Rose
+  "#ec4899", // Pink
+];
+
 interface SnippetEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -40,6 +51,8 @@ interface SnippetEditorModalProps {
     files: SnippetFileItem[],
     activeFile: SnippetFileItem
   ) => Promise<any>;
+  onCollectionCreated?: (collection: CollectionItem) => void;
+  onOpenCreateCollectionModal?: () => void;
 }
 
 export function SnippetEditorModal({
@@ -50,8 +63,74 @@ export function SnippetEditorModal({
   defaultCollectionId = null,
   onSave,
   onTriggerAI,
+  onCollectionCreated,
+  onOpenCreateCollectionModal,
 }: SnippetEditorModalProps) {
   const isEditing = Boolean(snippet);
+
+  const [localCollections, setLocalCollections] = useState<CollectionItem[]>(collections);
+  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
+  const [newCollectionName, setNewCollectionName] = useState("");
+  const [newCollectionColor, setNewCollectionColor] = useState("#8b5cf6");
+  const [isCreatingCollectionLoading, setIsCreatingCollectionLoading] = useState(false);
+  const [collectionError, setCollectionError] = useState<string | null>(null);
+  const newColInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setLocalCollections(collections);
+  }, [collections]);
+
+  useEffect(() => {
+    if (isCreatingCollection) {
+      setTimeout(() => {
+        newColInputRef.current?.focus();
+      }, 50);
+    } else {
+      setNewCollectionName("");
+      setCollectionError(null);
+    }
+  }, [isCreatingCollection]);
+
+  const handleQuickCreateCollection = async (closeSelect?: () => void) => {
+    const trimmed = newCollectionName.trim();
+    if (!trimmed) {
+      setCollectionError("Укажите название коллекции");
+      return;
+    }
+
+    setIsCreatingCollectionLoading(true);
+    setCollectionError(null);
+
+    try {
+      const res = await fetch("/api/collections", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: trimmed,
+          color: newCollectionColor,
+          iconType: "lucide",
+          iconValue: "Folder",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Не удалось создать коллекцию");
+      }
+
+      const created: CollectionItem = data.collection;
+      setLocalCollections((prev) => [...prev, created]);
+      setCollectionId(created.id);
+      setIsCreatingCollection(false);
+      setNewCollectionName("");
+      onCollectionCreated?.(created);
+      closeSelect?.();
+    } catch (err: any) {
+      setCollectionError(err.message || "Ошибка создания коллекции");
+    } finally {
+      setIsCreatingCollectionLoading(false);
+    }
+  };
 
   const [title, setTitle] = useState(snippet?.title || "");
   const [description, setDescription] = useState(snippet?.description || "");
@@ -290,7 +369,7 @@ export function SnippetEditorModal({
       label: "Без коллекции",
       icon: <Folder className="w-4 h-4 text-zinc-500" />,
     },
-    ...collections.map((col) => ({
+    ...localCollections.map((col) => ({
       value: col.id,
       label: col.name,
       icon: (
@@ -408,8 +487,123 @@ export function SnippetEditorModal({
                 onChange={setCollectionId}
                 options={collectionOptions}
                 placeholder="Без коллекции"
-                searchable={collections.length > 5}
+                searchable={localCollections.length > 5}
                 searchPlaceholder="Поиск коллекции..."
+                footer={({ close }) => (
+                  <div className="p-1" onClick={(e) => e.stopPropagation()}>
+                    {!isCreatingCollection ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsCreatingCollection(true)}
+                        className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-violet-600/10 hover:bg-violet-600/20 text-violet-400 hover:text-violet-300 border border-violet-500/20 hover:border-violet-500/30 text-xs font-medium transition-all group"
+                      >
+                        <Plus className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
+                        <span>Новая коллекция</span>
+                      </button>
+                    ) : (
+                      <div className="space-y-2 p-2 rounded-xl bg-zinc-950/90 border border-zinc-800">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[11px] font-semibold text-zinc-300 flex items-center gap-1.5">
+                            <Folder className="w-3.5 h-3.5 text-violet-400" />
+                            Новая коллекция
+                          </span>
+                          {onOpenCreateCollectionModal && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                close();
+                                setIsCreatingCollection(false);
+                                onOpenCreateCollectionModal();
+                              }}
+                              className="text-[10px] text-zinc-400 hover:text-violet-400 transition-colors"
+                              title="Расширенные настройки (иконка, картинка)"
+                            >
+                              Подробнее...
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <input
+                            ref={newColInputRef}
+                            type="text"
+                            placeholder="Название коллекции..."
+                            value={newCollectionName}
+                            onChange={(e) => {
+                              setNewCollectionName(e.target.value);
+                              if (collectionError) setCollectionError(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleQuickCreateCollection(close);
+                              } else if (e.key === "Escape") {
+                                e.preventDefault();
+                                setIsCreatingCollection(false);
+                              }
+                            }}
+                            className="w-full px-2.5 py-1.5 text-xs bg-zinc-900 border border-zinc-700/80 rounded-lg text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
+                            disabled={isCreatingCollectionLoading}
+                          />
+                          {collectionError && (
+                            <p className="text-[10px] text-rose-400">{collectionError}</p>
+                          )}
+                        </div>
+
+                        {/* Color dots & action buttons */}
+                        <div className="flex items-center justify-between gap-1 pt-1 border-t border-zinc-800/80">
+                          <div className="flex items-center gap-1.5">
+                            {QUICK_COLLECTION_COLORS.map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => setNewCollectionColor(c)}
+                                className={`w-3.5 h-3.5 rounded-full transition-all flex items-center justify-center ${
+                                  newCollectionColor === c
+                                    ? "ring-2 ring-white scale-110"
+                                    : "opacity-75 hover:opacity-100 hover:scale-105"
+                                }`}
+                                style={{ backgroundColor: c }}
+                              >
+                                {newCollectionColor === c && (
+                                  <Check className="w-2 h-2 text-white" />
+                                )}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCreatingCollection(false);
+                                setNewCollectionName("");
+                                setCollectionError(null);
+                              }}
+                              disabled={isCreatingCollectionLoading}
+                              className="px-2 py-0.5 text-[11px] rounded text-zinc-400 hover:text-white transition-colors"
+                            >
+                              Отмена
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickCreateCollection(close)}
+                              disabled={isCreatingCollectionLoading || !newCollectionName.trim()}
+                              className="px-2.5 py-1 text-[11px] rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                            >
+                              {isCreatingCollectionLoading ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <Plus className="w-3 h-3" />
+                              )}
+                              <span>ОК</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               />
             </div>
 

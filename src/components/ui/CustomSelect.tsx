@@ -23,6 +23,7 @@ interface CustomSelectProps {
   triggerClassName?: string;
   menuClassName?: string;
   disabled?: boolean;
+  footer?: React.ReactNode | ((helpers: { close: () => void }) => React.ReactNode);
 }
 
 export function CustomSelect({
@@ -36,6 +37,7 @@ export function CustomSelect({
   triggerClassName = "",
   menuClassName = "",
   disabled = false,
+  footer,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -129,7 +131,7 @@ export function CustomSelect({
       {/* Dropdown Menu Popover */}
       {isOpen && (
         <div
-          className={`absolute left-0 right-0 mt-1.5 rounded-2xl border border-zinc-800 bg-zinc-900/95 backdrop-blur-xl shadow-2xl p-1.5 z-50 max-h-64 overflow-y-auto animate-in fade-in zoom-in-95 duration-100 space-y-0.5 ${menuClassName}`}
+          className={`absolute left-0 right-0 mt-1.5 rounded-2xl border border-zinc-800 bg-zinc-900/95 backdrop-blur-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col ${menuClassName}`}
         >
           {/* Search box if searchable */}
           {searchable && (
@@ -157,56 +159,67 @@ export function CustomSelect({
             </div>
           )}
 
-          {/* Options list */}
-          {filteredOptions.length === 0 ? (
-            <div className="px-3 py-3 text-center text-xs text-zinc-500">
-              Ничего не найдено
-            </div>
-          ) : (
-            filteredOptions.map((opt) => {
-              const isSelected = opt.value === value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    onChange(opt.value);
-                    setIsOpen(false);
-                    setSearch("");
-                  }}
-                  className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-left text-xs sm:text-sm transition-colors ${
-                    isSelected
-                      ? "bg-violet-600/20 text-violet-200 font-medium border border-violet-500/30"
-                      : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white border border-transparent"
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    {opt.icon && (
-                      <div className="shrink-0 flex items-center">{opt.icon}</div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate">{opt.label}</div>
-                      {opt.description && (
-                        <div className="text-[10px] text-zinc-500 truncate mt-0.5">
-                          {opt.description}
-                        </div>
+          {/* Options list (scrollable) */}
+          <div className="max-h-60 overflow-y-auto space-y-0.5">
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-3 text-center text-xs text-zinc-500">
+                Ничего не найдено
+              </div>
+            ) : (
+              filteredOptions.map((opt) => {
+                const isSelected = opt.value === value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(opt.value);
+                      setIsOpen(false);
+                      setSearch("");
+                    }}
+                    className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-left text-xs sm:text-sm transition-colors ${
+                      isSelected
+                        ? "bg-violet-600/20 text-violet-200 font-medium border border-violet-500/30"
+                        : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white border border-transparent"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      {opt.icon && (
+                        <div className="shrink-0 flex items-center">{opt.icon}</div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate">{opt.label}</div>
+                        {opt.description && (
+                          <div className="text-[10px] text-zinc-500 truncate mt-0.5">
+                            {opt.description}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {opt.badge && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                          {opt.badge}
+                        </span>
+                      )}
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-violet-400 shrink-0" />
                       )}
                     </div>
-                  </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {opt.badge && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
-                        {opt.badge}
-                      </span>
-                    )}
-                    {isSelected && (
-                      <Check className="w-4 h-4 text-violet-400 shrink-0" />
-                    )}
-                  </div>
-                </button>
-              );
-            })
+          {/* Optional Footer (Sticky at bottom) */}
+          {footer && (
+            <div className="pt-1.5 mt-1 border-t border-zinc-800/80">
+              {typeof footer === "function"
+                ? footer({ close: () => setIsOpen(false) })
+                : footer}
+            </div>
           )}
         </div>
       )}
