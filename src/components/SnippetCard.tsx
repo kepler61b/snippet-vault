@@ -10,8 +10,6 @@ import {
   ExternalLink,
   Eye,
   FileCode,
-  Globe,
-  Lock,
   MoreVertical,
   Share2,
   Star,
@@ -97,24 +95,8 @@ export function SnippetCard({
         {/* Top Header */}
         <div className="flex items-start justify-between gap-3 mb-2.5">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              {snippet.visibility === "PUBLIC" && (
-                <span title="Публичный сниппет">
-                  <Globe className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                </span>
-              )}
-              {snippet.visibility === "UNLISTED" && (
-                <span title="Доступ по ссылке">
-                  <Share2 className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
-                </span>
-              )}
-              {snippet.visibility === "PRIVATE" && (
-                <span title="Приватный сниппет">
-                  <Lock className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
-                </span>
-              )}
-
-              {snippet.collection && (
+            {snippet.collection && (
+              <div className="flex items-center gap-2 mb-1">
                 <span
                   className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border mr-1 flex-shrink-0"
                   style={{
@@ -132,18 +114,18 @@ export function SnippetCard({
                   />
                   <span className="truncate max-w-[100px]">{snippet.collection.name}</span>
                 </span>
-              )}
+              </div>
+            )}
 
               <h3 className="text-base font-semibold text-zinc-100 group-hover:text-white truncate transition-colors">
                 {snippet.title}
               </h3>
+              {snippet.description && (
+                <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                  {snippet.description}
+                </p>
+              )}
             </div>
-            {snippet.description && (
-              <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
-                {snippet.description}
-              </p>
-            )}
-          </div>
 
           {/* Star & Action Menu */}
           <div className="flex items-center gap-1 -mr-1">

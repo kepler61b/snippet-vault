@@ -7,15 +7,23 @@ import { getCurrentUser } from "@/lib/auth";
 export async function GET(request: NextRequest) {
   try {
     await ensureSeedSnippets();
+    const currentUser = await getCurrentUser();
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.trim().toLowerCase();
     const tag = searchParams.get("tag")?.trim().toLowerCase();
     const language = searchParams.get("language")?.trim().toLowerCase();
     const favorite = searchParams.get("favorite") === "true";
-    const visibility = searchParams.get("visibility"); // "PUBLIC", "UNLISTED", "PRIVATE"
     const collectionId = searchParams.get("collectionId");
 
     const where: any = {};
+    const andConditions: any[] = [];
+
+    // All snippets remain accessible within the single account
+    if (currentUser) {
+      andConditions.push({
+        OR: [{ userId: currentUser.id }, { userId: null }],
+      });
+    }
 
     if (favorite) {
       where.isFavorite = true;
@@ -23,10 +31,6 @@ export async function GET(request: NextRequest) {
 
     if (collectionId) {
       where.collectionId = collectionId;
-    }
-
-    if (visibility && ["PUBLIC", "UNLISTED", "PRIVATE"].includes(visibility)) {
-      where.visibility = visibility;
     }
 
     if (tag) {
@@ -44,21 +48,27 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      where.OR = [
-        { title: { contains: search } },
-        { description: { contains: search } },
-        { tags: { contains: search } },
-        {
-          files: {
-            some: {
-              OR: [
-                { filename: { contains: search } },
-                { content: { contains: search } },
-              ],
+      andConditions.push({
+        OR: [
+          { title: { contains: search } },
+          { description: { contains: search } },
+          { tags: { contains: search } },
+          {
+            files: {
+              some: {
+                OR: [
+                  { filename: { contains: search } },
+                  { content: { contains: search } },
+                ],
+              },
             },
           },
-        },
-      ];
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const snippets = await prisma.snippet.findMany({
@@ -113,9 +123,7 @@ export async function POST(request: NextRequest) {
       data: {
         title: title.trim(),
         description: description?.trim() || null,
-        visibility: ["PUBLIC", "UNLISTED", "PRIVATE"].includes(visibility)
-          ? visibility
-          : "PUBLIC",
+        visibility: "UNLISTED",
         isFavorite: Boolean(isFavorite),
         tags: formattedTags,
         userId: currentUser?.id || null,

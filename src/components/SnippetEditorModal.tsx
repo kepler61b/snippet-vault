@@ -5,11 +5,8 @@ import {
   Code,
   FileCode,
   Folder,
-  Globe,
   Loader2,
-  Lock,
   Plus,
-  Share2,
   Sparkles,
   Star,
   Trash2,
@@ -124,9 +121,6 @@ export function SnippetEditorModal({
   const [description, setDescription] = useState(snippet?.description || "");
   const [collectionId, setCollectionId] = useState(
     snippet?.collectionId || defaultCollectionId || ""
-  );
-  const [visibility, setVisibility] = useState<"PUBLIC" | "UNLISTED" | "PRIVATE">(
-    snippet?.visibility || "PUBLIC"
   );
   const [isFavorite, setIsFavorite] = useState(snippet?.isFavorite || false);
   const [tags, setTags] = useState(snippet?.tags || "");
@@ -335,7 +329,6 @@ export function SnippetEditorModal({
       await onSave({
         title: title.trim(),
         description: description.trim() || null,
-        visibility,
         isFavorite,
         tags,
         collectionId: collectionId || null,
@@ -373,26 +366,6 @@ export function SnippetEditorModal({
     })),
   ];
 
-  const visibilityOptions: CustomSelectOption[] = [
-    {
-      value: "PUBLIC",
-      label: "Публичный (видно всем)",
-      icon: <Globe className="w-4 h-4 text-emerald-400" />,
-      description: "Виден всем пользователям",
-    },
-    {
-      value: "UNLISTED",
-      label: "По секретной ссылке",
-      icon: <Share2 className="w-4 h-4 text-sky-400" />,
-      description: "Доступ только по прямой ссылке",
-    },
-    {
-      value: "PRIVATE",
-      label: "Приватный (только для вас)",
-      icon: <Lock className="w-4 h-4 text-zinc-400" />,
-      description: "Виден только в вашем аккаунте",
-    },
-  ];
 
   const languageOptions: CustomSelectOption[] = SUPPORTED_LANGUAGES.map((lang) => ({
     value: lang.id,
@@ -448,8 +421,8 @@ export function SnippetEditorModal({
         {/* Form Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
           {/* Metadata Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="sm:col-span-2 space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+            <div className="md:col-span-2 space-y-1.5">
               <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Название сниппета <span className="text-rose-500">*</span>
               </label>
@@ -466,7 +439,7 @@ export function SnippetEditorModal({
             </div>
 
             {/* Collection Selector */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 md:col-span-1">
               <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 Коллекция
               </label>
@@ -570,18 +543,6 @@ export function SnippetEditorModal({
                     )}
                   </div>
                 )}
-              />
-            </div>
-
-            {/* Visibility Selector */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                Видимость / Доступ
-              </label>
-              <CustomSelect
-                value={visibility}
-                onChange={(val) => setVisibility(val as any)}
-                options={visibilityOptions}
               />
             </div>
           </div>

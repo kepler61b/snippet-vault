@@ -6,10 +6,7 @@ import {
   Download,
   Edit2,
   FolderGit2,
-  Globe,
-  Lock,
   Plus,
-  Share2,
   SlidersHorizontal,
   Star,
   Tag,
@@ -27,8 +24,8 @@ interface SidebarProps {
   onSelectCollection: (id: string | null) => void;
   onOpenCreateCollection: () => void;
   onEditCollection: (col: CollectionItem) => void;
-  selectedFilter: "ALL" | "FAVORITES" | "PUBLIC" | "UNLISTED" | "PRIVATE";
-  onSelectFilter: (filter: "ALL" | "FAVORITES" | "PUBLIC" | "UNLISTED" | "PRIVATE") => void;
+  selectedFilter: "ALL" | "FAVORITES";
+  onSelectFilter: (filter: "ALL" | "FAVORITES") => void;
   selectedLanguage: string | null;
   onSelectLanguage: (lang: string | null) => void;
   selectedTag: string | null;
@@ -195,7 +192,7 @@ export function Sidebar({
         )}
       </div>
 
-      {/* БЛОК 2: ФИЛЬТРЫ (Избранное, Публичные, По секретной ссылке, Приватные) */}
+      {/* БЛОК 2: ФИЛЬТРЫ (Избранное) */}
       <div className="space-y-1">
         <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
           <span>Фильтры</span>
@@ -236,59 +233,6 @@ export function Sidebar({
           <span className="text-xs opacity-75">{favoriteCount}</span>
         </button>
 
-        <button
-          onClick={() => {
-            onSelectCollection(null);
-            onSelectFilter("PUBLIC");
-            onCloseMobile?.();
-          }}
-          className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-all ${
-            selectedCollectionId === null && selectedFilter === "PUBLIC"
-              ? "bg-zinc-800 text-white font-medium"
-              : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Globe className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Публичные</span>
-          </div>
-        </button>
-
-        <button
-          onClick={() => {
-            onSelectCollection(null);
-            onSelectFilter("UNLISTED");
-            onCloseMobile?.();
-          }}
-          className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-all ${
-            selectedCollectionId === null && selectedFilter === "UNLISTED"
-              ? "bg-zinc-800 text-white font-medium"
-              : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Share2 className="w-3.5 h-3.5 text-sky-400" />
-            <span>По секретной ссылке</span>
-          </div>
-        </button>
-
-        <button
-          onClick={() => {
-            onSelectCollection(null);
-            onSelectFilter("PRIVATE");
-            onCloseMobile?.();
-          }}
-          className={`flex items-center justify-between w-full px-3 py-1.5 text-xs rounded-lg transition-all ${
-            selectedCollectionId === null && selectedFilter === "PRIVATE"
-              ? "bg-zinc-800 text-white font-medium"
-              : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <Lock className="w-3.5 h-3.5 text-zinc-400" />
-            <span>Приватные</span>
-          </div>
-        </button>
       </div>
 
       {/* БЛОК 3: ЯЗЫКИ */}

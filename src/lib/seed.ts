@@ -44,7 +44,7 @@ export async function ensureSeedSnippets() {
     data: {
       title: "React 19: Хук useDebounce с поддержкой отмены",
       description: "Универсальный TypeScript хук для дебаунса ввода пользователя в поисковых строках и формах.",
-      visibility: "PUBLIC",
+      visibility: "UNLISTED",
       isFavorite: true,
       tags: "react, typescript, hooks, frontend",
       userId: defaultUserId,
@@ -116,7 +116,7 @@ export function SearchBar() {
     data: {
       title: "Python FastAPI: JWT Авторизация с Bearer Token",
       description: "Готовый модуль для аутентификации пользователей через JWT токен в FastAPI с Dependency Injection.",
-      visibility: "PUBLIC",
+      visibility: "UNLISTED",
       isFavorite: true,
       tags: "python, fastapi, jwt, backend, security",
       userId: defaultUserId,
@@ -172,7 +172,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     data: {
       title: "Docker Compose: Стек PostgreSQL 16 + Adminer + Persistent Volume",
       description: "Конфигурация docker-compose для локальной разработки с базой данных PostgreSQL и веб-клиентом Adminer.",
-      visibility: "PUBLIC",
+      visibility: "UNLISTED",
       isFavorite: false,
       tags: "docker, postgresql, devops, database",
       userId: defaultUserId,

@@ -208,7 +208,6 @@ export function SettingsModal({
   const [aiSuccess, setAiSuccess] = useState(false);
 
   // General App Preferences
-  const [defaultVisibility, setDefaultVisibility] = useState<"PUBLIC" | "UNLISTED" | "PRIVATE">("PUBLIC");
   const [defaultLanguage, setDefaultLanguage] = useState("typescript");
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("grid");
   const [defaultSortBy, setDefaultSortBy] = useState<SortOption>("CREATED_DESC");
@@ -260,8 +259,6 @@ export function SettingsModal({
     }
 
     // 3. General preferences from localStorage
-    const savedVis = localStorage.getItem("snippetvault_default_visibility") as any;
-    if (savedVis) setDefaultVisibility(savedVis);
     const savedLang = localStorage.getItem("snippetvault_default_language");
     if (savedLang) setDefaultLanguage(savedLang);
     const savedView = localStorage.getItem("snippetvault_view_mode") as ViewMode;
@@ -528,7 +525,6 @@ export function SettingsModal({
   const handleSaveGeneral = (e: React.FormEvent) => {
     e.preventDefault();
     setGeneralSaving(true);
-    localStorage.setItem("snippetvault_default_visibility", defaultVisibility);
     localStorage.setItem("snippetvault_default_language", defaultLanguage);
     localStorage.setItem("snippetvault_view_mode", defaultViewMode);
     localStorage.setItem("snippetvault_sort_by", defaultSortBy);
@@ -1426,52 +1422,6 @@ export function SettingsModal({
           {/* TAB 3: GENERAL SETTINGS */}
           {activeTab === "general" && (
             <form onSubmit={handleSaveGeneral} className="space-y-5 animate-in fade-in duration-200">
-              <div className="space-y-2">
-                <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                  Видимость сниппетов по умолчанию
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDefaultVisibility("PUBLIC")}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      defaultVisibility === "PUBLIC"
-                        ? "border-violet-500 bg-violet-600/10 text-white font-medium"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    <div className="font-semibold text-white text-xs mb-0.5">Публичный</div>
-                    <div className="text-[10px] text-zinc-400">Виден всем пользователям</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setDefaultVisibility("UNLISTED")}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      defaultVisibility === "UNLISTED"
-                        ? "border-violet-500 bg-violet-600/10 text-white font-medium"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    <div className="font-semibold text-white text-xs mb-0.5">По ссылке</div>
-                    <div className="text-[10px] text-zinc-400">Доступ только по URL</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setDefaultVisibility("PRIVATE")}
-                    className={`p-3 rounded-xl border text-left transition-all ${
-                      defaultVisibility === "PRIVATE"
-                        ? "border-violet-500 bg-violet-600/10 text-white font-medium"
-                        : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
-                    }`}
-                  >
-                    <div className="font-semibold text-white text-xs mb-0.5">Приватный</div>
-                    <div className="text-[10px] text-zinc-400">Только в вашем аккаунте</div>
-                  </button>
-                </div>
-              </div>
-
               <div className="space-y-1.5">
                 <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
                   Язык по умолчанию для новых сниппетов

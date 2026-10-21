@@ -10,8 +10,6 @@ import {
   Edit3,
   ExternalLink,
   FileCode,
-  Globe,
-  Lock,
   Share2,
   Sparkles,
   Star,
@@ -115,25 +113,6 @@ export function SnippetViewModal({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/70">
           <div className="space-y-1 max-w-2xl min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              {snippet.visibility === "PUBLIC" && (
-                <span className="flex items-center gap-1 text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <Globe className="w-3 h-3" />
-                  Публичный
-                </span>
-              )}
-              {snippet.visibility === "UNLISTED" && (
-                <span className="flex items-center gap-1 text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                  <Share2 className="w-3 h-3" />
-                  По ссылке
-                </span>
-              )}
-              {snippet.visibility === "PRIVATE" && (
-                <span className="flex items-center gap-1 text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-zinc-500/10 text-zinc-400 border border-zinc-500/20">
-                  <Lock className="w-3 h-3" />
-                  Приватный
-                </span>
-              )}
-
               {snippet.collection && (
                 <span
                   className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border"

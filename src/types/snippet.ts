@@ -26,7 +26,7 @@ export interface SnippetItem {
   id: string;
   title: string;
   description: string | null;
-  visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
+  visibility?: string;
   shareToken: string;
   isFavorite: boolean;
   tags: string;

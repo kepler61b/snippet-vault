@@ -52,9 +52,7 @@ export default function HomePage() {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<
-    "ALL" | "FAVORITES" | "PUBLIC" | "UNLISTED" | "PRIVATE"
-  >("ALL");
+  const [selectedFilter, setSelectedFilter] = useState<"ALL" | "FAVORITES">("ALL");
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
@@ -259,9 +257,6 @@ export default function HomePage() {
 
       // Filter category
       if (selectedFilter === "FAVORITES" && !s.isFavorite) return false;
-      if (selectedFilter === "PUBLIC" && s.visibility !== "PUBLIC") return false;
-      if (selectedFilter === "UNLISTED" && s.visibility !== "UNLISTED") return false;
-      if (selectedFilter === "PRIVATE" && s.visibility !== "PRIVATE") return false;
 
       // Language filter
       if (selectedLanguage) {
@@ -610,12 +605,6 @@ export default function HomePage() {
                     ? "Пользовательская коллекция"
                     : selectedFilter === "FAVORITES"
                     ? "Только избранные сниппеты"
-                    : selectedFilter === "PUBLIC"
-                    ? "Публичные сниппеты"
-                    : selectedFilter === "UNLISTED"
-                    ? "Сниппеты по секретной ссылке"
-                    : selectedFilter === "PRIVATE"
-                    ? "Приватные сниппеты"
                     : selectedTag
                     ? `Фильтр по тегу #${selectedTag}`
                     : selectedLanguage

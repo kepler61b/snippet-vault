@@ -28,13 +28,6 @@ export async function GET(
       );
     }
 
-    if (snippet.visibility === "PRIVATE") {
-      return NextResponse.json(
-        { success: false, error: "This snippet is private" },
-        { status: 403 }
-      );
-    }
-
     return NextResponse.json({ success: true, snippet });
   } catch (error: any) {
     console.error("Error fetching shared snippet:", error);

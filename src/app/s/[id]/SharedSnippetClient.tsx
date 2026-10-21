@@ -9,7 +9,6 @@ import {
   Copy,
   Download,
   FileCode,
-  Globe,
   Share2,
   Terminal,
 } from "lucide-react";
@@ -116,17 +115,10 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
         {/* Header Info */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            {snippet.visibility === "PUBLIC" ? (
-              <span className="flex items-center gap-1 text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <Globe className="w-3 h-3" />
-                Публичный сниппет
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                <Share2 className="w-3 h-3" />
-                Доступ по ссылке
-              </span>
-            )}
+            <span className="flex items-center gap-1 text-[11px] font-semibold uppercase px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">
+              <Share2 className="w-3 h-3" />
+              Доступ по секретной ссылке
+            </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">

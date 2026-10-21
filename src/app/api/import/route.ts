@@ -99,10 +99,7 @@ export async function POST(request: NextRequest) {
 
       const title = (snip.title && String(snip.title).trim()) || "Импортированный сниппет";
       const description = snip.description ? String(snip.description).trim() : null;
-      const visibility =
-        snip.visibility === "PRIVATE" || snip.visibility === "UNLISTED"
-          ? snip.visibility
-          : "PUBLIC";
+      const visibility = "UNLISTED";
       const isFavorite = Boolean(snip.isFavorite);
       const tags =
         typeof snip.tags === "string"

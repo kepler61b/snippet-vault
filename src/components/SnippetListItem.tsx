@@ -8,8 +8,6 @@ import {
   Edit3,
   ExternalLink,
   FileCode,
-  Globe,
-  Lock,
   MoreVertical,
   Share2,
   Star,
@@ -115,23 +113,6 @@ export function SnippetListItem({
         {/* Content details */}
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            {/* Visibility Badge */}
-            {snippet.visibility === "PUBLIC" && (
-              <span title="Публичный сниппет">
-                <Globe className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-              </span>
-            )}
-            {snippet.visibility === "UNLISTED" && (
-              <span title="Доступ по ссылке">
-                <Share2 className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
-              </span>
-            )}
-            {snippet.visibility === "PRIVATE" && (
-              <span title="Приватный сниппет">
-                <Lock className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
-              </span>
-            )}
-
             {/* Collection Badge */}
             {snippet.collection && (
               <span

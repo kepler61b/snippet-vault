@@ -18,7 +18,7 @@ export async function generateMetadata({
     select: { title: true, description: true, visibility: true },
   });
 
-  if (!snippet || snippet.visibility === "PRIVATE") {
+  if (!snippet) {
     return { title: "Сниппет не найден — SnippetVault" };
   }
 
@@ -46,7 +46,7 @@ export default async function SharedSnippetPage({
     },
   });
 
-  if (!snippet || snippet.visibility === "PRIVATE") {
+  if (!snippet) {
     notFound();
   }
 
