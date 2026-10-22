@@ -68,12 +68,18 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     console.error("AI API Error:", error);
+    const isKeyRequired =
+      error?.code === "AI_KEY_REQUIRED" ||
+      error?.message?.includes("AI API ключ не настроен") ||
+      error?.message?.includes("API ключ не настроен");
+
     return NextResponse.json(
       {
         success: false,
         error: error.message || "Failed to process AI request",
+        code: isKeyRequired ? "AI_KEY_REQUIRED" : "AI_ERROR",
       },
-      { status: 500 }
+      { status: isKeyRequired ? 400 : 500 }
     );
   }
 }

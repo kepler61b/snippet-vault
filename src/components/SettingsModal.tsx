@@ -54,6 +54,7 @@ interface SettingsModalProps {
   } | null;
   onUserUpdated?: () => void;
   onSettingsChanged?: () => void;
+  initialTab?: "general" | "profile" | "security" | "ai" | "data";
 }
 
 export function SettingsModal({
@@ -62,11 +63,14 @@ export function SettingsModal({
   currentUser,
   onUserUpdated,
   onSettingsChanged,
+  initialTab,
 }: SettingsModalProps) {
   const router = useRouter();
 
   // Active Tab: "general" | "profile" | "security" | "ai" | "data"
-  const [activeTab, setActiveTab] = useState<"general" | "profile" | "security" | "ai" | "data">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "profile" | "security" | "ai" | "data">(
+    initialTab || "general"
+  );
 
   // Modal Smooth Height Animation State & Refs
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -101,7 +105,7 @@ export function SettingsModal({
       return;
     }
 
-    setActiveTab("general");
+    setActiveTab(initialTab || "general");
 
     // Initial measurement
     updateModalHeight();
@@ -733,7 +737,7 @@ export function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-1.5 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
       <div
         ref={dialogRef}
         style={{

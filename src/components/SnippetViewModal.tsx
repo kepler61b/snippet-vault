@@ -263,9 +263,15 @@ export function SnippetViewModal({
               {/* AI & Quick action buttons */}
               <div className="flex items-center gap-1 overflow-x-auto py-1 border-t sm:border-t-0 border-zinc-800/60 scrollbar-none">
                 <button
-                  onClick={() =>
-                    onTriggerAI("explain", currentFile.content, currentFile.language)
-                  }
+                  onClick={async () => {
+                    try {
+                      await onTriggerAI("explain", currentFile.content, currentFile.language);
+                    } catch (e: any) {
+                      if (e?.code !== "AI_KEY_REQUIRED" && !e?.message?.includes("AI_KEY_REQUIRED") && !e?.message?.includes("AI API ключ не настроен")) {
+                        alert(e.message);
+                      }
+                    }
+                  }}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 transition-colors flex-shrink-0"
                   title="Объяснить код файла через AI"
                 >
@@ -274,9 +280,15 @@ export function SnippetViewModal({
                 </button>
 
                 <button
-                  onClick={() =>
-                    onTriggerAI("refactor", currentFile.content, currentFile.language)
-                  }
+                  onClick={async () => {
+                    try {
+                      await onTriggerAI("refactor", currentFile.content, currentFile.language);
+                    } catch (e: any) {
+                      if (e?.code !== "AI_KEY_REQUIRED" && !e?.message?.includes("AI_KEY_REQUIRED") && !e?.message?.includes("AI API ключ не настроен")) {
+                        alert(e.message);
+                      }
+                    }
+                  }}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors flex-shrink-0"
                   title="Оптимизировать код через AI"
                 >

@@ -36,6 +36,7 @@ import { SnippetViewModal } from "@/components/SnippetViewModal";
 import { CollectionModal } from "@/components/CollectionModal";
 import { CollectionIcon } from "@/lib/collection-icons";
 import { AIModal } from "@/components/AIModal";
+import { AIKeyModal } from "@/components/AIKeyModal";
 import { SettingsModal } from "@/components/SettingsModal";
 import { CommandPalette } from "@/components/CommandPalette";
 import { AdminModal } from "@/components/AdminModal";
@@ -68,6 +69,10 @@ export default function HomePage() {
   const [editingSnippet, setEditingSnippet] = useState<SnippetItem | null>(null);
   const [viewingSnippet, setViewingSnippet] = useState<SnippetItem | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<
+    "general" | "profile" | "security" | "ai" | "data"
+  >("general");
+  const [isAiKeyModalOpen, setIsAiKeyModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -416,56 +421,87 @@ export default function HomePage() {
     filesOrCode: SnippetFileItem[] | string,
     activeFileOrLang?: SnippetFileItem | string
   ) => {
-    if (action === "meta") {
+    try {
+      if (action === "meta") {
+        const res = await fetch("/api/ai", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "meta",
+            files: filesOrCode,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          if (
+            data.code === "AI_KEY_REQUIRED" ||
+            data.error?.includes("AI API ключ не настроен") ||
+            data.error?.includes("API ключ не настроен")
+          ) {
+            setIsAiKeyModalOpen(true);
+            const keyErr: any = new Error("AI API ключ не настроен");
+            keyErr.code = "AI_KEY_REQUIRED";
+            throw keyErr;
+          }
+          throw new Error(data.error || "AI error");
+        }
+        return data.meta;
+      }
+
+      // explain, refactor, document
+      const code = typeof filesOrCode === "string" ? filesOrCode : "";
+      const language =
+        typeof activeFileOrLang === "string" ? activeFileOrLang : "plaintext";
+
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "meta",
-          files: filesOrCode,
+          action,
+          code,
+          language,
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
+        if (
+          data.code === "AI_KEY_REQUIRED" ||
+          data.error?.includes("AI API ключ не настроен") ||
+          data.error?.includes("API ключ не настроен")
+        ) {
+          setIsAiKeyModalOpen(true);
+          const keyErr: any = new Error("AI API ключ не настроен");
+          keyErr.code = "AI_KEY_REQUIRED";
+          throw keyErr;
+        }
         throw new Error(data.error || "AI error");
       }
-      return data.meta;
-    }
 
-    // explain, refactor, document
-    const code = typeof filesOrCode === "string" ? filesOrCode : "";
-    const language =
-      typeof activeFileOrLang === "string" ? activeFileOrLang : "plaintext";
+      const titleMap = {
+        explain: "Объяснение кода",
+        refactor: "Рефакторинг и оптимизация",
+        document: "Документация и комментарии",
+      };
 
-    const res = await fetch("/api/ai", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action,
-        code,
+      setAiModal({
+        isOpen: true,
+        title: titleMap[action] || "AI Результат",
+        type: action,
+        content: data.result,
         language,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || "AI error");
+      });
+
+      return data.result;
+    } catch (err: any) {
+      if (
+        err?.code === "AI_KEY_REQUIRED" ||
+        err?.message?.includes("AI API ключ не настроен") ||
+        err?.message?.includes("API ключ не настроен")
+      ) {
+        setIsAiKeyModalOpen(true);
+      }
+      throw err;
     }
-
-    const titleMap = {
-      explain: "Объяснение кода",
-      refactor: "Рефакторинг и оптимизация",
-      document: "Документация и комментарии",
-    };
-
-    setAiModal({
-      isOpen: true,
-      title: titleMap[action] || "AI Результат",
-      type: action,
-      content: data.result,
-      language,
-    });
-
-    return data.result;
   };
 
   if (isAuthChecking) {
@@ -483,7 +519,10 @@ export default function HomePage() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onOpenCreateModal={() => setIsCreateOpen(true)}
-        onOpenSettingsModal={() => setIsSettingsOpen(true)}
+        onOpenSettingsModal={() => {
+          setSettingsInitialTab("general");
+          setIsSettingsOpen(true);
+        }}
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenAdminModal={() => setIsAdminModalOpen(true)}
         currentUser={currentUser}
@@ -887,11 +926,23 @@ export default function HomePage() {
         onClose={() => setAiModal((prev) => ({ ...prev, isOpen: false }))}
       />
 
+      {/* AI Key Required Modal */}
+      <AIKeyModal
+        isOpen={isAiKeyModalOpen}
+        onClose={() => setIsAiKeyModalOpen(false)}
+        onConfigure={() => {
+          setIsAiKeyModalOpen(false);
+          setSettingsInitialTab("ai");
+          setIsSettingsOpen(true);
+        }}
+      />
+
       {/* Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         currentUser={currentUser}
+        initialTab={settingsInitialTab}
         onUserUpdated={fetchCurrentUser}
         onSettingsChanged={() => {
           loadPreferences();
@@ -907,7 +958,10 @@ export default function HomePage() {
         snippets={snippets}
         onSelectSnippet={(s) => setViewingSnippet(s)}
         onOpenCreateModal={() => setIsCreateOpen(true)}
-        onOpenSettingsModal={() => setIsSettingsOpen(true)}
+        onOpenSettingsModal={() => {
+          setSettingsInitialTab("general");
+          setIsSettingsOpen(true);
+        }}
         onShowFavorites={() => setSelectedFilter("FAVORITES")}
         currentUser={currentUser}
         onOpenAdminModal={() => setIsAdminModalOpen(true)}

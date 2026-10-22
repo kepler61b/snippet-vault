@@ -45,9 +45,9 @@ export async function executeAIRequest(
   const config = await getAISettings();
 
   if (!config.apiKey && config.provider !== "custom") {
-    throw new Error(
-      "AI API ключ не настроен. Пожалуйста, укажите ваш API ключ в настройках приложения или через переменные окружения (.env)."
-    );
+    const error: any = new Error("AI API ключ не настроен. Пожалуйста, укажите ваш API ключ в настройках приложения или через переменные окружения (.env).");
+    error.code = "AI_KEY_REQUIRED";
+    throw error;
   }
 
   if (config.provider === "gemini") {

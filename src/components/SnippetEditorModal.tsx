@@ -307,7 +307,9 @@ export function SnippetEditorModal({
         }
       }
     } catch (err: any) {
-      alert(err.message || "Ошибка автозаполнения");
+      if (err?.code !== "AI_KEY_REQUIRED" && !err?.message?.includes("AI_KEY_REQUIRED") && !err?.message?.includes("AI API ключ не настроен")) {
+        alert(err.message || "Ошибка автозаполнения");
+      }
     } finally {
       setAiLoading(null);
     }
@@ -671,7 +673,9 @@ export function SnippetEditorModal({
                       setAiLoading("explain");
                       await onTriggerAI("explain", files, currentFile);
                     } catch (e: any) {
-                      alert(e.message);
+                      if (e?.code !== "AI_KEY_REQUIRED" && !e?.message?.includes("AI_KEY_REQUIRED") && !e?.message?.includes("AI API ключ не настроен")) {
+                        alert(e.message);
+                      }
                     } finally {
                       setAiLoading(null);
                     }
@@ -695,7 +699,9 @@ export function SnippetEditorModal({
                       setAiLoading("refactor");
                       await onTriggerAI("refactor", files, currentFile);
                     } catch (e: any) {
-                      alert(e.message);
+                      if (e?.code !== "AI_KEY_REQUIRED" && !e?.message?.includes("AI_KEY_REQUIRED") && !e?.message?.includes("AI API ключ не настроен")) {
+                        alert(e.message);
+                      }
                     } finally {
                       setAiLoading(null);
                     }
@@ -719,7 +725,9 @@ export function SnippetEditorModal({
                       setAiLoading("document");
                       await onTriggerAI("document", files, currentFile);
                     } catch (e: any) {
-                      alert(e.message);
+                      if (e?.code !== "AI_KEY_REQUIRED" && !e?.message?.includes("AI_KEY_REQUIRED") && !e?.message?.includes("AI API ключ не настроен")) {
+                        alert(e.message);
+                      }
                     } finally {
                       setAiLoading(null);
                     }
