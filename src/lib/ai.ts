@@ -1,23 +1,4 @@
 import { prisma } from "./db";
-import { ProxyAgent } from "undici";
-
-function getProxyAgent(): ProxyAgent | undefined {
-  const proxyUrl =
-    process.env.AI_PROXY ||
-    process.env.HTTPS_PROXY ||
-    process.env.HTTP_PROXY ||
-    process.env.all_proxy ||
-    process.env.ALL_PROXY;
-
-  if (proxyUrl) {
-    try {
-      return new ProxyAgent(proxyUrl);
-    } catch (e) {
-      console.warn("Failed to create ProxyAgent for proxy:", proxyUrl, e);
-    }
-  }
-  return undefined;
-}
 
 export interface AISettings {
   provider: "openai" | "gemini" | "custom";
@@ -91,8 +72,6 @@ export async function executeAIRequestWithConfig(
     throw error;
   }
 
-  const proxyAgent = getProxyAgent();
-
   if (config.provider === "gemini") {
     // Google Gemini API
     const model = (config.model || "gemini-3.5-flash").trim();
@@ -126,9 +105,6 @@ export async function executeAIRequestWithConfig(
           },
         }),
       };
-      if (proxyAgent) {
-        fetchOpts.dispatcher = proxyAgent;
-      }
 
       res = await fetch(url, fetchOpts);
     } catch (fetchErr: any) {
@@ -194,9 +170,6 @@ export async function executeAIRequestWithConfig(
           temperature: 0.2,
         }),
       };
-      if (proxyAgent) {
-        fetchOpts.dispatcher = proxyAgent;
-      }
 
       res = await fetch(endpoint, fetchOpts);
     } catch (fetchErr: any) {
