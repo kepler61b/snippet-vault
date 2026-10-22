@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { Bot, Settings, Sparkles, X } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface AIKeyModalProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface AIKeyModalProps {
 }
 
 export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
+  const { t, locale } = useI18n();
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
@@ -35,8 +38,8 @@ export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
           type="button"
           onClick={onClose}
           className="absolute right-3.5 top-3.5 p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-          title="Закрыть"
-          aria-label="Закрыть"
+          title={t("common.close")}
+          aria-label={t("common.close")}
         >
           <X className="w-4 h-4" />
         </button>
@@ -49,10 +52,10 @@ export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
 
           <div className="space-y-1">
             <h3 className="text-base sm:text-lg font-bold text-white">
-              Требуется настройка AI API Ключа
+              {t("aiKeyModal.title")}
             </h3>
             <p className="text-xs text-zinc-400 leading-relaxed max-w-sm mx-auto">
-              Для использования функций искусственного интеллекта необходимо указать API ключ в настройках приложения.
+              {t("aiKeyModal.desc")}
             </p>
           </div>
         </div>
@@ -61,15 +64,15 @@ export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
         <div className="p-3.5 rounded-xl border border-zinc-800 bg-zinc-900/60 space-y-2 text-xs text-zinc-300">
           <div className="flex items-center gap-2 font-medium text-zinc-200">
             <Bot className="w-4 h-4 text-violet-400 shrink-0" />
-            <span>AI-функции приложения:</span>
+            <span>{locale === "ru" ? "AI-функции приложения:" : "App AI Features:"}</span>
           </div>
           <ul className="text-[11px] text-zinc-400 space-y-1 pl-6 list-disc">
-            <li>Автогенерация заголовка, описания и тегов по коду</li>
-            <li>Объяснение логики работы алгоритмов и файлов</li>
-            <li>Рефакторинг, оптимизация и документирование кода</li>
+            <li>{locale === "ru" ? "Автогенерация заголовка, описания и тегов по коду" : "Auto-generation of title, description, and tags"}</li>
+            <li>{locale === "ru" ? "Объяснение логики работы алгоритмов и файлов" : "Code explanation and logic breakdown"}</li>
+            <li>{locale === "ru" ? "Рефакторинг, оптимизация и документирование кода" : "Refactoring, optimization, and documentation"}</li>
           </ul>
           <p className="text-[11px] text-zinc-500 pt-1 border-t border-zinc-800/80">
-            Поддерживаются: OpenAI, Google Gemini и локальные модели Ollama / LM Studio.
+            {t("aiKeyModal.hint")}
           </p>
         </div>
 
@@ -80,7 +83,7 @@ export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
             onClick={onClose}
             className="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 active:scale-95 transition-all text-center min-h-[44px]"
           >
-            ОК
+            {t("aiKeyModal.cancel")}
           </button>
 
           <button
@@ -89,7 +92,7 @@ export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
             className="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 active:scale-95 transition-all flex items-center justify-center gap-1.5 min-h-[44px]"
           >
             <Settings className="w-4 h-4" />
-            <span>Настроить</span>
+            <span>{t("aiKeyModal.configure")}</span>
           </button>
         </div>
       </div>

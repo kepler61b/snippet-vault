@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { SnippetItem } from "@/types/snippet";
+import { useI18n } from "@/lib/i18n";
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export function CommandPalette({
   onOpenAdminModal,
   currentUser,
 }: CommandPaletteProps) {
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -81,7 +83,7 @@ export function CommandPalette({
   const actions = [
     {
       id: "create",
-      title: "Создать новый сниппет",
+      title: t("commandPalette.newSnippet"),
       icon: Plus,
       run: () => {
         onClose();
@@ -90,7 +92,7 @@ export function CommandPalette({
     },
     {
       id: "favorites",
-      title: "Показать только Избранное",
+      title: t("commandPalette.favorites"),
       icon: Star,
       run: () => {
         onClose();
@@ -99,7 +101,7 @@ export function CommandPalette({
     },
     {
       id: "export-all",
-      title: "Экспортировать всю базу сниппетов (.json)",
+      title: `${t("settings.data.exportAllBtn")} (.json)`,
       icon: Download,
       run: () => {
         onClose();
@@ -113,7 +115,7 @@ export function CommandPalette({
     },
     {
       id: "import-backup",
-      title: "Импортировать сниппеты и коллекции (.json)...",
+      title: `${t("settings.data.importTitle")} (.json)...`,
       icon: Upload,
       run: () => {
         onClose();
@@ -122,7 +124,7 @@ export function CommandPalette({
     },
     {
       id: "settings",
-      title: "Настройки (Профиль, 2FA, AI)",
+      title: t("commandPalette.openSettings"),
       icon: Settings,
       run: () => {
         onClose();
@@ -133,7 +135,7 @@ export function CommandPalette({
       ? [
           {
             id: "admin-panel",
-            title: "Панель администратора (пользователи и доступ)",
+            title: t("admin.title"),
             icon: ShieldCheck,
             run: () => {
               onClose();
@@ -182,7 +184,7 @@ export function CommandPalette({
           <input
             type="text"
             autoFocus
-            placeholder="Поиск по сниппетам, файлам или командам..."
+            placeholder={t("commandPalette.placeholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -195,7 +197,7 @@ export function CommandPalette({
             type="button"
             onClick={onClose}
             className="sm:hidden p-2 rounded-xl text-zinc-400 hover:text-white shrink-0 ml-1 min-w-[36px] min-h-[36px] flex items-center justify-center"
-            aria-label="Закрыть"
+            aria-label={t("common.close")}
           >
             <X className="w-4 h-4" />
           </button>
@@ -206,7 +208,7 @@ export function CommandPalette({
           {/* Actions section */}
           {!query && (
             <div className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              Быстрые действия
+              {t("commandPalette.actionsGroup")}
             </div>
           )}
           {actions.map((act, idx) => {
@@ -237,12 +239,12 @@ export function CommandPalette({
 
           {/* Snippets section */}
           <div className="px-3 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-            Сниппеты ({filteredSnippets.length})
+            {t("commandPalette.snippetsGroup")} ({filteredSnippets.length})
           </div>
 
           {filteredSnippets.length === 0 ? (
             <div className="py-8 text-center text-xs text-zinc-500">
-              Ничего не найдено по запросу «{query}»
+              {t("commandPalette.noResults")} {query ? `(«${query}»)` : ""}
             </div>
           ) : (
             filteredSnippets.map((snippet, idx) => {

@@ -40,6 +40,7 @@ import { startRegistration, browserSupportsWebAuthn } from "@simplewebauthn/brow
 import { ViewMode, SortOption, SORT_OPTIONS, CollectionItem } from "@/types/snippet";
 import { CollectionIcon } from "@/lib/collection-icons";
 import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
+import { useI18n, Locale, getLocalizedSortOptions } from "@/lib/i18n";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -66,6 +67,7 @@ export function SettingsModal({
   initialTab,
 }: SettingsModalProps) {
   const router = useRouter();
+  const { t, locale, setLocale } = useI18n();
 
   // Active Tab: "general" | "profile" | "security" | "ai" | "data"
   const [activeTab, setActiveTab] = useState<"general" | "profile" | "security" | "ai" | "data">(
@@ -157,6 +159,9 @@ export function SettingsModal({
   const [clearingDb, setClearingDb] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isClosingClearConfirm, setIsClosingClearConfirm] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isClosingLogoutConfirm, setIsClosingLogoutConfirm] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -222,8 +227,13 @@ export function SettingsModal({
   // General App Preferences
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("grid");
   const [defaultSortBy, setDefaultSortBy] = useState<SortOption>("CREATED_DESC");
+  const [selectedLang, setSelectedLang] = useState<Locale>(locale);
   const [generalSaving, setGeneralSaving] = useState(false);
   const [generalSuccess, setGeneralSuccess] = useState(false);
+
+  useEffect(() => {
+    setSelectedLang(locale);
+  }, [locale, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -274,6 +284,8 @@ export function SettingsModal({
     if (savedView === "grid" || savedView === "list") setDefaultViewMode(savedView);
     const savedSort = localStorage.getItem("snippetvault_sort_by") as SortOption;
     if (savedSort && SORT_OPTIONS.some((o) => o.id === savedSort)) setDefaultSortBy(savedSort);
+    const savedLang = (localStorage.getItem("snippetvault_lang") as Locale) || locale;
+    if (savedLang === "ru" || savedLang === "en") setSelectedLang(savedLang);
 
     // 4. Passkeys
     setPasskeySupported(browserSupportsWebAuthn());
@@ -466,15 +478,16 @@ export function SettingsModal({
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Не удалось получить параметры регистрации Passkey");
+        throw new Error(data.error || t("settings.security.passkeyAddError"));
       }
 
       // 2. Prompt browser authenticator (Windows Hello, Touch ID, Security Key)
       const regResp = await startRegistration({ optionsJSON: data.options });
 
       // 3. Ask for optional friendly name
-      const defaultName = "Passkey (" + new Date().toLocaleDateString("ru-RU") + ")";
-      const chosenName = window.prompt("Введите название для этого устройства:", defaultName) || defaultName;
+      const formattedDate = new Date().toLocaleDateString(locale === "ru" ? "ru-RU" : "en-US");
+      const defaultName = t("settings.security.passkeyDefaultName", { date: formattedDate });
+      const chosenName = window.prompt(t("settings.security.passkeyPromptName"), defaultName) || defaultName;
 
       // 4. Verify with server
       const verifyRes = await fetch("/api/auth/passkey/register/verify", {
@@ -485,10 +498,10 @@ export function SettingsModal({
       const verifyData = await verifyRes.json();
 
       if (!verifyRes.ok || !verifyData.success) {
-        throw new Error(verifyData.error || "Ошибка подтверждения ключа Passkey");
+        throw new Error(verifyData.error || t("settings.security.passkeyAddError"));
       }
 
-      setPasskeySuccess("Ключ доступа успешно добавлен!");
+      setPasskeySuccess(t("settings.security.passkeySuccessAdded"));
       setTimeout(() => setPasskeySuccess(null), 4000);
       await loadPasskeys();
     } catch (err: any) {
@@ -498,9 +511,9 @@ export function SettingsModal({
         err.message?.includes("cancelled") ||
         err.message?.includes("aborted")
       ) {
-        setPasskeyError("Добавление ключа доступа было отменено");
+        setPasskeyError(t("settings.security.passkeyCancelled"));
       } else {
-        setPasskeyError(err.message || "Ошибка добавления Passkey");
+        setPasskeyError(err.message || t("settings.security.passkeyAddError"));
       }
     } finally {
       setPasskeyCreating(false);
@@ -508,7 +521,7 @@ export function SettingsModal({
   };
 
   const handleDeletePasskey = async (id: string, name: string) => {
-    if (!confirm(`Вы действительно хотите удалить ключ доступа "${name}"?`)) {
+    if (!confirm(t("settings.security.deletePasskeyConfirm", { name }))) {
       return;
     }
     setPasskeyError(null);
@@ -516,13 +529,13 @@ export function SettingsModal({
       const res = await fetch(`/api/auth/passkey/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Ошибка при удалении ключа");
+        throw new Error(data.error || t("common.error"));
       }
-      setPasskeySuccess("Ключ доступа успешно удален");
+      setPasskeySuccess(t("settings.security.passkeySuccessDeleted"));
       setTimeout(() => setPasskeySuccess(null), 3000);
       await loadPasskeys();
     } catch (err: any) {
-      setPasskeyError(err.message);
+      setPasskeyError(err.message || t("common.error"));
     }
   };
 
@@ -571,12 +584,18 @@ export function SettingsModal({
     }
   };
 
+  const handleLanguageSelect = (lang: Locale) => {
+    setSelectedLang(lang);
+    setLocale(lang);
+  };
+
   // General Settings Save
   const handleSaveGeneral = (e: React.FormEvent) => {
     e.preventDefault();
     setGeneralSaving(true);
     localStorage.setItem("snippetvault_view_mode", defaultViewMode);
     localStorage.setItem("snippetvault_sort_by", defaultSortBy);
+    setLocale(selectedLang);
     onSettingsChanged?.();
     setGeneralSuccess(true);
     setTimeout(() => {
@@ -711,14 +730,46 @@ export function SettingsModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showClearConfirm, clearingDb]);
 
-  const handleLogout = async () => {
-    if (confirm("Вы действительно хотите выйти из аккаунта?")) {
+  const handleOpenLogoutConfirm = () => {
+    setIsClosingLogoutConfirm(false);
+    setShowLogoutConfirm(true);
+  };
+
+  const handleCloseLogoutConfirm = () => {
+    if (loggingOut) return;
+    setIsClosingLogoutConfirm(true);
+    setTimeout(() => {
+      setShowLogoutConfirm(false);
+      setIsClosingLogoutConfirm(false);
+    }, 200);
+  };
+
+  const handleConfirmLogout = async () => {
+    try {
+      setLoggingOut(true);
       await fetch("/api/auth/logout", { method: "POST" });
       router.push("/login");
       router.refresh();
       onClose();
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      setLoggingOut(false);
+      setShowLogoutConfirm(false);
+      setIsClosingLogoutConfirm(false);
     }
   };
+
+  useEffect(() => {
+    if (!showLogoutConfirm) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !loggingOut) {
+        handleCloseLogoutConfirm();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showLogoutConfirm, loggingOut]);
 
   const exportCollectionOptions: CustomSelectOption[] = userCollections.map((col) => ({
     value: col.id,
@@ -760,17 +811,17 @@ export function SettingsModal({
             </div>
             <div className="truncate">
               <h2 className="text-sm sm:text-base font-semibold text-white truncate">
-                Параметры и Личный кабинет
+                {t("settings.modalTitle")}
               </h2>
               <p className="text-[11px] sm:text-xs text-zinc-400 truncate hidden sm:block">
-                Управление профилем, безопасностью и настройками приложения
+                {t("settings.modalSubtitle")}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 ml-2 min-w-[36px] min-h-[36px] flex items-center justify-center"
-            aria-label="Закрыть"
+            aria-label={t("common.close")}
           >
             <X className="w-5 h-5" />
           </button>
@@ -791,7 +842,7 @@ export function SettingsModal({
             }`}
           >
             <Globe className="w-3.5 h-3.5" />
-            <span>Общие настройки</span>
+            <span>{t("settings.tabs.general")}</span>
           </button>
 
           <button
@@ -804,7 +855,7 @@ export function SettingsModal({
             }`}
           >
             <UserIcon className="w-3.5 h-3.5" />
-            <span>Профиль</span>
+            <span>{t("settings.tabs.profile")}</span>
           </button>
 
           <button
@@ -817,7 +868,7 @@ export function SettingsModal({
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Безопасность</span>
+            <span>{t("settings.tabs.security")}</span>
           </button>
 
           <button
@@ -830,7 +881,7 @@ export function SettingsModal({
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>AI Ассистент</span>
+            <span>{t("settings.tabs.ai")}</span>
           </button>
 
           <button
@@ -843,7 +894,7 @@ export function SettingsModal({
             }`}
           >
             <Database className="w-3.5 h-3.5" />
-            <span>Данные</span>
+            <span>{t("settings.tabs.data")}</span>
           </button>
         </div>
 
@@ -862,7 +913,7 @@ export function SettingsModal({
                 {/* Default View Mode */}
                 <div className="space-y-2">
                   <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                    Отображение списка сниппетов по умолчанию
+                    {t("settings.general.viewModeTitle")}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <button
@@ -878,8 +929,8 @@ export function SettingsModal({
                         <LayoutGrid className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="font-semibold text-white text-xs mb-0.5">Сетка карточек</div>
-                        <div className="text-[10px] text-zinc-400">С подсветкой кода и вкладками</div>
+                        <div className="font-semibold text-white text-xs mb-0.5">{t("settings.general.gridTitle")}</div>
+                        <div className="text-[10px] text-zinc-400">{t("settings.general.gridDesc")}</div>
                       </div>
                     </button>
 
@@ -896,8 +947,8 @@ export function SettingsModal({
                         <List className="w-4 h-4" />
                       </div>
                       <div>
-                        <div className="font-semibold text-white text-xs mb-0.5">Компактный список</div>
-                        <div className="text-[10px] text-zinc-400">Табличные строки для быстрой навигации</div>
+                        <div className="font-semibold text-white text-xs mb-0.5">{t("settings.general.listTitle")}</div>
+                        <div className="text-[10px] text-zinc-400">{t("settings.general.listDesc")}</div>
                       </div>
                     </button>
                   </div>
@@ -906,16 +957,64 @@ export function SettingsModal({
                 {/* Default Sort Order */}
                 <div className="space-y-1.5">
                   <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                    Сортировка сниппетов по умолчанию
+                    {t("settings.general.sortTitle")}
                   </label>
                   <CustomSelect
                     value={defaultSortBy}
                     onChange={(val) => setDefaultSortBy(val as SortOption)}
-                    options={SORT_OPTIONS.map((opt) => ({
+                    options={getLocalizedSortOptions(t).map((opt) => ({
                       value: opt.id,
                       label: opt.label,
                     }))}
                   />
+                </div>
+
+                {/* Interface Language */}
+                <div className="space-y-2">
+                  <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-violet-400" />
+                    <span>{t("settings.general.languageTitle")}</span>
+                  </label>
+                  <p className="text-[11px] text-zinc-400">
+                    {t("settings.general.languageDesc")}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => handleLanguageSelect("ru")}
+                      className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
+                        selectedLang === "ru"
+                          ? "border-violet-500 bg-violet-600/10 text-white font-medium"
+                          : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-zinc-800/80 flex items-center justify-center font-bold text-xs text-violet-400 shrink-0">
+                        RU
+                      </div>
+                      <div>
+                        <div className="font-semibold text-white text-xs mb-0.5">{t("settings.general.langRu")}</div>
+                        <div className="text-[10px] text-zinc-400">{t("settings.general.langRuDesc")}</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleLanguageSelect("en")}
+                      className={`p-3 rounded-xl border text-left transition-all flex items-start gap-3 ${
+                        selectedLang === "en"
+                          ? "border-violet-500 bg-violet-600/10 text-white font-medium"
+                          : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-zinc-800/80 flex items-center justify-center font-bold text-xs text-violet-400 shrink-0">
+                        EN
+                      </div>
+                      <div>
+                        <div className="font-semibold text-white text-xs mb-0.5">{t("settings.general.langEn")}</div>
+                        <div className="text-[10px] text-zinc-400">{t("settings.general.langEnDesc")}</div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex justify-end pt-2">
@@ -929,7 +1028,7 @@ export function SettingsModal({
                     ) : (
                       <Save className="w-3.5 h-3.5" />
                     )}
-                    <span>{generalSuccess ? "Сохранено!" : "Сохранить параметры"}</span>
+                    <span>{generalSuccess ? t("settings.general.savedBtn") : t("settings.general.saveBtn")}</span>
                   </button>
                 </div>
               </form>
@@ -956,30 +1055,30 @@ export function SettingsModal({
                     <div className="space-y-1">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
                         <UserIcon className="w-4 h-4 text-violet-400" />
-                        <span>Информация о себе</span>
+                        <span>{t("settings.profile.title")}</span>
                       </h3>
                       <p className="text-[11px] text-zinc-400">
-                        Персональные данные вашего профиля
+                        {t("settings.profile.subtitle")}
                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div className="space-y-1">
                         <label className="text-zinc-400 text-[11px] font-medium">
-                          Имя / Псевдоним
+                          {t("settings.profile.nameLabel")}
                         </label>
                         <input
                           type="text"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          placeholder="Ваше имя"
+                          placeholder={t("settings.profile.namePlaceholder")}
                           className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 text-xs"
                         />
                       </div>
 
                       <div className="space-y-1">
                         <label className="text-zinc-400 text-[11px] font-medium">
-                          Email адрес (логин)
+                          {t("settings.profile.emailLabel")}
                         </label>
                         <input
                           type="email"
@@ -992,13 +1091,13 @@ export function SettingsModal({
 
                     <div className="space-y-1">
                       <label className="text-zinc-400 text-[11px] font-medium">
-                        О себе / Краткое описание
+                        {t("settings.profile.bioLabel")}
                       </label>
                       <textarea
                         rows={3}
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
-                        placeholder="Senior Fullstack Developer / DevOps / etc."
+                        placeholder={t("settings.profile.bioPlaceholder")}
                         className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 resize-none text-xs"
                       />
                     </div>
@@ -1014,7 +1113,7 @@ export function SettingsModal({
                         ) : (
                           <Save className="w-3.5 h-3.5" />
                         )}
-                        <span>Сохранить профиль</span>
+                        <span>{t("settings.profile.saveBtn")}</span>
                       </button>
                     </div>
                   </div>
@@ -1031,11 +1130,11 @@ export function SettingsModal({
                     <div className="flex items-center gap-2">
                       <KeyRound className="w-4 h-4 text-amber-400" />
                       <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                        Смена пароля
+                        {t("settings.security.passwordTitle")}
                       </h3>
                     </div>
                     <p className="text-[11px] text-zinc-400">
-                      Обновите ваш пароль для входа в аккаунт
+                      {locale === "ru" ? "Обновите ваш пароль для входа в аккаунт" : "Update your account login password"}
                     </p>
                   </div>
 
@@ -1055,7 +1154,7 @@ export function SettingsModal({
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                       <div className="space-y-1">
                         <label className="text-zinc-400 text-[11px] font-medium">
-                          Текущий пароль
+                          {t("settings.security.currentPasswordLabel")}
                         </label>
                         <input
                           type="password"
@@ -1068,13 +1167,13 @@ export function SettingsModal({
 
                       <div className="space-y-1">
                         <label className="text-zinc-400 text-[11px] font-medium">
-                          Новый пароль
+                          {t("settings.security.newPasswordLabel")}
                         </label>
                         <input
                           type="password"
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="Минимум 6 символов"
+                          placeholder={locale === "ru" ? "Минимум 6 символов" : "Minimum 6 characters"}
                           className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 text-xs"
                         />
                       </div>
@@ -1091,7 +1190,7 @@ export function SettingsModal({
                         ) : (
                           <Save className="w-3.5 h-3.5" />
                         )}
-                        <span>Обновить пароль</span>
+                        <span>{t("settings.security.savePasswordBtn")}</span>
                       </button>
                     </div>
                   </form>
@@ -1103,21 +1202,21 @@ export function SettingsModal({
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                        Двухфакторная аутентификация (2FA)
+                        {t("settings.security.twoFactorTitle")}
                       </h3>
                       {twoFactorEnabled ? (
                         <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
                           <ShieldCheck className="w-3 h-3" />
-                          Подключена
+                          {t("settings.security.twoFactorEnabledBadge")}
                         </span>
                       ) : (
                         <span className="text-[10px] font-semibold text-zinc-400 bg-zinc-800 px-2 py-0.5 rounded-full">
-                          Отключена
+                          {t("settings.security.twoFactorDisabledBadge")}
                         </span>
                       )}
                     </div>
                     <p className="text-[11px] text-zinc-400">
-                      Защита аккаунта 6-значным кодом из Google Authenticator или Apple Passwords
+                      {t("settings.security.twoFactorDesc")}
                     </p>
                   </div>
 
@@ -1133,7 +1232,7 @@ export function SettingsModal({
                       ) : (
                         <ShieldCheck className="w-3.5 h-3.5" />
                       )}
-                      <span>Подключить 2FA</span>
+                      <span>{t("settings.security.enable2faBtn")}</span>
                     </button>
                   )}
 
@@ -1143,7 +1242,7 @@ export function SettingsModal({
                       onClick={() => setShowDisableConfirm(true)}
                       className="px-3 py-1.5 rounded-xl font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 transition-all"
                     >
-                      Отключить 2FA
+                      {t("settings.security.disable2faBtn")}
                     </button>
                   )}
                 </div>
@@ -1309,16 +1408,16 @@ export function SettingsModal({
                     <div className="flex items-center gap-2">
                       <Fingerprint className="w-4 h-4 text-violet-400" />
                       <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                        Ключи доступа (Passkeys / WebAuthn)
+                        {t("settings.security.passkeysTitle")}
                       </h3>
                       {passkeys.length > 0 && (
                         <span className="text-[10px] font-semibold text-violet-300 bg-violet-600/20 border border-violet-500/30 px-2 py-0.5 rounded-full">
-                          {passkeys.length} {passkeys.length === 1 ? "ключ" : passkeys.length < 5 ? "ключа" : "ключей"}
+                          {passkeys.length} {locale === "ru" ? (passkeys.length === 1 ? "ключ" : passkeys.length < 5 ? "ключа" : "ключей") : (passkeys.length === 1 ? "key" : "keys")}
                         </span>
                       )}
                     </div>
                     <p className="text-[11px] text-zinc-400">
-                      Вход без пароля по биометрии (Touch ID, Windows Hello, Face ID) или аппаратному ключу
+                      {t("settings.security.passkeysDesc")}
                     </p>
                   </div>
 
@@ -1333,17 +1432,17 @@ export function SettingsModal({
                     ) : (
                       <Plus className="w-3.5 h-3.5" />
                     )}
-                    <span>Добавить Passkey</span>
+                    <span>{t("settings.security.addPasskeyBtn")}</span>
                   </button>
                 </div>
 
                 {!passkeySupported && (
                   <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs space-y-1">
                     <div className="font-semibold flex items-center gap-1.5">
-                      <span>⚠️ Стандарт WebAuthn / Passkeys недоступен в этом окружении</span>
+                      <span>{t("settings.security.passkeyNotSupportedTitle")}</span>
                     </div>
                     <p className="text-[11px] text-amber-300/80 leading-relaxed">
-                      Браузеры разрешают использование биометрии и ключей доступа только в защищенном контексте: через <strong>HTTPS</strong> или <strong>localhost</strong>. При доступе по обычному локальному HTTP (IP-адресу) браузер автоматически отключает WebAuthn API в целях безопасности.
+                      {t("settings.security.passkeyNotSupportedDesc")}
                     </p>
                   </div>
                 )}
@@ -1368,7 +1467,7 @@ export function SettingsModal({
                   </div>
                 ) : passkeys.length === 0 ? (
                   <div className="py-4 px-3 text-center rounded-xl bg-zinc-950/40 border border-zinc-800/60 text-xs text-zinc-500">
-                    У вас пока нет добавленных Passkey-ключей. Нажмите &laquo;Добавить Passkey&raquo; для настройки быстрого входа.
+                    {t("settings.security.passkeysNoKeysNotice")}
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1428,7 +1527,7 @@ export function SettingsModal({
                                     setEditingPasskeyName(pk.name);
                                   }}
                                   className="text-zinc-500 hover:text-zinc-300 transition-colors"
-                                  title="Переименовать"
+                                  title={t("settings.security.passkeyRenameTooltip")}
                                 >
                                   <Edit2 className="w-3 h-3" />
                                 </button>
@@ -1436,19 +1535,23 @@ export function SettingsModal({
                             )}
                             <div className="flex items-center gap-2 text-[10px] text-zinc-500 mt-0.5">
                               <span>
-                                Добавлен: {new Date(pk.createdAt).toLocaleDateString("ru-RU")}
+                                {t("settings.security.passkeyAddedAt", {
+                                  date: new Date(pk.createdAt).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-US"),
+                                })}
                               </span>
                               {pk.lastUsedAt && (
                                 <>
                                   <span>•</span>
                                   <span>
-                                    Использован: {new Date(pk.lastUsedAt).toLocaleDateString("ru-RU")}
+                                    {t("settings.security.passkeyUsedAt", {
+                                      date: new Date(pk.lastUsedAt).toLocaleDateString(locale === "ru" ? "ru-RU" : "en-US"),
+                                    })}
                                   </span>
                                 </>
                               )}
                               {pk.backedUp && (
                                 <span className="px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                                  Синхронизирован
+                                  {t("settings.security.passkeySyncedBadge")}
                                 </span>
                               )}
                             </div>
@@ -1459,7 +1562,7 @@ export function SettingsModal({
                           type="button"
                           onClick={() => handleDeletePasskey(pk.id, pk.name)}
                           className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0 ml-2"
-                          title="Удалить ключ доступа"
+                          title={t("settings.security.passkeyDeleteTooltip")}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1476,7 +1579,7 @@ export function SettingsModal({
             <form onSubmit={handleSaveAI} className="space-y-4 animate-in fade-in duration-200">
               <div className="space-y-1.5">
                 <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                  Провайдер AI
+                  {locale === "ru" ? "Провайдер AI" : "AI Provider"}
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
@@ -1531,11 +1634,11 @@ export function SettingsModal({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                    API Ключ {provider === "custom" && "(Опционально)"}
+                    {t("settings.ai.keyLabel")} {provider === "custom" && (locale === "ru" ? "(Опционально)" : "(Optional)")}
                   </label>
                   {hasApiKey && !apiKey && (
                     <span className="text-[10px] text-emerald-400 font-medium">
-                      ✓ Ключ сохранен ({maskedKey})
+                      ✓ {locale === "ru" ? `Ключ сохранен (${maskedKey})` : `Key saved (${maskedKey})`}
                     </span>
                   )}
                 </div>
@@ -1544,7 +1647,7 @@ export function SettingsModal({
                     type={showKey ? "text" : "password"}
                     placeholder={
                       hasApiKey
-                        ? "Введите новый ключ для замены..."
+                        ? (locale === "ru" ? "Введите новый ключ для замены..." : "Enter new key to replace...")
                         : provider === "gemini"
                         ? "AIzaSy..."
                         : "sk-..."
@@ -1567,7 +1670,7 @@ export function SettingsModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                    Base URL
+                    {t("settings.ai.baseUrlLabel")}
                   </label>
                   <input
                     type="text"
@@ -1579,7 +1682,7 @@ export function SettingsModal({
 
                 <div className="space-y-1.5">
                   <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                    Модель
+                    {t("settings.ai.modelLabel")}
                   </label>
                   <input
                     type="text"
@@ -1603,7 +1706,7 @@ export function SettingsModal({
                   ) : (
                     <Save className="w-3.5 h-3.5" />
                   )}
-                  <span>{aiSuccess ? "Сохранено!" : "Сохранить настройки AI"}</span>
+                  <span>{aiSuccess ? t("settings.ai.savedBtn") : t("settings.ai.saveBtn")}</span>
                 </button>
               </div>
             </form>
@@ -1631,11 +1734,11 @@ export function SettingsModal({
                   <div className="flex items-center gap-2">
                     <Download className="w-4 h-4 text-violet-400" />
                     <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                      Экспорт данных (Резервное копирование)
+                      {t("settings.data.exportTitle")}
                     </h3>
                   </div>
                   <p className="text-[11px] text-zinc-400">
-                    Скачивайте структурированный JSON файл со сниппетами, многофайловым кодом, тегами и коллекциями для сохранения или переноса на другой сервер.
+                    {t("settings.data.exportDesc")}
                   </p>
                 </div>
 
@@ -1645,10 +1748,10 @@ export function SettingsModal({
                     <div className="space-y-1">
                       <div className="font-semibold text-white text-xs flex items-center gap-1.5">
                         <HardDrive className="w-3.5 h-3.5 text-violet-400" />
-                        <span>Вся база сниппетов</span>
+                        <span>{locale === "ru" ? "Вся база сниппетов" : "Entire snippet database"}</span>
                       </div>
                       <p className="text-[11px] text-zinc-400">
-                        Полная резервная копия всех сниппетов, коллекций и метаданных аккаунта в одном файле.
+                        {locale === "ru" ? "Полная резервная копия всех сниппетов, коллекций и метаданных аккаунта в одном файле." : "Full backup of all snippets, collections, and account metadata in one file."}
                       </p>
                     </div>
 
@@ -1658,7 +1761,7 @@ export function SettingsModal({
                       className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs transition-all active:scale-[0.98] shadow-sm shadow-violet-600/20"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      <span>Экспортировать всю базу (.json)</span>
+                      <span>{t("settings.data.exportAllBtn")}</span>
                     </button>
                   </div>
 
@@ -1667,10 +1770,10 @@ export function SettingsModal({
                     <div className="space-y-1">
                       <div className="font-semibold text-white text-xs flex items-center gap-1.5">
                         <FolderGit2 className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Отдельная коллекция</span>
+                        <span>{locale === "ru" ? "Отдельная коллекция" : "Specific collection"}</span>
                       </div>
                       <p className="text-[11px] text-zinc-400">
-                        Экспорт только выбранной коллекции со всеми входящими в неё сниппетами.
+                        {locale === "ru" ? "Экспорт только выбранной коллекции со всеми входящими в неё сниппетами." : "Export only the selected collection with all its snippets."}
                       </p>
                     </div>
 
@@ -1681,12 +1784,12 @@ export function SettingsModal({
                         options={exportCollectionOptions}
                         placeholder={
                           userCollections.length === 0
-                            ? "Нет доступных коллекций"
-                            : "Выберите коллекцию..."
+                            ? (locale === "ru" ? "Нет доступных коллекций" : "No available collections")
+                            : (locale === "ru" ? "Выберите коллекцию..." : "Select collection...")
                         }
                         disabled={userCollections.length === 0}
                         searchable={userCollections.length > 5}
-                        searchPlaceholder="Поиск коллекции..."
+                        searchPlaceholder={locale === "ru" ? "Поиск коллекции..." : "Search collection..."}
                       />
 
                       <button
@@ -1696,7 +1799,7 @@ export function SettingsModal({
                         className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/60 text-zinc-200 hover:text-white font-medium text-xs transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Download className="w-3.5 h-3.5" />
-                        <span>Скачать коллекцию (.json)</span>
+                        <span>{t("settings.data.exportCollectionBtn")}</span>
                       </button>
                     </div>
                   </div>
@@ -1709,11 +1812,11 @@ export function SettingsModal({
                   <div className="flex items-center gap-2">
                     <Upload className="w-4 h-4 text-emerald-400" />
                     <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                      Импорт и восстановление данных
+                      {t("settings.data.importTitle")}
                     </h3>
                   </div>
                   <p className="text-[11px] text-zinc-400">
-                    Загрузите файл резервной копии SnippetVault (`.json`). Все коллекции и сниппеты с их файлами, тегами и свойствами будут автоматически восстановлены.
+                    {t("settings.data.importDesc")}
                   </p>
                 </div>
 
@@ -1728,10 +1831,14 @@ export function SettingsModal({
 
                   <div className="space-y-1 max-w-sm">
                     <p className="font-semibold text-white text-xs">
-                      {importing ? "Импортирование данных..." : "Выберите файл резервной копии для восстановления"}
+                      {importing
+                        ? (locale === "ru" ? "Импортирование данных..." : "Importing data...")
+                        : (locale === "ru" ? "Выберите файл резервной копии для восстановления" : "Choose backup file to restore")}
                     </p>
                     <p className="text-[11px] text-zinc-500">
-                      Поддерживаются файлы `.json` полной базы, отдельной коллекции или одиночного сниппета
+                      {locale === "ru"
+                        ? "Поддерживаются файлы .json полной базы, отдельной коллекции или одиночного сниппета"
+                        : "Supports JSON files of entire database, collection, or individual snippet"}
                     </p>
                   </div>
 
@@ -1745,7 +1852,7 @@ export function SettingsModal({
                     />
                     <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-xs transition-all active:scale-[0.98] shadow-sm shadow-violet-600/20">
                       <Upload className="w-3.5 h-3.5" />
-                      <span>{importing ? "Обработка файла..." : "Выбрать файл резервной копии (.json)"}</span>
+                      <span>{importing ? (locale === "ru" ? "Обработка файла..." : "Processing file...") : t("settings.data.importFileBtn")}</span>
                     </span>
                   </label>
                 </div>
@@ -1758,11 +1865,11 @@ export function SettingsModal({
                     <div className="flex items-center gap-2">
                       <Trash2 className="w-4 h-4 text-rose-400" />
                       <h3 className="text-xs font-bold uppercase tracking-wider text-rose-300">
-                        Очистить всю базу сниппетов
+                        {t("settings.data.clearTitle")}
                       </h3>
                     </div>
                     <p className="text-[11px] text-zinc-400 leading-relaxed max-w-xl">
-                      Безвозвратно удаляет все сохраненные сниппеты, файлы кода и коллекции из базы данных. Если необходимо сохранить наработки, предварительно скачайте резервную копию выше.
+                      {t("settings.data.clearDesc")}
                     </p>
                   </div>
 
@@ -1773,7 +1880,7 @@ export function SettingsModal({
                     className="flex items-center gap-2 py-2 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs transition-all active:scale-[0.98] shadow-sm shadow-rose-600/25 shrink-0 disabled:opacity-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Очистить базу сниппетов</span>
+                    <span>{t("settings.data.clearBtn")}</span>
                   </button>
                 </div>
               </div>
@@ -1789,11 +1896,11 @@ export function SettingsModal({
         >
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={handleOpenLogoutConfirm}
             className="flex items-center gap-1.5 text-xs font-medium text-rose-400 hover:text-rose-300 px-2 sm:px-2.5 py-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Выйти из аккаунта</span>
+            <span>{t("settings.logout.button")}</span>
           </button>
 
           <button
@@ -1801,7 +1908,7 @@ export function SettingsModal({
             onClick={onClose}
             className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
           >
-            Закрыть
+            {t("common.close")}
           </button>
         </div>
       </div>
@@ -1826,13 +1933,13 @@ export function SettingsModal({
               </div>
               <div className="space-y-1 sm:space-y-1.5 flex-1 min-w-0">
                 <h3 className="text-sm sm:text-base font-bold text-white">
-                  Очистить базу сниппетов и коллекций?
+                  {t("settings.clearConfirm.title")}
                 </h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Вы уверены, что хотите удалить <span className="text-rose-300 font-semibold">все сниппеты и коллекции</span> из базы данных? Все файлы кода, теги и персональные заметки будут удалены навсегда.
+                  {t("settings.clearConfirm.desc")}
                 </p>
                 <div className="p-2 sm:p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-[11px] text-rose-300 font-medium">
-                  ⚠️ Это действие необратимо. Рекомендуем предварительно сделать экспорт в JSON.
+                  {t("settings.clearConfirm.warning")}
                 </div>
               </div>
             </div>
@@ -1844,7 +1951,7 @@ export function SettingsModal({
                 disabled={clearingDb}
                 className="px-3.5 sm:px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50"
               >
-                Отменить
+                {t("settings.clearConfirm.cancel")}
               </button>
               <button
                 type="button"
@@ -1857,7 +1964,65 @@ export function SettingsModal({
                 ) : (
                   <Trash2 className="w-3.5 h-3.5" />
                 )}
-                <span>{clearingDb ? "Удаление..." : "Удалить"}</span>
+                <span>{clearingDb ? t("settings.clearConfirm.deleting") : t("settings.clearConfirm.confirm")}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Logout */}
+      {showLogoutConfirm && (
+        <div
+          className={`fixed inset-0 z-[75] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm ${
+            isClosingLogoutConfirm ? "animate-modal-backdrop-out" : "animate-modal-backdrop"
+          }`}
+          onClick={handleCloseLogoutConfirm}
+        >
+          <div
+            className={`relative w-full max-w-md rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-4 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 ${
+              isClosingLogoutConfirm ? "animate-modal-content-out" : "animate-modal-content"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3 sm:gap-3.5">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400">
+                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="space-y-1 sm:space-y-1.5 flex-1 min-w-0">
+                <h3 className="text-sm sm:text-base font-bold text-white">
+                  {t("settings.logout.confirmTitle")}
+                </h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  {t("settings.logout.confirmDesc")}
+                </p>
+                <div className="p-2 sm:p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] sm:text-xs text-amber-300 font-medium leading-relaxed">
+                  {t("settings.logout.warningNote")}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 sm:gap-2.5 pt-2 border-t border-zinc-800/80">
+              <button
+                type="button"
+                onClick={handleCloseLogoutConfirm}
+                disabled={loggingOut}
+                className="px-3.5 sm:px-4 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50"
+              >
+                {t("settings.logout.cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLogout}
+                disabled={loggingOut}
+                className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white font-semibold text-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-rose-600/20"
+              >
+                {loggingOut ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <LogOut className="w-3.5 h-3.5" />
+                )}
+                <span>{loggingOut ? t("settings.logout.loggingOut") : t("settings.logout.confirm")}</span>
               </button>
             </div>
           </div>

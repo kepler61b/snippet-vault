@@ -3,6 +3,7 @@
 import React from "react";
 import { Plus, Search, ShieldCheck, Terminal } from "lucide-react";
 import { APP_CONFIG } from "@/lib/version";
+import { useI18n } from "@/lib/i18n";
 
 interface NavbarProps {
   searchQuery: string;
@@ -28,6 +29,7 @@ export function Navbar({
   onOpenAdminModal,
   currentUser,
 }: NavbarProps) {
+  const { t } = useI18n();
   const initial = (currentUser?.name || currentUser?.email || "U")[0].toUpperCase();
   const isAdmin = currentUser?.role === "ADMIN";
 
@@ -57,7 +59,7 @@ export function Navbar({
               )}
             </div>
             <p className="text-[11px] text-zinc-400 hidden sm:block truncate">
-              {APP_CONFIG.description}
+              {t("sidebar.footerDesc")}
             </p>
           </div>
         </div>
@@ -70,7 +72,7 @@ export function Navbar({
           >
             <div className="flex items-center gap-2.5">
               <Search className="w-4 h-4 text-zinc-400 group-hover:text-zinc-200 transition-colors" />
-              <span>Поиск сниппетов, файлов, кода...</span>
+              <span>{t("nav.searchPrompt")}</span>
             </div>
             <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-zinc-400 bg-zinc-800/80 rounded border border-zinc-700/60">
               <span className="text-xs">⌘</span>K
@@ -84,8 +86,8 @@ export function Navbar({
           <button
             onClick={onOpenCommandPalette}
             className="md:hidden p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all active:scale-95 flex items-center justify-center min-w-[34px] min-h-[34px]"
-            title="Поиск (Ctrl+K)"
-            aria-label="Поиск"
+            title={t("nav.searchMobile")}
+            aria-label={t("common.search")}
           >
             <Search className="w-4 h-4" />
           </button>
@@ -95,8 +97,8 @@ export function Navbar({
             <button
               onClick={onOpenAdminModal}
               className="p-2 sm:p-2.5 rounded-xl text-violet-300 hover:text-white bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 hover:border-violet-500/50 transition-all active:scale-95 shadow-sm shadow-violet-500/10 flex items-center justify-center min-w-[34px] min-h-[34px]"
-              title="Панель администратора"
-              aria-label="Панель администратора"
+              title={t("nav.adminPanel")}
+              aria-label={t("nav.adminPanel")}
             >
               <ShieldCheck className="w-4 h-4 text-violet-400" />
             </button>
@@ -106,14 +108,14 @@ export function Navbar({
           <button
             onClick={onOpenSettingsModal}
             className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all active:scale-95 min-w-[34px] min-h-[34px] justify-center"
-            title="Личный кабинет и настройки"
-            aria-label="Личный кабинет"
+            title={t("nav.profileAndSettings")}
+            aria-label={t("nav.profileAndSettings")}
           >
             <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
               {initial}
             </div>
             <span className="hidden sm:inline max-w-[100px] truncate">
-              {currentUser?.name || "Настройки"}
+              {currentUser?.name || t("nav.settings")}
             </span>
           </button>
 
@@ -121,10 +123,10 @@ export function Navbar({
           <button
             onClick={onOpenCreateModal}
             className="flex items-center justify-center gap-1.5 p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 hover:shadow-violet-600/40 active:scale-95 transition-all duration-150 min-w-[34px] min-h-[34px]"
-            title="Создать сниппет"
+            title={t("nav.createSnippet")}
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Сниппет</span>
+            <span className="hidden sm:inline">{t("nav.newSnippet")}</span>
           </button>
         </div>
       </div>

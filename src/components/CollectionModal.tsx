@@ -18,6 +18,7 @@ import {
   PRESET_COLORS,
   STANDARD_ICONS,
 } from "@/lib/collection-icons";
+import { useI18n } from "@/lib/i18n";
 
 interface CollectionModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export function CollectionModal({
   onSave,
   onDelete,
 }: CollectionModalProps) {
+  const { t } = useI18n();
   const isEditing = Boolean(collection);
 
   const [name, setName] = useState(collection?.name || "");
@@ -129,13 +131,13 @@ export function CollectionModal({
 
   const handleDelete = async () => {
     if (!collection?.id || !onDelete) return;
-    if (confirm(`Вы уверены, что хотите удалить коллекцию «${collection.name}»? Сниппеты не будут удалены, а только откреплены.`)) {
+    if (confirm(t("collection.deleteConfirm", { name: collection.name }))) {
       setDeleting(true);
       try {
         await onDelete(collection.id);
         onClose();
       } catch (err: any) {
-        setError(err.message || "Ошибка удаления");
+        setError(err.message || t("common.error"));
       } finally {
         setDeleting(false);
       }
@@ -161,17 +163,17 @@ export function CollectionModal({
             </div>
             <div className="truncate">
               <h2 className="text-sm sm:text-base font-semibold text-white truncate">
-                {isEditing ? "Редактировать коллекцию" : "Новая коллекция"}
+                {isEditing ? t("collection.editTitle") : t("collection.createTitle")}
               </h2>
               <p className="text-[11px] sm:text-xs text-zinc-400 truncate hidden sm:block">
-                Группируйте сниппеты по проектам, темам или задачам
+                {t("collection.descPlaceholder")}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 ml-2 min-w-[36px] min-h-[36px] flex items-center justify-center"
-            aria-label="Закрыть"
+            aria-label={t("common.close")}
           >
             <X className="w-5 h-5" />
           </button>
@@ -188,13 +190,13 @@ export function CollectionModal({
           {/* Name */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider">
-              Название коллекции <span className="text-rose-500">*</span>
+              {t("collection.nameLabel")} <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               required
               autoFocus
-              placeholder="Например: Микросервисы, Devops, React UI"
+              placeholder={t("collection.namePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3.5 py-2 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900 focus:bg-zinc-950 focus:border-violet-500 text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 outline-none"
@@ -204,11 +206,11 @@ export function CollectionModal({
           {/* Description */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider">
-              Описание (необязательно)
+              {t("collection.descLabel")}
             </label>
             <textarea
               rows={2}
-              placeholder="Краткое описание содержимого или цели этой коллекции..."
+              placeholder={t("collection.descPlaceholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3.5 py-2 rounded-xl border border-zinc-800 bg-zinc-900 focus:bg-zinc-950 focus:border-violet-500 text-xs text-zinc-100 placeholder-zinc-500 outline-none resize-none"
@@ -218,7 +220,7 @@ export function CollectionModal({
           {/* Color Presets */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider">
-              Цветовой акцент
+              {t("collection.colorLabel")}
             </label>
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               {PRESET_COLORS.map((c) => (
@@ -384,7 +386,7 @@ export function CollectionModal({
                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors w-full sm:w-auto"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Удалить коллекцию</span>
+                <span>{t("collection.delete")}</span>
               </button>
             ) : (
               <div />
@@ -396,7 +398,7 @@ export function CollectionModal({
                 onClick={onClose}
                 className="flex-1 sm:flex-initial px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors text-center"
               >
-                Отмена
+                {t("common.cancel")}
               </button>
               <button
                 type="submit"
@@ -405,7 +407,7 @@ export function CollectionModal({
               >
                 {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 <Save className="w-3.5 h-3.5" />
-                <span>{isEditing ? "Сохранить" : "Создать"}</span>
+                <span>{t("common.save")}</span>
               </button>
             </div>
           </div>

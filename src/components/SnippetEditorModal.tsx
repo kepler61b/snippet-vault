@@ -24,6 +24,7 @@ import {
 } from "@/lib/languages";
 import { CollectionIcon } from "@/lib/collection-icons";
 import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
+import { useI18n } from "@/lib/i18n";
 
 interface SnippetEditorModalProps {
   isOpen: boolean;
@@ -52,6 +53,7 @@ export function SnippetEditorModal({
   onCollectionCreated,
   onOpenCreateCollectionModal,
 }: SnippetEditorModalProps) {
+  const { t, tFilesCount, locale } = useI18n();
   const isEditing = Boolean(snippet);
 
   const [localCollections, setLocalCollections] = useState<CollectionItem[]>(collections);
@@ -86,7 +88,7 @@ export function SnippetEditorModal({
   const handleQuickCreateCollection = async (closeSelect?: () => void) => {
     const trimmed = newCollectionName.trim();
     if (!trimmed) {
-      setCollectionError("Укажите название коллекции");
+      setCollectionError(t("editor.quickCreateErrorEmpty"));
       return;
     }
 
@@ -107,7 +109,7 @@ export function SnippetEditorModal({
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Не удалось создать коллекцию");
+        throw new Error(data.error || t("editor.quickCreateErrorFail"));
       }
 
       const created: CollectionItem = data.collection;
@@ -118,7 +120,7 @@ export function SnippetEditorModal({
       onCollectionCreated?.(created);
       closeSelect?.();
     } catch (err: any) {
-      setCollectionError(err.message || "Ошибка создания коллекции");
+      setCollectionError(err.message || t("editor.quickCreateErrorFail"));
     } finally {
       setIsCreatingCollectionLoading(false);
     }
@@ -140,7 +142,7 @@ export function SnippetEditorModal({
           {
             filename: "main.ts",
             language: "typescript",
-            content: "// Напишите или вставьте ваш код сюда\n",
+            content: t("editor.defaultCodeComment"),
           },
         ]
   );
@@ -296,7 +298,7 @@ export function SnippetEditorModal({
   // AI Autofill
   const handleAiAutoFill = async () => {
     if (!currentFile.content.trim()) {
-      alert("Сначала вставьте хотя бы немного кода, чтобы AI мог его проанализировать!");
+      alert(t("editor.aiAutofillEmptyAlert"));
       return;
     }
     try {
@@ -315,7 +317,7 @@ export function SnippetEditorModal({
       }
     } catch (err: any) {
       if (err?.code !== "AI_KEY_REQUIRED" && !err?.message?.includes("AI_KEY_REQUIRED") && !err?.message?.includes("AI API ключ не настроен")) {
-        alert(err.message || "Ошибка автозаполнения");
+        alert(err.message || t("editor.aiAutofillError"));
       }
     } finally {
       setAiLoading(null);
@@ -325,11 +327,11 @@ export function SnippetEditorModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert("Укажите название сниппета");
+      alert(t("editor.validationTitle"));
       return;
     }
     if (files.some((f) => !f.content.trim())) {
-      const confirmSave = confirm("Один из файлов пустой. Всё равно сохранить?");
+      const confirmSave = confirm(t("editor.validationEmptyFile"));
       if (!confirmSave) return;
     }
 
@@ -345,7 +347,7 @@ export function SnippetEditorModal({
       });
       onClose();
     } catch (err: any) {
-      alert(err.message || "Ошибка сохранения сниппета");
+      alert(err.message || t("common.error"));
     } finally {
       setSaving(false);
     }
@@ -356,7 +358,7 @@ export function SnippetEditorModal({
   const collectionOptions: CustomSelectOption[] = [
     {
       value: "",
-      label: "Без коллекции",
+      label: t("editor.noCollection"),
       icon: <Folder className="w-4 h-4 text-zinc-500" />,
     },
     ...localCollections.map((col) => ({
@@ -398,10 +400,10 @@ export function SnippetEditorModal({
             </div>
             <div className="truncate">
               <h2 className="text-sm sm:text-base font-semibold text-white truncate">
-                {isEditing ? "Редактировать сниппет" : "Создать новый сниппет"}
+                {isEditing ? t("editor.editTitle") : t("editor.newTitle")}
               </h2>
               <p className="text-[11px] sm:text-xs text-zinc-400 truncate hidden sm:block">
-                Мульти-файлы, подсветка и встроенный AI-ассистент
+                {t("editor.descPlaceholder")}
               </p>
             </div>
           </div>
@@ -415,8 +417,8 @@ export function SnippetEditorModal({
                   ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
               }`}
-              title={isFavorite ? "В избранном" : "Добавить в избранное"}
-              aria-label="Избранное"
+              title={isFavorite ? t("snippets.removeFromFavorites") : t("snippets.addToFavorites")}
+              aria-label={t("sidebar.favorites")}
             >
               <Star className={`w-4 h-4 ${isFavorite ? "fill-amber-400" : ""}`} />
             </button>
@@ -424,7 +426,7 @@ export function SnippetEditorModal({
               type="button"
               onClick={onClose}
               className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-              aria-label="Закрыть"
+              aria-label={t("common.close")}
             >
               <X className="w-5 h-5" />
             </button>
@@ -437,13 +439,13 @@ export function SnippetEditorModal({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="md:col-span-2 space-y-1.5">
               <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                Название сниппета <span className="text-rose-500">*</span>
+                {t("editor.titleLabel")} <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <input
                   type="text"
                   required
-                  placeholder="Например: Fast Debounce Hook или Docker Compose для PostgreSQL"
+                  placeholder={t("editor.titlePlaceholder")}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="w-full px-3.5 py-2 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 focus:bg-zinc-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-all"
@@ -454,15 +456,15 @@ export function SnippetEditorModal({
             {/* Collection Selector */}
             <div className="space-y-1.5 md:col-span-1">
               <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                Коллекция
+                {t("editor.collectionLabel")}
               </label>
               <CustomSelect
                 value={collectionId}
                 onChange={setCollectionId}
                 options={collectionOptions}
-                placeholder="Без коллекции"
+                placeholder={t("editor.noCollection")}
                 searchable={localCollections.length > 5}
-                searchPlaceholder="Поиск коллекции..."
+                searchPlaceholder={t("editor.searchCollection")}
                 footer={({ close }) => (
                   <div className="p-1" onClick={(e) => e.stopPropagation()}>
                     {!isCreatingCollection ? (
@@ -472,14 +474,14 @@ export function SnippetEditorModal({
                         className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-xl bg-violet-600/10 hover:bg-violet-600/20 text-violet-400 hover:text-violet-300 border border-violet-500/20 hover:border-violet-500/30 text-xs font-medium transition-all group"
                       >
                         <Plus className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
-                        <span>Новая коллекция</span>
+                        <span>{t("editor.quickCreateCollection")}</span>
                       </button>
                     ) : (
                       <div className="space-y-2 p-2 rounded-xl bg-zinc-950/90 border border-zinc-800">
                         <div className="flex items-center justify-between gap-1">
                           <span className="text-[11px] font-semibold text-zinc-300 flex items-center gap-1.5">
                             <Folder className="w-3.5 h-3.5 text-violet-400" />
-                            Новая коллекция
+                            {t("editor.quickCreateCollection")}
                           </span>
                           {onOpenCreateCollectionModal && (
                             <button
@@ -490,9 +492,9 @@ export function SnippetEditorModal({
                                 onOpenCreateCollectionModal();
                               }}
                               className="text-[10px] text-zinc-400 hover:text-violet-400 transition-colors"
-                              title="Расширенные настройки (иконка, картинка)"
+                              title={t("editor.quickCreateMoreTooltip")}
                             >
-                              Подробнее...
+                              {t("editor.quickCreateMore")}
                             </button>
                           )}
                         </div>
@@ -501,7 +503,7 @@ export function SnippetEditorModal({
                           <input
                             ref={newColInputRef}
                             type="text"
-                            placeholder="Название коллекции..."
+                            placeholder={t("editor.quickCreatePlaceholder")}
                             value={newCollectionName}
                             onChange={(e) => {
                               setNewCollectionName(e.target.value);
@@ -536,7 +538,7 @@ export function SnippetEditorModal({
                             disabled={isCreatingCollectionLoading}
                             className="px-2.5 py-1 text-xs rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
                           >
-                            Отмена
+                            {t("common.cancel")}
                           </button>
                           <button
                             type="button"
@@ -549,7 +551,7 @@ export function SnippetEditorModal({
                             ) : (
                               <Plus className="w-3.5 h-3.5" />
                             )}
-                            <span>Создать</span>
+                            <span>{t("common.create")}</span>
                           </button>
                         </div>
                       </div>
@@ -564,7 +566,7 @@ export function SnippetEditorModal({
           <div className="space-y-1.5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                Описание / Заметки
+                {t("editor.notesLabel")}
               </label>
               <button
                 type="button"
@@ -577,13 +579,13 @@ export function SnippetEditorModal({
                 ) : (
                   <Wand2 className="w-3.5 h-3.5" />
                 )}
-                <span className="sm:hidden">AI Заполнить</span>
-                <span className="hidden sm:inline">AI: Заполнить название и теги по коду</span>
+                <span className="sm:hidden">{t("editor.aiAutofillShort")}</span>
+                <span className="hidden sm:inline">{t("editor.aiAutofill")}</span>
               </button>
             </div>
             <textarea
               rows={2}
-              placeholder="Дополнительные заметки, инструкции по установке или пример использования..."
+              placeholder={t("editor.notesPlaceholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3.5 py-2 rounded-xl border border-zinc-800 bg-zinc-900/60 focus:bg-zinc-900 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-all resize-none"
@@ -593,7 +595,7 @@ export function SnippetEditorModal({
           {/* Tags */}
           <div className="space-y-1.5">
             <label className="text-[11px] sm:text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-              Теги
+              {t("editor.tagsLabel")}
             </label>
             <div className="flex flex-wrap items-center gap-2 p-2 rounded-xl border border-zinc-800 bg-zinc-900/60">
               {tags &&
@@ -618,7 +620,7 @@ export function SnippetEditorModal({
                   ))}
               <input
                 type="text"
-                placeholder="+ Добавить тег"
+                placeholder={t("editor.addTagPlaceholder")}
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -649,7 +651,7 @@ export function SnippetEditorModal({
                     }`}
                   >
                     <FileCode className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>{file.filename || `файл-${idx + 1}`}</span>
+                    <span>{file.filename || t("editor.fileTabDefault", { index: idx + 1 })}</span>
                     {files.length > 1 && (
                       <button
                         type="button"
@@ -668,10 +670,10 @@ export function SnippetEditorModal({
                   type="button"
                   onClick={handleAddFile}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/60 transition-colors flex-shrink-0"
-                  title="Добавить еще один файл в этот сниппет"
+                  title={t("editor.addFileTooltip")}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Файл</span>
+                  <span>{t("editor.addFileBtn")}</span>
                 </button>
               </div>
 
@@ -693,14 +695,14 @@ export function SnippetEditorModal({
                   }}
                   disabled={Boolean(aiLoading) || !currentFile.content.trim()}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 disabled:opacity-40 transition-colors flex-shrink-0"
-                  title="Объяснить код файла"
+                  title={t("editor.aiExplainTooltip")}
                 >
                   {aiLoading === "explain" ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Sparkles className="w-3.5 h-3.5" />
                   )}
-                  <span>Объяснить</span>
+                  <span>{t("editor.aiExplain")}</span>
                 </button>
 
                 <button
@@ -719,14 +721,14 @@ export function SnippetEditorModal({
                   }}
                   disabled={Boolean(aiLoading) || !currentFile.content.trim()}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 transition-colors flex-shrink-0"
-                  title="Оптимизировать код файла"
+                  title={t("editor.aiRefactorTooltip")}
                 >
                   {aiLoading === "refactor" ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Wand2 className="w-3.5 h-3.5" />
                   )}
-                  <span>Рефакторинг</span>
+                  <span>{t("editor.aiRefactor")}</span>
                 </button>
 
                 <button
@@ -745,14 +747,14 @@ export function SnippetEditorModal({
                   }}
                   disabled={Boolean(aiLoading) || !currentFile.content.trim()}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 transition-colors flex-shrink-0"
-                  title="Добавить комментарии и типы"
+                  title={t("editor.aiDocumentTooltip")}
                 >
                   {aiLoading === "document" ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Code className="w-3.5 h-3.5" />
                   )}
-                  <span>Документация</span>
+                  <span>{t("editor.aiDocument")}</span>
                 </button>
               </div>
             </div>
@@ -762,7 +764,7 @@ export function SnippetEditorModal({
               <div className="flex-1 min-w-0">
                 <input
                   type="text"
-                  placeholder="Имя файла (напр. app.py, utils.ts, Dockerfile)"
+                  placeholder={t("editor.fileNamePlaceholder")}
                   value={currentFile.filename}
                   onChange={(e) => handleFilenameChange(e.target.value)}
                   className="w-full px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900 focus:bg-zinc-950 focus:border-zinc-700 text-xs font-mono text-zinc-200 outline-none transition-all"
@@ -776,7 +778,7 @@ export function SnippetEditorModal({
                     onChange={handleLanguageChange}
                     options={languageOptions}
                     searchable
-                    searchPlaceholder="Поиск языка..."
+                    searchPlaceholder={t("editor.searchLanguage")}
                     triggerClassName="py-1.5 px-3 text-xs rounded-lg bg-zinc-900 border-zinc-800"
                   />
                 </div>
@@ -785,7 +787,7 @@ export function SnippetEditorModal({
                   type="button"
                   onClick={handleAutoDetectLanguage}
                   className="p-2 sm:p-1.5 rounded-lg border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-violet-300 transition-colors shrink-0"
-                  title="Определить язык по коду"
+                  title={t("editor.detectLanguageTooltip")}
                 >
                   <Sparkles className="w-3.5 h-3.5 text-violet-400" />
                 </button>
@@ -798,7 +800,7 @@ export function SnippetEditorModal({
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Sparkles className="w-3.5 h-3.5 text-violet-400 animate-pulse shrink-0" />
                   <span className="truncate">
-                    Язык определен:{" "}
+                    {t("editor.languageDetected")}{" "}
                     <strong className="text-white">{getLanguageMeta(autoDetectedLang).name}</strong>
                   </span>
                 </div>
@@ -831,7 +833,7 @@ export function SnippetEditorModal({
                 onChange={(e) => handleCodeChange(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onScroll={handleCodeScroll}
-                placeholder="Вставьте исходный код сюда..."
+                placeholder={t("editor.codePlaceholder")}
                 spellCheck={false}
                 className="flex-1 p-2.5 sm:p-3 bg-transparent text-zinc-100 placeholder-zinc-600 outline-none resize-none font-mono text-[11px] sm:text-sm leading-5 sm:leading-6 overflow-y-auto whitespace-pre tab-size-2"
               />
@@ -842,7 +844,7 @@ export function SnippetEditorModal({
         {/* Footer */}
         <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-4 border-t border-zinc-800 bg-zinc-900/60 safe-bottom">
           <span className="text-[11px] sm:text-xs text-zinc-500">
-            {files.length} {files.length === 1 ? "файл" : "файлов"}
+            {tFilesCount(files.length)}
           </span>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -851,7 +853,7 @@ export function SnippetEditorModal({
               onClick={onClose}
               className="px-3 sm:px-4 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
             >
-              Отмена
+              {t("common.cancel")}
             </button>
             <button
               type="button"
@@ -860,7 +862,7 @@ export function SnippetEditorModal({
               className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/30 active:scale-[0.98] transition-all disabled:opacity-50"
             >
               {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              <span>{isEditing ? "Сохранить" : "Создать"}</span>
+              <span>{isEditing ? t("common.save") : t("editor.newTitle")}</span>
             </button>
           </div>
         </div>

@@ -21,6 +21,7 @@ import { SnippetItem, SnippetFileItem } from "@/types/snippet";
 import { CodeBlock } from "./CodeBlock";
 import { getLanguageMeta } from "@/lib/languages";
 import { CollectionIcon } from "@/lib/collection-icons";
+import { useI18n } from "@/lib/i18n";
 
 interface SnippetViewModalProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export function SnippetViewModal({
   onToggleFavorite,
   onTriggerAI,
 }: SnippetViewModalProps) {
+  const { t, locale, tFilesCount } = useI18n();
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
@@ -100,11 +102,14 @@ export function SnippetViewModal({
     document.body.removeChild(a);
   };
 
-  const formattedDate = new Date(snippet.createdAt).toLocaleDateString("ru-RU", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const formattedDate = new Date(snippet.createdAt).toLocaleDateString(
+    locale === "ru" ? "ru-RU" : "en-US",
+    {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
@@ -142,7 +147,7 @@ export function SnippetViewModal({
               <button
                 onClick={onClose}
                 className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors sm:hidden shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"
-                aria-label="Закрыть"
+                aria-label={t("common.close")}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -161,7 +166,7 @@ export function SnippetViewModal({
               </span>
               <span className="flex items-center gap-1">
                 <Code2 className="w-3.5 h-3.5" />
-                {snippet.files.length} {snippet.files.length === 1 ? "файл" : "файлов"}
+                {tFilesCount(snippet.files.length)}
               </span>
             </div>
           </div>
@@ -175,8 +180,8 @@ export function SnippetViewModal({
                   ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
               }`}
-              title={snippet.isFavorite ? "В избранном" : "В избранное"}
-              aria-label="Избранное"
+              title={snippet.isFavorite ? t("snippets.removeFromFavorites") : t("snippets.addToFavorites")}
+              aria-label={t("sidebar.favorites")}
             >
               <Star className={`w-4 h-4 ${snippet.isFavorite ? "fill-amber-400" : ""}`} />
             </button>
@@ -184,8 +189,8 @@ export function SnippetViewModal({
             <button
               onClick={() => onEdit(snippet)}
               className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-              title="Редактировать сниппет"
-              aria-label="Редактировать"
+              title={t("view.editSnippet")}
+              aria-label={t("view.editSnippet")}
             >
               <Edit3 className="w-4 h-4" />
             </button>
@@ -193,22 +198,22 @@ export function SnippetViewModal({
             <button
               onClick={handleExportSnippet}
               className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-              title="Экспортировать сниппет в JSON"
-              aria-label="Экспорт"
+              title={`${t("common.export")} (.json)`}
+              aria-label={t("common.export")}
             >
               <Download className="w-4 h-4" />
             </button>
 
             <button
               onClick={() => {
-                if (confirm("Вы уверены, что хотите удалить этот сниппет?")) {
+                if (confirm(t("view.confirmDelete"))) {
                   onDelete(snippet.id);
                   onClose();
                 }
               }}
               className="p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-              title="Удалить"
-              aria-label="Удалить"
+              title={t("common.delete")}
+              aria-label={t("common.delete")}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -216,7 +221,7 @@ export function SnippetViewModal({
             <button
               onClick={onClose}
               className="hidden sm:flex p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] items-center justify-center"
-              aria-label="Закрыть"
+              aria-label={t("common.close")}
             >
               <X className="w-5 h-5" />
             </button>
@@ -279,10 +284,10 @@ export function SnippetViewModal({
                     }
                   }}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 transition-colors flex-shrink-0"
-                  title="Объяснить код файла через AI"
+                  title={t("editor.quickActionExplain")}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Объяснить</span>
+                  <span>{t("aiModal.tabExplain")}</span>
                 </button>
 
                 <button
@@ -296,16 +301,16 @@ export function SnippetViewModal({
                     }
                   }}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors flex-shrink-0"
-                  title="Оптимизировать код через AI"
+                  title={t("editor.quickActionRefactor")}
                 >
                   <Wand2 className="w-3.5 h-3.5" />
-                  <span>Оптимизация</span>
+                  <span>{t("aiModal.tabRefactor")}</span>
                 </button>
 
                 <button
                   onClick={handleCopyAsMarkdown}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 hover:bg-zinc-800 transition-colors flex-shrink-0"
-                  title="Скопировать как Markdown"
+                  title={t("view.copyMarkdown")}
                 >
                   {copiedMarkdown ? (
                     <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -318,7 +323,7 @@ export function SnippetViewModal({
                 <button
                   onClick={handleDownloadFile}
                   className="p-1 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors flex-shrink-0"
-                  title="Скачать этот файл"
+                  title={t("view.downloadFile")}
                 >
                   <Download className="w-3.5 h-3.5" />
                 </button>
@@ -345,12 +350,12 @@ export function SnippetViewModal({
             {copiedLink ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Скопировано!</span>
+                <span className="text-emerald-400">{t("view.shareCopiedBadge")}</span>
               </>
             ) : (
               <>
                 <ExternalLink className="w-3.5 h-3.5" />
-                <span>Поделиться</span>
+                <span>{t("view.shareLink")}</span>
               </>
             )}
           </button>
@@ -359,7 +364,7 @@ export function SnippetViewModal({
             onClick={onClose}
             className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
           >
-            Закрыть
+            {t("common.close")}
           </button>
         </div>
       </div>

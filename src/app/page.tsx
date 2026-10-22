@@ -27,6 +27,7 @@ import {
   SortOption,
   SORT_OPTIONS,
 } from "@/types/snippet";
+import { useI18n, getLocalizedSortOptions } from "@/lib/i18n";
 import { Navbar } from "@/components/Navbar";
 import { Sidebar } from "@/components/Sidebar";
 import { SnippetCard } from "@/components/SnippetCard";
@@ -43,6 +44,9 @@ import { AdminModal } from "@/components/AdminModal";
 import { APP_CONFIG } from "@/lib/version";
 
 export default function HomePage() {
+  const { t, locale } = useI18n();
+  const sortOptions = useMemo(() => getLocalizedSortOptions(t), [t]);
+
   const [snippets, setSnippets] = useState<SnippetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
@@ -479,14 +483,14 @@ export default function HomePage() {
       }
 
       const titleMap = {
-        explain: "Объяснение кода",
-        refactor: "Рефакторинг и оптимизация",
-        document: "Документация и комментарии",
+        explain: t("aiModal.resultExplain"),
+        refactor: t("aiModal.resultRefactor"),
+        document: t("aiModal.resultDocument"),
       };
 
       setAiModal({
         isOpen: true,
-        title: titleMap[action] || "AI Результат",
+        title: titleMap[action] || t("aiModal.resultDefault"),
         type: action,
         content: data.result,
         language,
@@ -574,7 +578,7 @@ export default function HomePage() {
               <Search className="w-4 h-4 text-zinc-400 mr-2 shrink-0" />
               <input
                 type="text"
-                placeholder="Поиск по коду, тегам..."
+                placeholder={t("snippets.searchMobilePlaceholder")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-transparent outline-none w-full text-xs placeholder-zinc-500"
@@ -583,7 +587,7 @@ export default function HomePage() {
                 <button
                   onClick={() => setSearchQuery("")}
                   className="text-zinc-500 hover:text-white p-1"
-                  aria-label="Очистить поиск"
+                  aria-label={t("snippets.clearSearch")}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -598,7 +602,7 @@ export default function HomePage() {
               }`}
             >
               <SlidersHorizontal className="w-4 h-4 text-violet-400" />
-              <span>Фильтры</span>
+              <span>{t("snippets.filters")}</span>
               {(selectedFilter !== "ALL" || selectedLanguage !== null || selectedTag !== null) && (
                 <span className="w-4 h-4 rounded-full bg-violet-600 text-white text-[10px] flex items-center justify-center font-bold">
                   {(selectedFilter !== "ALL" ? 1 : 0) +
@@ -630,7 +634,7 @@ export default function HomePage() {
               )}
               <div>
                 <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                  <span>{activeCollection ? activeCollection.name : "Сниппеты"}</span>
+                  <span>{activeCollection ? activeCollection.name : t("snippets.title")}</span>
                   <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
                     {filteredSnippets.length}
                   </span>
@@ -639,14 +643,14 @@ export default function HomePage() {
                   {activeCollection?.description
                     ? activeCollection.description
                     : activeCollection
-                    ? "Пользовательская коллекция"
+                    ? t("snippets.customCollection")
                     : selectedFilter === "FAVORITES"
-                    ? "Только избранные сниппеты"
+                    ? t("snippets.favoritesOnly")
                     : selectedTag
-                    ? `Фильтр по тегу #${selectedTag}`
+                    ? t("snippets.filterByTag", { tag: selectedTag })
                     : selectedLanguage
-                    ? `Фильтр по языку: ${selectedLanguage}`
-                    : "Все сохраненные фрагменты кода"}
+                    ? t("snippets.filterByLang", { lang: selectedLanguage })
+                    : t("snippets.allSnippets")}
                 </p>
               </div>
             </div>
@@ -664,10 +668,10 @@ export default function HomePage() {
                       document.body.removeChild(a);
                     }}
                     className="px-3 py-1.5 rounded-xl text-xs font-medium bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-all flex items-center gap-1.5 active:scale-95"
-                    title="Экспортировать сниппеты коллекции в JSON"
+                    title={t("snippets.exportCollectionJson")}
                   >
                     <Download className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Экспорт</span>
+                    <span>{t("common.export")}</span>
                   </button>
 
                   <button
@@ -677,7 +681,7 @@ export default function HomePage() {
                     }}
                     className="px-3 py-1.5 rounded-xl text-xs font-medium bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white transition-all flex items-center gap-1.5 active:scale-95"
                   >
-                    <span>Настроить</span>
+                    <span>{t("common.configure")}</span>
                   </button>
                 </>
               )}
@@ -692,12 +696,12 @@ export default function HomePage() {
                       ? "bg-zinc-800 border-zinc-700 text-white"
                       : "bg-zinc-900 hover:bg-zinc-800/80 border-zinc-800 text-zinc-300 hover:text-white"
                   }`}
-                  title="Сортировка сниппетов"
+                  title={t("snippets.sortBy")}
                 >
                   <ArrowUpDown className="w-3.5 h-3.5 text-violet-400" />
-                  <span className="hidden sm:inline text-zinc-400">Сортировка:</span>
+                  <span className="hidden sm:inline text-zinc-400">{t("snippets.sortByPrefix")}</span>
                   <span className="font-semibold text-zinc-100">
-                    {SORT_OPTIONS.find((o) => o.id === sortBy)?.label || "Сортировка"}
+                    {sortOptions.find((o) => o.id === sortBy)?.label || t("snippets.sortBy")}
                   </span>
                   <ChevronDown className="w-3 h-3 text-zinc-500" />
                 </button>
@@ -710,9 +714,9 @@ export default function HomePage() {
                     />
                     <div className="absolute right-0 mt-1.5 w-52 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl z-30 p-1 animate-in fade-in zoom-in-95 duration-100">
                       <div className="px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider border-b border-zinc-800/60 mb-1">
-                        Сортировать сниппеты
+                        {t("snippets.sortBy")}
                       </div>
-                      {SORT_OPTIONS.map((option) => (
+                      {sortOptions.map((option) => (
                         <button
                           key={option.id}
                           type="button"
@@ -744,7 +748,7 @@ export default function HomePage() {
                       ? "bg-zinc-800 text-violet-300 shadow-sm"
                       : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
                   }`}
-                  title="Отображение карточками (Сетка)"
+                  title={t("snippets.cardGrid")}
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
                 </button>
@@ -756,7 +760,7 @@ export default function HomePage() {
                       ? "bg-zinc-800 text-violet-300 shadow-sm"
                       : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
                   }`}
-                  title="Отображение компактным списком"
+                  title={t("snippets.compactList")}
                 >
                   <List className="w-3.5 h-3.5" />
                 </button>
@@ -768,7 +772,7 @@ export default function HomePage() {
           {error && (
             <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <p className="font-semibold text-rose-200">Не удалось загрузить данные</p>
+                <p className="font-semibold text-rose-200">{t("snippets.loadErrorTitle")}</p>
                 <p className="text-rose-300/80 mt-0.5">{error}</p>
               </div>
               <button
@@ -779,7 +783,7 @@ export default function HomePage() {
                 }}
                 className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 font-medium transition-colors whitespace-nowrap active:scale-95 self-start sm:self-auto"
               >
-                Повторить попытку
+                {t("common.retry")}
               </button>
             </div>
           )}
@@ -788,7 +792,7 @@ export default function HomePage() {
           {loading ? (
             <div className="py-24 flex flex-col items-center justify-center text-zinc-500 space-y-3">
               <Loader2 className="w-7 h-7 animate-spin text-violet-500" />
-              <p className="text-xs font-medium">Загрузка базы сниппетов...</p>
+              <p className="text-xs font-medium">{t("snippets.loadingDatabase")}</p>
             </div>
           ) : filteredSnippets.length === 0 ? (
             /* Empty state */
@@ -797,19 +801,19 @@ export default function HomePage() {
                 <FileCode className="w-6 h-6" />
               </div>
               <h3 className="text-sm font-semibold text-zinc-200 mb-1">
-                Сниппеты не найдены
+                {t("snippets.emptyTitle")}
               </h3>
               <p className="text-xs text-zinc-500 max-w-sm mb-5 leading-relaxed">
                 {searchQuery || selectedLanguage || selectedTag || selectedFilter !== "ALL"
-                  ? "По выбранным критериям фильтрации ничего не найдено. Попробуйте сбросить фильтры."
-                  : "Ваша библиотека пуста. Создайте свой первый сниппет с поддержкой нескольких файлов и подсветки синтаксиса!"}
+                  ? t("snippets.emptyFiltered")
+                  : t("snippets.emptyEmpty")}
               </p>
               <button
                 onClick={() => setIsCreateOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-violet-600 hover:bg-violet-500 transition-all shadow-md shadow-violet-600/20"
               >
                 <Plus className="w-4 h-4" />
-                <span>Создать первый сниппет</span>
+                <span>{t("snippets.createFirstSnippet")}</span>
               </button>
             </div>
           ) : viewMode === "grid" ? (
@@ -852,11 +856,19 @@ export default function HomePage() {
           <div className="flex items-center gap-2">
             <Terminal className="w-3.5 h-3.5 text-violet-500" />
             <span className="font-semibold text-zinc-400">SnippetVault</span>
-            <span>— {APP_CONFIG.description}</span>
+            <span>— {t("sidebar.footerDesc")}</span>
           </div>
           <div className="flex items-center gap-3 text-[11px] text-zinc-500 flex-wrap justify-center">
             <div>
-              Нажмите <kbd className="px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 font-mono text-[10px]">Ctrl+K</kbd> для командной строки
+              {locale === "ru" ? (
+                <>
+                  Нажмите <kbd className="px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 font-mono text-[10px]">Ctrl+K</kbd> для командной строки
+                </>
+              ) : (
+                <>
+                  Press <kbd className="px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 font-mono text-[10px]">Ctrl+K</kbd> for command palette
+                </>
+              )}
             </div>
             <span className="text-zinc-700 hidden sm:inline">•</span>
             <a
@@ -865,7 +877,7 @@ export default function HomePage() {
               rel="noopener noreferrer"
               className="text-zinc-400 hover:text-violet-400 transition-colors font-medium hover:underline underline-offset-4 flex items-center gap-1 group"
             >
-              <span>made by</span>
+              <span>{t("sidebar.madeBy")}</span>
               <span className="font-semibold text-zinc-300 group-hover:text-violet-300">scfmcdck</span>
             </a>
           </div>

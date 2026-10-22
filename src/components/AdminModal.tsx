@@ -25,6 +25,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface UserItem {
   id: string;
@@ -61,6 +62,7 @@ export function AdminModal({
   currentUser,
   onUserChanged,
 }: AdminModalProps) {
+  const { t, locale, tSnippetsCount } = useI18n();
   const [activeTab, setActiveTab] = useState<"users" | "settings">("users");
 
   // Users state
@@ -69,9 +71,7 @@ export function AdminModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<"ALL" | "ADMIN" | "USER" | "BANNED">("ALL");
 
-  // System settings state
-  const [registrationDisabled, setRegistrationDisabled] = useState(false);
-  const [savingSettings, setSavingSettings] = useState(false);
+  // System stats state
   const [stats, setStats] = useState<{
     totalUsers: number;
     adminUsers: number;
@@ -122,11 +122,10 @@ export function AdminModal({
         setUsers(usersData.users || []);
       }
       if (settingsRes.ok && settingsData.success) {
-        setRegistrationDisabled(settingsData.settings?.registrationDisabled || false);
         setStats(settingsData.stats || null);
       }
     } catch (err: any) {
-      showFeedback(err.message || "Ошибка загрузки данных", "error");
+      showFeedback(err.message || t("admin.loadError"), "error");
     } finally {
       setLoadingUsers(false);
     }
@@ -143,7 +142,7 @@ export function AdminModal({
   // Toggle user ban status
   const handleToggleBan = async (user: UserItem) => {
     if (user.id === currentUser?.id) {
-      showFeedback("Вы не можете заблокировать собственный аккаунт", "error");
+      showFeedback(t("admin.cannotBanSelfFeedback"), "error");
       return;
     }
 
@@ -155,7 +154,7 @@ export function AdminModal({
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Ошибка изменения статуса");
+        throw new Error(data.error || t("common.error"));
       }
 
       setUsers((prev) =>
@@ -163,19 +162,19 @@ export function AdminModal({
       );
       showFeedback(
         user.isBanned
-          ? `Доступ для ${user.email} разблокирован`
-          : `Доступ для ${user.email} заблокирован`
+          ? t("admin.userUnbannedFeedback", { email: user.email })
+          : t("admin.userBannedFeedback", { email: user.email })
       );
       loadUsersAndSettings();
     } catch (err: any) {
-      showFeedback(err.message || "Ошибка при блокировке", "error");
+      showFeedback(err.message || t("common.error"), "error");
     }
   };
 
   // Change user role
   const handleChangeRole = async (user: UserItem, newRole: "ADMIN" | "USER") => {
     if (user.id === currentUser?.id && newRole === "USER") {
-      showFeedback("Нельзя отозвать права администратора у самого себя", "error");
+      showFeedback(t("admin.cannotDemoteSelfFeedback"), "error");
       return;
     }
 
@@ -187,16 +186,21 @@ export function AdminModal({
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Ошибка изменения роли");
+        throw new Error(data.error || t("common.error"));
       }
 
       setUsers((prev) =>
         prev.map((u) => (u.id === user.id ? { ...u, role: newRole } : u))
       );
-      showFeedback(`Роль для ${user.email} изменена на ${newRole === "ADMIN" ? "Администратор" : "Пользователь"}`);
+      showFeedback(
+        t("admin.roleChangedFeedback", {
+          email: user.email,
+          role: newRole === "ADMIN" ? t("admin.roleAdmin") : t("admin.roleUser"),
+        })
+      );
       loadUsersAndSettings();
     } catch (err: any) {
-      showFeedback(err.message || "Ошибка при смене роли", "error");
+      showFeedback(err.message || t("common.error"), "error");
     }
   };
 
@@ -219,10 +223,10 @@ export function AdminModal({
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Не удалось создать пользователя");
+        throw new Error(data.error || t("common.error"));
       }
 
-      showFeedback(`Пользователь ${data.user.email} успешно создан`);
+      showFeedback(t("admin.userCreatedFeedback", { email: data.user.email }));
       setShowCreateModal(false);
       setNewEmail("");
       setNewName("");
@@ -230,7 +234,7 @@ export function AdminModal({
       setNewRole("USER");
       loadUsersAndSettings();
     } catch (err: any) {
-      setCreateError(err.message || "Ошибка создания");
+      setCreateError(err.message || t("common.error"));
     } finally {
       setCreatingUser(false);
     }
@@ -251,14 +255,14 @@ export function AdminModal({
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Ошибка смены пароля");
+        throw new Error(data.error || t("common.error"));
       }
 
-      showFeedback(`Пароль для ${resetTargetUser.email} успешно обновлен`);
+      showFeedback(t("admin.passwordUpdatedFeedback", { email: resetTargetUser.email }));
       setResetTargetUser(null);
       setResetPasswordVal("");
     } catch (err: any) {
-      setResetError(err.message || "Ошибка обновления пароля");
+      setResetError(err.message || t("common.error"));
     } finally {
       setResettingPassword(false);
     }
@@ -275,43 +279,16 @@ export function AdminModal({
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Ошибка удаления пользователя");
+        throw new Error(data.error || t("common.error"));
       }
 
-      showFeedback(`Пользователь ${deleteTargetUser.email} удален`);
+      showFeedback(t("admin.userDeletedFeedback", { email: deleteTargetUser.email }));
       setDeleteTargetUser(null);
       loadUsersAndSettings();
     } catch (err: any) {
-      showFeedback(err.message || "Ошибка удаления", "error");
+      showFeedback(err.message || t("common.error"), "error");
     } finally {
       setDeletingUser(false);
-    }
-  };
-
-  // Save registration settings toggle
-  const handleToggleRegistration = async (disabledVal: boolean) => {
-    setSavingSettings(true);
-    try {
-      const res = await fetch("/api/admin/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ registrationDisabled: disabledVal }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Не удалось сохранить настройки");
-      }
-
-      setRegistrationDisabled(disabledVal);
-      showFeedback(
-        disabledVal
-          ? "Регистрация на странице авторизации отключена"
-          : "Регистрация на странице авторизации включена"
-      );
-    } catch (err: any) {
-      showFeedback(err.message || "Ошибка сохранения", "error");
-    } finally {
-      setSavingSettings(false);
     }
   };
 
@@ -344,14 +321,14 @@ export function AdminModal({
             <div className="truncate">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm sm:text-base font-bold text-white truncate">
-                  Панель администратора
+                  {t("admin.title")}
                 </h2>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30">
                   Root
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-zinc-400 truncate hidden sm:block">
-                Управление учетными записями, блокировкой доступа и регистрацией
+                {t("admin.subtitle")}
               </p>
             </div>
           </div>
@@ -362,15 +339,15 @@ export function AdminModal({
               onClick={loadUsersAndSettings}
               disabled={loadingUsers}
               className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-              title="Обновить данные"
-              aria-label="Обновить данные"
+              title={t("admin.refreshData")}
+              aria-label={t("admin.refreshData")}
             >
               <RefreshCw className={`w-4 h-4 ${loadingUsers ? "animate-spin text-violet-400" : ""}`} />
             </button>
             <button
               onClick={onClose}
               className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"
-              aria-label="Закрыть"
+              aria-label={t("common.close")}
             >
               <X className="w-5 h-5" />
             </button>
@@ -389,7 +366,7 @@ export function AdminModal({
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Учетные записи ({users.length})</span>
+            <span>{t("admin.usersTab")} ({users.length})</span>
           </button>
 
           <button
@@ -402,7 +379,7 @@ export function AdminModal({
             }`}
           >
             <Shield className="w-3.5 h-3.5" />
-            <span>Система & Статистика</span>
+            <span>{t("admin.settingsTab")}</span>
           </button>
         </div>
 
@@ -444,7 +421,7 @@ export function AdminModal({
                     <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-2.5" />
                     <input
                       type="text"
-                      placeholder="Поиск по email или имени..."
+                      placeholder={t("admin.userSearchPlaceholder")}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="w-full pl-8 pr-3 py-1.5 text-xs bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-200 placeholder-zinc-500 outline-none focus:border-violet-500"
@@ -462,7 +439,7 @@ export function AdminModal({
                           : "text-zinc-400 hover:text-zinc-200"
                       }`}
                     >
-                      Все
+                      {t("admin.filterAll")}
                     </button>
                     <button
                       type="button"
@@ -473,7 +450,7 @@ export function AdminModal({
                           : "text-zinc-400 hover:text-zinc-200"
                       }`}
                     >
-                      Админы
+                      {t("admin.filterAdmins")}
                     </button>
                     <button
                       type="button"
@@ -484,7 +461,7 @@ export function AdminModal({
                           : "text-zinc-400 hover:text-zinc-200"
                       }`}
                     >
-                      Блок
+                      {t("admin.filterBanned")}
                     </button>
                   </div>
                 </div>
@@ -495,7 +472,7 @@ export function AdminModal({
                   className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-violet-600/20 shrink-0"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span>Создать аккаунт</span>
+                  <span>{t("admin.createAccountBtn")}</span>
                 </button>
               </div>
 
@@ -503,18 +480,21 @@ export function AdminModal({
               <div className="space-y-2">
                 {filteredUsers.length === 0 ? (
                   <div className="py-12 text-center text-xs text-zinc-500 border border-zinc-800/80 rounded-2xl bg-zinc-900/30">
-                    {searchQuery ? "Пользователи по данному запросу не найдены" : "В системе пока нет пользователей"}
+                    {searchQuery ? t("admin.noUsersFound") : t("admin.noUsersYet")}
                   </div>
                 ) : (
                   filteredUsers.map((user) => {
                     const isSelf = user.id === currentUser?.id;
                     const isLocalAdmin = user.email.toLowerCase() === "admin@snippetvault.local";
                     const initial = (user.name || user.email || "U")[0].toUpperCase();
-                    const formattedDate = new Date(user.createdAt).toLocaleDateString("ru-RU", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    });
+                    const formattedDate = new Date(user.createdAt).toLocaleDateString(
+                      locale === "ru" ? "ru-RU" : "en-US",
+                      {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      }
+                    );
 
                     return (
                       <div
@@ -540,25 +520,25 @@ export function AdminModal({
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-semibold text-xs text-white truncate">
-                                {user.name || "Без имени"}
+                                {user.name || t("admin.noName")}
                               </span>
 
                               {/* Role Badge */}
                               {user.role === "ADMIN" ? (
                                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-600/20 text-violet-300 border border-violet-500/30 shrink-0">
                                   <ShieldCheck className="w-3 h-3 text-violet-400" />
-                                  <span>Администратор</span>
+                                  <span>{t("admin.roleAdmin")}</span>
                                 </span>
                               ) : (
                                 <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700/60 shrink-0">
-                                  Пользователь
+                                  {t("admin.roleUser")}
                                 </span>
                               )}
 
                               {isLocalAdmin && (
                                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
                                   <KeyRound className="w-2.5 h-2.5 text-amber-400" />
-                                  <span>Локальный админ</span>
+                                  <span>{t("admin.localAdminBadge")}</span>
                                 </span>
                               )}
 
@@ -566,13 +546,13 @@ export function AdminModal({
                               {user.isBanned && (
                                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-600/20 text-rose-300 border border-rose-500/30 shrink-0">
                                   <Ban className="w-3 h-3 text-rose-400" />
-                                  <span>Заблокирован</span>
+                                  <span>{t("admin.bannedBadge")}</span>
                                 </span>
                               )}
 
                               {isSelf && (
                                 <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 shrink-0">
-                                  (Вы)
+                                  {t("admin.youBadge")}
                                 </span>
                               )}
                             </div>
@@ -582,11 +562,11 @@ export function AdminModal({
                               <span className="text-zinc-600">•</span>
                               <span className="flex items-center gap-1 text-zinc-500">
                                 <FileCode className="w-3 h-3" />
-                                {user._count?.snippets || 0} сниппетов
+                                {tSnippetsCount(user._count?.snippets || 0)}
                               </span>
                               <span className="text-zinc-600 hidden xs:inline">•</span>
                               <span className="text-zinc-500 hidden xs:inline">
-                                Регистрация: {formattedDate}
+                                {t("admin.registeredAt", { date: formattedDate })}
                               </span>
                             </div>
                           </div>
@@ -611,17 +591,17 @@ export function AdminModal({
                             } ${isSelf || isLocalAdmin ? "opacity-30 cursor-not-allowed" : ""}`}
                             title={
                               isSelf
-                                ? "Нельзя изменить свою роль"
+                                ? t("admin.cannotChangeSelfRole")
                                 : isLocalAdmin
-                                ? "Роль локального администратора нельзя изменить"
+                                ? t("admin.cannotChangeLocalAdminRole")
                                 : user.role === "ADMIN"
-                                ? "Понизить до Пользователя"
-                                : "Повысить до Администратора"
+                                ? t("admin.removeAdmin")
+                                : t("admin.makeAdmin")
                             }
                           >
                             <Shield className="w-3.5 h-3.5" />
                             <span className="hidden md:inline">
-                              {user.role === "ADMIN" ? "Снять админа" : "Сделать админом"}
+                              {user.role === "ADMIN" ? t("admin.removeAdmin") : t("admin.makeAdmin")}
                             </span>
                           </button>
 
@@ -634,10 +614,10 @@ export function AdminModal({
                               setResetError(null);
                             }}
                             className="p-2 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1 min-w-[34px] min-h-[34px]"
-                            title="Сбросить / задать новый пароль"
+                            title={t("admin.resetPasswordTitle")}
                           >
                             <KeyRound className="w-3.5 h-3.5" />
-                            <span className="hidden md:inline">Пароль</span>
+                            <span className="hidden md:inline">{t("admin.passwordBtn")}</span>
                           </button>
 
                           {/* Ban / Unban button */}
@@ -652,21 +632,21 @@ export function AdminModal({
                             } ${isSelf ? "opacity-30 cursor-not-allowed" : ""}`}
                             title={
                               isSelf
-                                ? "Нельзя заблокировать себя"
+                                ? t("admin.cannotBanSelf")
                                 : user.isBanned
-                                ? "Разблокировать доступ"
-                                : "Заблокировать доступ"
+                                ? t("admin.unbanBtn")
+                                : t("admin.banBtn")
                             }
                           >
                             {user.isBanned ? (
                               <>
                                 <Unlock className="w-3.5 h-3.5" />
-                                <span className="hidden md:inline">Разблокировать</span>
+                                <span className="hidden md:inline">{t("admin.unbanBtn")}</span>
                               </>
                             ) : (
                               <>
                                 <Ban className="w-3.5 h-3.5" />
-                                <span className="hidden md:inline">Блокировать</span>
+                                <span className="hidden md:inline">{t("admin.banBtn")}</span>
                               </>
                             )}
                           </button>
@@ -681,10 +661,10 @@ export function AdminModal({
                             }`}
                             title={
                               isSelf
-                                ? "Нельзя удалить собственный аккаунт"
+                                ? t("admin.cannotDeleteSelf")
                                 : isLocalAdmin
-                                ? "Учетную запись локального администратора нельзя удалить"
-                                : "Удалить пользователя"
+                                ? t("admin.cannotDeleteLocalAdmin")
+                                : t("admin.deleteUserBtn")
                             }
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -706,32 +686,33 @@ export function AdminModal({
                 <div className="p-4 sm:p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
                   <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                     <Shield className="w-4 h-4 text-violet-400" />
-                    <span>Сводка системы</span>
+                    <span>{t("admin.systemSummary")}</span>
                   </h3>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                     <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
-                      <div className="text-zinc-500 text-[11px] font-medium">Всего пользователей</div>
+                      <div className="text-zinc-500 text-[11px] font-medium">{t("admin.totalUsers")}</div>
                       <div className="text-lg font-bold text-white mt-1">{stats.totalUsers}</div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
-                      <div className="text-zinc-500 text-[11px] font-medium">Администраторов</div>
+                      <div className="text-zinc-500 text-[11px] font-medium">{t("admin.adminUsers")}</div>
                       <div className="text-lg font-bold text-violet-400 mt-1">{stats.adminUsers}</div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
-                      <div className="text-zinc-500 text-[11px] font-medium">Заблокировано</div>
+                      <div className="text-zinc-500 text-[11px] font-medium">{t("admin.bannedUsers")}</div>
                       <div className="text-lg font-bold text-rose-400 mt-1">{stats.bannedUsers}</div>
                     </div>
 
                     <div className="p-3 rounded-xl bg-zinc-950/80 border border-zinc-800/80">
-                      <div className="text-zinc-500 text-[11px] font-medium">Всего сниппетов</div>
+                      <div className="text-zinc-500 text-[11px] font-medium">{t("admin.totalSnippets")}</div>
                       <div className="text-lg font-bold text-sky-400 mt-1">{stats.totalSnippets}</div>
                     </div>
                   </div>
                 </div>
               )}
+
             </div>
           )}
         </div>
@@ -747,7 +728,7 @@ export function AdminModal({
             onClick={onClose}
             className="px-4 py-1.5 sm:py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
           >
-            Закрыть
+            {t("common.close")}
           </button>
         </div>
       </div>
@@ -762,7 +743,7 @@ export function AdminModal({
                   <UserPlus className="w-4 h-4" />
                 </div>
                 <h3 className="text-sm sm:text-base font-bold text-white">
-                  Новый пользователь
+                  {t("admin.newUserTitle")}
                 </h3>
               </div>
               <button
@@ -783,7 +764,7 @@ export function AdminModal({
             <form onSubmit={handleCreateUser} className="space-y-3.5 text-xs text-zinc-200">
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                  Email адрес <span className="text-rose-500">*</span>
+                  {t("admin.emailLabel")} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -797,11 +778,11 @@ export function AdminModal({
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                  Имя пользователя
+                  {t("admin.nameLabel")}
                 </label>
                 <input
                   type="text"
-                  placeholder="Иван Иванов"
+                  placeholder={t("admin.namePlaceholder")}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500"
@@ -810,7 +791,7 @@ export function AdminModal({
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                  Пароль (мин. 6 знаков) <span className="text-rose-500">*</span>
+                  {t("admin.passwordMinChars")} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -825,7 +806,7 @@ export function AdminModal({
 
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                  Роль аккаунта
+                  {t("admin.accountRole")}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -837,7 +818,7 @@ export function AdminModal({
                         : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white"
                     }`}
                   >
-                    Пользователь
+                    {t("admin.roleUser")}
                   </button>
                   <button
                     type="button"
@@ -849,7 +830,7 @@ export function AdminModal({
                     }`}
                   >
                     <ShieldCheck className="w-3.5 h-3.5 text-violet-400" />
-                    <span>Администратор</span>
+                    <span>{t("admin.roleAdmin")}</span>
                   </button>
                 </div>
               </div>
@@ -860,7 +841,7 @@ export function AdminModal({
                   onClick={() => setShowCreateModal(false)}
                   className="px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-white"
                 >
-                  Отмена
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -868,7 +849,7 @@ export function AdminModal({
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 transition-all shadow-md shadow-violet-600/20"
                 >
                   {creatingUser && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Создать пользователя</span>
+                  <span>{t("admin.createUserBtn")}</span>
                 </button>
               </div>
             </form>
@@ -886,7 +867,7 @@ export function AdminModal({
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Сброс пароля</h3>
+                  <h3 className="text-sm font-bold text-white">{t("admin.resetPasswordTitle")}</h3>
                   <p className="text-[11px] text-zinc-400 truncate max-w-[240px]">
                     {resetTargetUser.email}
                   </p>
@@ -910,13 +891,13 @@ export function AdminModal({
             <form onSubmit={handleResetPassword} className="space-y-4 text-xs text-zinc-200">
               <div className="space-y-1">
                 <label className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
-                  Новый пароль (мин. 6 символов)
+                  {t("admin.newPasswordLabel")}
                 </label>
                 <input
                   type="password"
                   required
                   minLength={6}
-                  placeholder="Введите новый пароль..."
+                  placeholder={t("admin.newPasswordPlaceholder")}
                   value={resetPasswordVal}
                   onChange={(e) => setResetPasswordVal(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500"
@@ -929,7 +910,7 @@ export function AdminModal({
                   onClick={() => setResetTargetUser(null)}
                   className="px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-white"
                 >
-                  Отмена
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="submit"
@@ -937,7 +918,7 @@ export function AdminModal({
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 disabled:opacity-50 transition-all shadow-md shadow-amber-600/20"
                 >
                   {resettingPassword && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Установить пароль</span>
+                  <span>{t("admin.setPasswordBtn")}</span>
                 </button>
               </div>
             </form>
@@ -954,10 +935,9 @@ export function AdminModal({
                 <Trash2 className="w-5 h-5" />
               </div>
               <div className="space-y-1 flex-1 min-w-0">
-                <h3 className="text-base font-bold text-white">Удалить аккаунт?</h3>
+                <h3 className="text-base font-bold text-white">{t("admin.deleteUserTitle")}</h3>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Вы уверены, что хотите безвозвратно удалить аккаунт{" "}
-                  <strong className="text-rose-300">{deleteTargetUser.email}</strong>? Все его сниппеты, коллекции и ключи доступа будут удалены.
+                  {t("admin.deleteUserConfirmText", { email: deleteTargetUser.email })}
                 </p>
               </div>
             </div>
@@ -969,7 +949,7 @@ export function AdminModal({
                 disabled={deletingUser}
                 className="px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-400 hover:text-white"
               >
-                Отмена
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -978,7 +958,7 @@ export function AdminModal({
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 disabled:opacity-50 transition-all shadow-lg shadow-rose-600/20"
               >
                 {deletingUser && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Удалить аккаунт</span>
+                <span>{t("admin.deleteConfirmBtn")}</span>
               </button>
             </div>
           </div>

@@ -12,6 +12,7 @@ import {
 import { SnippetItem } from "@/types/snippet";
 import { getLanguageMeta } from "@/lib/languages";
 import { CollectionIcon } from "@/lib/collection-icons";
+import { useI18n } from "@/lib/i18n";
 
 interface SnippetListItemProps {
   snippet: SnippetItem;
@@ -30,6 +31,7 @@ export function SnippetListItem({
   onToggleFavorite,
   onSelectTag,
 }: SnippetListItemProps) {
+  const { t, locale, tFilesCount } = useI18n();
   const [copied, setCopied] = useState(false);
 
   const primaryFile = snippet.files[0];
@@ -56,7 +58,7 @@ export function SnippetListItem({
   };
 
   const formattedDate = new Date(snippet.updatedAt || snippet.createdAt).toLocaleDateString(
-    "ru-RU",
+    locale === "ru" ? "ru-RU" : "en-US",
     {
       day: "numeric",
       month: "short",
@@ -83,8 +85,8 @@ export function SnippetListItem({
             onToggleFavorite(snippet.id);
           }}
           className="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-colors shrink-0 mt-0.5 sm:mt-0 min-w-[34px] min-h-[34px] flex items-center justify-center active:scale-90"
-          title={snippet.isFavorite ? "Убрать из избранного" : "Добавить в избранное"}
-          aria-label="Избранное"
+          title={snippet.isFavorite ? t("snippets.removeFromFavorites") : t("snippets.addToFavorites")}
+          aria-label={t("sidebar.favorites")}
         >
           <Star
             className={`w-4 h-4 ${
@@ -199,8 +201,8 @@ export function SnippetListItem({
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                   : "bg-zinc-800/60 hover:bg-zinc-800 border-zinc-700/50 text-zinc-400 hover:text-white"
               }`}
-              title={copied ? "Скопировано!" : "Скопировать код первого файла"}
-              aria-label="Копировать код"
+              title={copied ? t("common.copied") : t("snippets.copyCode")}
+              aria-label={t("snippets.copyCode")}
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
@@ -213,8 +215,8 @@ export function SnippetListItem({
               onEdit(snippet);
             }}
             className="p-1.5 rounded-lg bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-400 hover:text-white transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center"
-            title="Редактировать сниппет"
-            aria-label="Редактировать"
+            title={t("common.edit")}
+            aria-label={t("common.edit")}
           >
             <Edit3 className="w-3.5 h-3.5" />
           </button>
@@ -231,8 +233,8 @@ export function SnippetListItem({
               document.body.removeChild(a);
             }}
             className="p-1.5 rounded-lg bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-400 hover:text-white transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center"
-            title="Экспортировать сниппет (.json)"
-            aria-label="Экспорт"
+            title={`${t("common.export")} (.json)`}
+            aria-label={t("common.export")}
           >
             <Download className="w-3.5 h-3.5" />
           </button>
@@ -241,13 +243,13 @@ export function SnippetListItem({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              if (confirm(`Удалить сниппет "${snippet.title}"?`)) {
+              if (confirm(t("snippets.deleteConfirm", { title: snippet.title }))) {
                 onDelete(snippet.id);
               }
             }}
             className="p-1.5 rounded-lg bg-zinc-800/60 hover:bg-rose-500/20 border border-zinc-700/50 text-zinc-400 hover:text-rose-400 transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center"
-            title="Удалить сниппет"
-            aria-label="Удалить"
+            title={t("common.delete")}
+            aria-label={t("common.delete")}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>

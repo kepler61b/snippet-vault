@@ -16,9 +16,11 @@ import {
 } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { APP_CONFIG } from "@/lib/version";
+import { useI18n } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t, locale } = useI18n();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -210,7 +212,7 @@ export default function LoginPage() {
             )}
           </div>
           <p className="text-xs text-zinc-400">
-            {APP_CONFIG.description}
+            {t("sidebar.footerDesc")}
           </p>
         </div>
 
@@ -220,9 +222,9 @@ export default function LoginPage() {
             <>
               {/* Header inside card */}
               <div className="mb-5 sm:mb-6 text-center">
-                <h2 className="text-sm sm:text-base font-semibold text-white">Вход в систему</h2>
+                <h2 className="text-sm sm:text-base font-semibold text-white">{t("login.title")}</h2>
                 <p className="text-xs text-zinc-400 mt-0.5 sm:mt-1">
-                  Введите ваши учетные данные для авторизации
+                  {t("login.subtitle")}
                 </p>
               </div>
 
@@ -237,7 +239,7 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-zinc-300">
-                    Email адрес
+                    {t("login.emailLabel")}
                   </label>
                   <div className="relative">
                     <input
@@ -254,7 +256,7 @@ export default function LoginPage() {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-zinc-300">
-                    Пароль
+                    {t("login.passwordLabel")}
                   </label>
                   <div className="relative">
                     <input
@@ -270,7 +272,7 @@ export default function LoginPage() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-3 text-zinc-500 hover:text-zinc-300 p-1 transition-colors"
-                      aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
                     >
                       {showPassword ? (
                         <EyeOff className="w-4 h-4" />
@@ -287,7 +289,7 @@ export default function LoginPage() {
                   className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Войти в аккаунт</span>
+                  <span>{t("login.signInBtn")}</span>
                 </button>
               </form>
 
@@ -299,7 +301,7 @@ export default function LoginPage() {
                       <div className="w-full border-t border-zinc-800/80" />
                     </div>
                     <div className="relative flex justify-center text-[11px] uppercase">
-                      <span className="bg-zinc-900/90 px-2 text-zinc-500 font-medium">или</span>
+                      <span className="bg-zinc-900/90 px-2 text-zinc-500 font-medium">{t("login.or")}</span>
                     </div>
                   </div>
 
@@ -314,7 +316,7 @@ export default function LoginPage() {
                     ) : (
                       <Fingerprint className="w-4 h-4 text-violet-400 group-hover:text-violet-300 transition-colors" />
                     )}
-                    <span>Войти с помощью Passkey</span>
+                    <span>{t("login.passkeyBtn")}</span>
                   </button>
                 </>
               )}
@@ -348,10 +350,10 @@ export default function LoginPage() {
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <h2 className="text-lg font-bold text-white">
-                  Двухфакторная аутентификация
+                  {t("login.twoFactorTitle")}
                 </h2>
                 <p className="text-xs text-zinc-400 max-w-xs mx-auto leading-relaxed">
-                  Для входа введите 6-значный код из приложения аутентификатора
+                  {t("login.twoFactorDesc")}
                 </p>
               </div>
 
@@ -366,7 +368,7 @@ export default function LoginPage() {
                   type="text"
                   autoFocus
                   maxLength={6}
-                  placeholder="000000"
+                  placeholder={t("login.twoFactorPlaceholder")}
                   value={twoFactorCode}
                   onChange={(e) =>
                     setTwoFactorCode(e.target.value.replace(/\D/g, "").slice(0, 6))
@@ -382,7 +384,7 @@ export default function LoginPage() {
                   className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Подтвердить вход</span>
+                  <span>{t("login.verifyBtn")}</span>
                 </button>
 
                 <button
@@ -395,7 +397,7 @@ export default function LoginPage() {
                   className="w-full py-2 text-xs font-medium text-zinc-400 hover:text-white transition-colors flex items-center justify-center gap-1.5"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Назад к логину</span>
+                  <span>{t("login.backToLogin")}</span>
                 </button>
               </div>
             </form>

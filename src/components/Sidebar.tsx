@@ -15,6 +15,7 @@ import {
 import { getLanguageMeta } from "@/lib/languages";
 import { CollectionItem } from "@/types/snippet";
 import { CollectionIcon } from "@/lib/collection-icons";
+import { useI18n } from "@/lib/i18n";
 
 interface SidebarProps {
   totalCount: number;
@@ -57,6 +58,8 @@ export function Sidebar({
   isMobileOpen = false,
   onCloseMobile,
 }: SidebarProps) {
+  const { t } = useI18n();
+
   const hasActiveFilters =
     selectedFilter !== "ALL" ||
     selectedLanguage !== null ||
@@ -74,12 +77,12 @@ export function Sidebar({
       <div className="flex lg:hidden items-center justify-between pb-3 border-b border-zinc-800">
         <div className="flex items-center gap-2 text-sm font-semibold text-white">
           <SlidersHorizontal className="w-4 h-4 text-violet-400" />
-          <span>Навигация и фильтры</span>
+          <span>{t("sidebar.navigationAndFilters")}</span>
         </div>
         <button
           onClick={onCloseMobile}
           className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 active:scale-95 transition-all flex items-center justify-center min-w-[36px] min-h-[36px]"
-          aria-label="Закрыть фильтры"
+          aria-label={t("sidebar.closeFilters")}
         >
           <X className="w-5 h-5" />
         </button>
@@ -88,7 +91,7 @@ export function Sidebar({
       {/* БЛОК 1: КОЛЛЕКЦИИ (Все сниппеты + кастомные коллекции + кнопка создать) */}
       <div className="space-y-1">
         <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
-          <span>Коллекции</span>
+          <span>{t("sidebar.collections")}</span>
           {collections.length > 0 && (
             <button
               onClick={() => {
@@ -96,10 +99,10 @@ export function Sidebar({
                 onCloseMobile?.();
               }}
               className="flex items-center gap-1 text-[11px] font-medium text-violet-400 hover:text-violet-300 transition-colors py-1 px-1.5 rounded"
-              title="Создать свою коллекцию"
+              title={t("sidebar.createCollectionTitle")}
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Новая</span>
+              <span>{t("sidebar.newCollection")}</span>
             </button>
           )}
         </div>
@@ -119,7 +122,7 @@ export function Sidebar({
         >
           <div className="flex items-center gap-2.5">
             <FolderGit2 className="w-4 h-4" />
-            <span>Все сниппеты</span>
+            <span>{t("sidebar.allSnippets")}</span>
           </div>
           <span className="text-xs opacity-75">{totalCount}</span>
         </button>
@@ -167,7 +170,7 @@ export function Sidebar({
                     document.body.removeChild(a);
                   }}
                   className="opacity-80 lg:opacity-0 lg:group-hover/col:opacity-100 p-1.5 text-zinc-400 hover:text-white rounded-lg transition-opacity flex items-center justify-center min-w-[28px] min-h-[28px]"
-                  title="Экспортировать коллекцию в JSON"
+                  title={t("snippets.exportCollectionJson")}
                 >
                   <Download className="w-3.5 h-3.5" />
                 </button>
@@ -178,7 +181,7 @@ export function Sidebar({
                     onEditCollection(col);
                   }}
                   className="opacity-80 lg:opacity-0 lg:group-hover/col:opacity-100 p-1.5 text-zinc-400 hover:text-white rounded-lg transition-opacity flex items-center justify-center min-w-[28px] min-h-[28px]"
-                  title="Редактировать коллекцию"
+                  title={t("view.editSnippet")}
                 >
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
@@ -197,7 +200,7 @@ export function Sidebar({
               className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border border-dashed border-zinc-800 hover:border-violet-500/50 text-zinc-500 hover:text-violet-300 text-xs transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Создать первую коллекцию</span>
+              <span>{t("sidebar.createCollectionTitle")}</span>
             </button>
           </div>
         )}
@@ -206,15 +209,15 @@ export function Sidebar({
       {/* БЛОК 2: ФИЛЬТРЫ (Избранное) */}
       <div className="space-y-1">
         <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
-          <span>Фильтры</span>
+          <span>{t("snippets.filters")}</span>
           {hasActiveFilters && (
             <button
               onClick={resetAllFilters}
               className="flex items-center gap-1 text-[11px] font-medium text-violet-400 hover:text-violet-300 transition-colors normal-case py-1 px-1.5 rounded"
-              title="Сбросить активные фильтры"
+              title={t("snippets.resetFilters")}
             >
               <X className="w-3.5 h-3.5" />
-              <span>Сбросить</span>
+              <span>{t("snippets.resetFilters")}</span>
             </button>
           )}
         </div>
@@ -239,7 +242,7 @@ export function Sidebar({
                   : "text-amber-400/80"
               }`}
             />
-            <span>Избранное</span>
+            <span>{t("sidebar.favorites")}</span>
           </div>
           <span className="text-xs opacity-75">{favoriteCount}</span>
         </button>
@@ -249,7 +252,7 @@ export function Sidebar({
       {languages.length > 0 && (
         <div className="space-y-1">
           <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
-            <span>Языки</span>
+            <span>{t("sidebar.languages")}</span>
             <Code2 className="w-3.5 h-3.5 text-zinc-400" />
           </div>
           <div className="space-y-0.5 max-h-52 overflow-y-auto pr-1">
@@ -288,7 +291,7 @@ export function Sidebar({
       {tags.length > 0 && (
         <div className="space-y-2">
           <div className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
-            <span>Теги</span>
+            <span>{t("sidebar.tags")}</span>
             <Tag className="w-3.5 h-3.5 text-zinc-400" />
           </div>
           <div className="flex flex-wrap gap-1.5 px-2">

@@ -16,6 +16,7 @@ import {
 import { SnippetItem } from "@/types/snippet";
 import { getLanguageMeta } from "@/lib/languages";
 import { CollectionIcon } from "@/lib/collection-icons";
+import { useI18n } from "@/lib/i18n";
 
 interface SnippetCardProps {
   snippet: SnippetItem;
@@ -34,6 +35,7 @@ export function SnippetCard({
   onToggleFavorite,
   onSelectTag,
 }: SnippetCardProps) {
+  const { t, tFilesCount } = useI18n();
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -134,8 +136,8 @@ export function SnippetCard({
                 onToggleFavorite(snippet.id);
               }}
               className="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-all active:scale-90 min-w-[34px] min-h-[34px] flex items-center justify-center"
-              title={snippet.isFavorite ? "Убрать из избранного" : "В избранное"}
-              aria-label="Избранное"
+              title={snippet.isFavorite ? t("snippets.removeFromFavorites") : t("snippets.addToFavorites")}
+              aria-label={t("sidebar.favorites")}
             >
               <Star
                 className={`w-4 h-4 transition-all duration-200 ${
@@ -154,8 +156,8 @@ export function SnippetCard({
                   setMenuOpen(!menuOpen);
                 }}
                 className="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors min-w-[34px] min-h-[34px] flex items-center justify-center"
-                title="Опции сниппета"
-                aria-label="Опции"
+                title={t("common.actions")}
+                aria-label={t("common.actions")}
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
@@ -181,21 +183,21 @@ export function SnippetCard({
                       className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-white"
                     >
                       <Edit3 className="w-3.5 h-3.5 text-zinc-400" />
-                      <span>Редактировать</span>
+                      <span>{t("common.edit")}</span>
                     </button>
                     <button
                       onClick={handleCopyShareLink}
                       className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-white"
                     >
                       <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                      <span>{copiedLink ? "Ссылка скопирована!" : "Скопировать ссылку"}</span>
+                      <span>{copiedLink ? t("snippets.shareCopied") : t("snippets.share")}</span>
                     </button>
                     <button
                       onClick={handleExportSnippet}
                       className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-white"
                     >
                       <Download className="w-3.5 h-3.5 text-zinc-400" />
-                      <span>Экспорт (.json)</span>
+                      <span>{t("common.export")} (.json)</span>
                     </button>
                     <div className="my-1 border-t border-zinc-800" />
                     <button
@@ -206,7 +208,7 @@ export function SnippetCard({
                       className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                      <span>Удалить</span>
+                      <span>{t("common.delete")}</span>
                     </button>
                   </div>
                 </>
@@ -263,7 +265,7 @@ export function SnippetCard({
           <div className="flex items-center gap-2 min-w-0">
             <span className="flex items-center gap-1 font-medium text-zinc-400 shrink-0">
               <Code2 className="w-3.5 h-3.5" />
-              <span>{fileCount} {fileCount === 1 ? "файл" : fileCount < 5 ? "файла" : "файлов"}</span>
+              <span>{tFilesCount(fileCount)}</span>
             </span>
 
             {/* Language Badges */}
