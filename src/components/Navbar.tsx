@@ -83,11 +83,11 @@ export function Navbar({
           {isAdmin && onOpenAdminModal && (
             <button
               onClick={onOpenAdminModal}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-violet-300 hover:text-white bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 hover:border-violet-500/50 transition-all hover:scale-105 active:scale-95 shadow-sm shadow-violet-500/10"
+              className="p-2 sm:p-2.5 rounded-xl text-violet-300 hover:text-white bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 hover:border-violet-500/50 transition-all hover:scale-105 active:scale-95 shadow-sm shadow-violet-500/10 flex items-center justify-center"
               title="Панель администратора"
+              aria-label="Панель администратора"
             >
               <ShieldCheck className="w-4 h-4 text-violet-400" />
-              <span className="hidden md:inline">Админка</span>
             </button>
           )}
 

@@ -7,7 +7,6 @@ import {
   Edit2,
   FolderGit2,
   Plus,
-  ShieldCheck,
   SlidersHorizontal,
   Star,
   Tag,
@@ -310,25 +309,6 @@ export function Sidebar({
               );
             })}
           </div>
-        </div>
-      )}
-
-      {/* Admin Panel button (only visible to ADMIN) */}
-      {currentUser?.role === "ADMIN" && onOpenAdminModal && (
-        <div className="pt-2 border-t border-zinc-800/80">
-          <button
-            type="button"
-            onClick={onOpenAdminModal}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl bg-violet-600/10 hover:bg-violet-600/20 text-violet-300 hover:text-white border border-violet-500/20 hover:border-violet-500/30 text-xs font-semibold transition-all group shadow-sm shadow-violet-600/5"
-          >
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-violet-400 transition-transform group-hover:scale-110" />
-              <span>Админ-панель</span>
-            </div>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-violet-600/20 text-violet-300 font-bold uppercase tracking-wider">
-              Root
-            </span>
-          </button>
         </div>
       )}
     </div>
