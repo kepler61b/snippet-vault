@@ -40,6 +40,7 @@ import { AIKeyModal } from "@/components/AIKeyModal";
 import { SettingsModal } from "@/components/SettingsModal";
 import { CommandPalette } from "@/components/CommandPalette";
 import { AdminModal } from "@/components/AdminModal";
+import { APP_CONFIG } from "@/lib/version";
 
 export default function HomePage() {
   const [snippets, setSnippets] = useState<SnippetItem[]>([]);
@@ -843,14 +844,26 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-zinc-900 bg-zinc-950 py-6 text-center text-xs text-zinc-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Terminal className="w-3.5 h-3.5 text-violet-500" />
             <span className="font-semibold text-zinc-400">SnippetVault</span>
-            <span>— Dockerized Code Snippets Manager with AI</span>
+            <span>— {APP_CONFIG.description}</span>
           </div>
-          <div className="text-[11px] text-zinc-500">
-            Нажмите <kbd className="px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 font-mono text-[10px]">Ctrl+K</kbd> для командной строки
+          <div className="flex items-center gap-3 text-[11px] text-zinc-500 flex-wrap justify-center">
+            <div>
+              Нажмите <kbd className="px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 font-mono text-[10px]">Ctrl+K</kbd> для командной строки
+            </div>
+            <span className="text-zinc-700 hidden sm:inline">•</span>
+            <a
+              href="https://github.com/scfmcdck"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-zinc-400 hover:text-violet-400 transition-colors font-medium hover:underline underline-offset-4 flex items-center gap-1 group"
+            >
+              <span>made by</span>
+              <span className="font-semibold text-zinc-300 group-hover:text-violet-300">scfmcdck</span>
+            </a>
           </div>
         </div>
       </footer>

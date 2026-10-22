@@ -15,6 +15,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
+import { APP_CONFIG } from "@/lib/version";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -192,11 +193,24 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-sky-500 text-white shadow-xl shadow-indigo-500/25 mb-1">
             <Terminal className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
-            SnippetVault
-          </h1>
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+              {APP_CONFIG.name}
+            </h1>
+            {APP_CONFIG.env === "prod" ? (
+              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>Prod {APP_CONFIG.version}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                <span>Dev {APP_CONFIG.version}</span>
+              </span>
+            )}
+          </div>
           <p className="text-xs text-zinc-400">
-            Безопасное хранилище кода с поддержкой мульти-файлов и AI
+            {APP_CONFIG.description}
           </p>
         </div>
 
@@ -385,6 +399,19 @@ export default function LoginPage() {
               </div>
             </form>
           )}
+        </div>
+
+        {/* Footer author credit */}
+        <div className="text-center">
+          <a
+            href="https://github.com/scfmcdck"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-zinc-500 hover:text-violet-400 transition-colors inline-flex items-center gap-1 group"
+          >
+            <span>made by</span>
+            <span className="font-semibold text-zinc-400 group-hover:text-violet-300">scfmcdck</span>
+          </a>
         </div>
       </div>
     </div>

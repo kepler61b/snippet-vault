@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Plus, Search, Settings, ShieldCheck, Terminal, User } from "lucide-react";
+import { APP_CONFIG } from "@/lib/version";
 
 interface NavbarProps {
   searchQuery: string;
@@ -43,12 +44,20 @@ export function Navbar({
               <span className="font-bold text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
                 SnippetVault
               </span>
-              <span className="text-[9px] sm:text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20 hidden xs:inline-block">
-                AI Ready
-              </span>
+              {APP_CONFIG.env === "prod" ? (
+                <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span>Prod {APP_CONFIG.version}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                  <span>Dev {APP_CONFIG.version}</span>
+                </span>
+              )}
             </div>
             <p className="text-xs text-zinc-400 hidden sm:block">
-              Хранилище сниппетов кода & AI Ассистент
+              {APP_CONFIG.description}
             </p>
           </div>
         </div>
