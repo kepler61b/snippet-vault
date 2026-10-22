@@ -1,4 +1,23 @@
 import { prisma } from "./db";
+import { ProxyAgent } from "undici";
+
+function getProxyAgent(): ProxyAgent | undefined {
+  const proxyUrl =
+    process.env.AI_PROXY ||
+    process.env.HTTPS_PROXY ||
+    process.env.HTTP_PROXY ||
+    process.env.all_proxy ||
+    process.env.ALL_PROXY;
+
+  if (proxyUrl) {
+    try {
+      return new ProxyAgent(proxyUrl);
+    } catch (e) {
+      console.warn("Failed to create ProxyAgent for proxy:", proxyUrl, e);
+    }
+  }
+  return undefined;
+}
 
 export interface AISettings {
   provider: "openai" | "gemini" | "custom";
@@ -43,40 +62,105 @@ export async function executeAIRequest(
   userPrompt: string
 ): Promise<string> {
   const config = await getAISettings();
+  return executeAIRequestWithConfig(config, systemPrompt, userPrompt);
+}
+
+export async function executeAIRequestWithConfig(
+  rawConfig: AISettings,
+  systemPrompt: string,
+  userPrompt: string
+): Promise<string> {
+  const config = { ...rawConfig };
+
+  // Auto-correct provider if user entered Gemini key or model while provider is set to openai
+  if (
+    config.provider === "openai" &&
+    (config.model?.toLowerCase().includes("gemini") || config.apiKey?.startsWith("AIzaSy"))
+  ) {
+    config.provider = "gemini";
+    if (config.baseUrl.includes("api.openai.com")) {
+      config.baseUrl = "https://generativelanguage.googleapis.com";
+    }
+  }
 
   if (!config.apiKey && config.provider !== "custom") {
-    const error: any = new Error("AI API ключ не настроен. Пожалуйста, укажите ваш API ключ в настройках приложения или через переменные окружения (.env).");
+    const error: any = new Error(
+      "AI API ключ не настроен. Пожалуйста, укажите ваш API ключ в настройках приложения или через переменные окружения (.env)."
+    );
     error.code = "AI_KEY_REQUIRED";
     throw error;
   }
 
+  const proxyAgent = getProxyAgent();
+
   if (config.provider === "gemini") {
     // Google Gemini API
-    const model = config.model || "gemini-1.5-flash";
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.apiKey}`;
+    const model = (config.model || "gemini-3.5-flash").trim();
 
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: `${systemPrompt}\n\nПользовательский запрос:\n${userPrompt}` },
-            ],
+    const host =
+      config.baseUrl && !config.baseUrl.includes("api.openai.com")
+        ? config.baseUrl.replace(/\/$/, "")
+        : "https://generativelanguage.googleapis.com";
+
+    const url = `${host}/v1beta/models/${model}:generateContent?key=${config.apiKey}`;
+
+    let res: Response;
+    try {
+      const fetchOpts: any = {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: `${systemPrompt}\n\nПользовательский запрос:\n${userPrompt}`,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 2048,
           },
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 2048,
-        },
-      }),
-    });
+        }),
+      };
+      if (proxyAgent) {
+        fetchOpts.dispatcher = proxyAgent;
+      }
+
+      res = await fetch(url, fetchOpts);
+    } catch (fetchErr: any) {
+      const cause = fetchErr?.cause;
+      const causeMsg = cause?.code || cause?.message || "";
+      const isConnectionError =
+        cause?.code === "ETIMEDOUT" ||
+        cause?.code === "ECONNRESET" ||
+        cause?.code === "ECONNREFUSED" ||
+        cause?.code === "UND_ERR_CONNECT_TIMEOUT" ||
+        cause?.code === "ENOTFOUND";
+
+      let hint = "";
+      if (isConnectionError) {
+        hint =
+          " (Сервер не смог установить соединение с серверами Google Gemini. В РФ сервис заблокирован; настройте VPN или прокси на сервере/хосте).";
+      }
+
+      throw new Error(
+        `Сетевая ошибка при обращении к Google Gemini (${host}): ${causeMsg || fetchErr.message}${hint}`
+      );
+    }
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Ошибка Google Gemini API (${res.status}): ${errText}`);
+      let parsedMsg = errText;
+      try {
+        const json = JSON.parse(errText);
+        parsedMsg = json.error?.message || errText;
+      } catch {}
+
+      throw new Error(`Ошибка Google Gemini API (${res.status}): ${parsedMsg}`);
     }
 
     const data = await res.json();
@@ -96,22 +180,59 @@ export async function executeAIRequest(
       headers["Authorization"] = `Bearer ${config.apiKey}`;
     }
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: config.model || "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.2,
-      }),
-    });
+    let res: Response;
+    try {
+      const fetchOpts: any = {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: config.model || "gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.2,
+        }),
+      };
+      if (proxyAgent) {
+        fetchOpts.dispatcher = proxyAgent;
+      }
+
+      res = await fetch(endpoint, fetchOpts);
+    } catch (fetchErr: any) {
+      const cause = fetchErr?.cause;
+      const causeMsg = cause?.code || cause?.message || "";
+      const isConnectionError =
+        cause?.code === "ETIMEDOUT" ||
+        cause?.code === "ECONNRESET" ||
+        cause?.code === "ECONNREFUSED" ||
+        cause?.code === "UND_ERR_CONNECT_TIMEOUT" ||
+        cause?.code === "ENOTFOUND";
+
+      let hint = "";
+      if (isConnectionError) {
+        hint =
+          config.provider === "openai"
+            ? " (Сервер не смог установить соединение с серверами OpenAI. В РФ сервис заблокирован; настройте VPN или прокси на сервере/хосте)."
+            : " (Сервер не смог подключиться к указанному Base URL. Проверьте адрес и доступность сервиса).";
+      }
+
+      throw new Error(
+        `Сетевая ошибка при обращении к ${config.provider.toUpperCase()} (${endpoint}): ${
+          causeMsg || fetchErr.message
+        }${hint}`
+      );
+    }
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Ошибка AI API (${res.status}): ${errText}`);
+      let parsedMsg = errText;
+      try {
+        const json = JSON.parse(errText);
+        parsedMsg = json.error?.message || errText;
+      } catch {}
+
+      throw new Error(`Ошибка AI API (${res.status}): ${parsedMsg}`);
     }
 
     const data = await res.json();

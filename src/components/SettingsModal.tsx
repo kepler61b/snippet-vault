@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertCircle,
   ArrowUpDown,
   Check,
   Copy,
@@ -223,6 +224,8 @@ export function SettingsModal({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
   const [aiSuccess, setAiSuccess] = useState(false);
+  const [aiTesting, setAiTesting] = useState(false);
+  const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // General App Preferences
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("grid");
@@ -558,10 +561,51 @@ export function SettingsModal({
     }
   };
 
+  // AI Test Connection
+  const handleTestAIConnection = async () => {
+    setAiTesting(true);
+    setAiTestResult(null);
+    try {
+      const res = await fetch("/api/settings/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider,
+          apiKey: apiKey.trim(),
+          baseUrl: baseUrl.trim(),
+          model: model.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAiTestResult({
+          success: false,
+          message: data.error || (locale === "ru" ? "Ошибка соединения" : "Connection failed"),
+        });
+      } else {
+        setAiTestResult({
+          success: true,
+          message:
+            locale === "ru"
+              ? `Подключение успешно! Ответ получен за ${data.latency} мс.`
+              : `Connection successful! Response in ${data.latency} ms.`,
+        });
+      }
+    } catch (err: any) {
+      setAiTestResult({
+        success: false,
+        message: err.message || (locale === "ru" ? "Ошибка сети" : "Network error"),
+      });
+    } finally {
+      setAiTesting(false);
+    }
+  };
+
   // AI Save
   const handleSaveAI = async (e: React.FormEvent) => {
     e.preventDefault();
     setAiSaving(true);
+    setAiTestResult(null);
     try {
       const res = await fetch("/api/settings", {
         method: "POST",
@@ -1602,7 +1646,7 @@ export function SettingsModal({
                     onClick={() => {
                       setProvider("gemini");
                       setBaseUrl("https://generativelanguage.googleapis.com");
-                      setModel("gemini-1.5-flash");
+                      setModel("gemini-3.5-flash");
                     }}
                     className={`p-2.5 rounded-xl border text-center transition-all ${
                       provider === "gemini"
@@ -1653,7 +1697,17 @@ export function SettingsModal({
                         : "sk-..."
                     }
                     value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setApiKey(val);
+                      if (val.trim().startsWith("AIzaSy") && provider === "openai") {
+                        setProvider("gemini");
+                        setBaseUrl("https://generativelanguage.googleapis.com");
+                        if (!model || model === "gpt-4o-mini") {
+                          setModel("gemini-3.5-flash");
+                        }
+                      }
+                    }}
                     className="w-full px-3 py-2 pr-10 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500"
                   />
                   <button
@@ -1690,14 +1744,146 @@ export function SettingsModal({
                     onChange={(e) => setModel(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500"
                   />
+                  {/* Model Preset Pills */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {provider === "gemini" && (
+                      <button
+                        type="button"
+                        onClick={() => setModel("gemini-3.5-flash")}
+                        className={`text-[10px] px-2.5 py-0.5 rounded-md border font-medium transition-colors ${
+                          model === "gemini-3.5-flash"
+                            ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                            : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                        }`}
+                      >
+                        gemini-3.5-flash
+                      </button>
+                    )}
+                    {provider === "openai" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setModel("gpt-4o-mini")}
+                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                            model === "gpt-4o-mini"
+                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                          }`}
+                        >
+                          gpt-4o-mini
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setModel("gpt-4o")}
+                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                            model === "gpt-4o"
+                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                          }`}
+                        >
+                          gpt-4o
+                        </button>
+                      </>
+                    )}
+                    {provider === "custom" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setModel("llama3")}
+                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                            model === "llama3"
+                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                          }`}
+                        >
+                          llama3
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setModel("deepseek-coder")}
+                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                            model === "deepseek-coder"
+                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                          }`}
+                        >
+                          deepseek-coder
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setModel("qwen2.5-coder")}
+                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                            model === "qwen2.5-coder"
+                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                          }`}
+                        >
+                          qwen2.5-coder
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2">
+              {/* Network Warning Note */}
+              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
+                <p className="font-semibold text-zinc-300 flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>{locale === "ru" ? "Важно о сетевом подключении" : "Network connection note"}</span>
+                </p>
+                <p className="leading-relaxed">
+                  {locale === "ru"
+                    ? "Запросы к AI выполняет сервер Node.js (бэкенд), а не браузер. Если ваш сервер находится в РФ, прямые подключения к Google Gemini и OpenAI блокируются. Для работы требуется VPN/прокси (на хосте или через переменную HTTPS_PROXY в .env)."
+                    : "Requests to AI are executed by the Node.js server (backend). If your server is in Russia or restricted regions, VPN or HTTPS_PROXY is required on the host."}
+                </p>
+              </div>
+
+              {/* Test Connection Result */}
+              {aiTestResult && (
+                <div
+                  className={`p-3 rounded-xl border text-xs flex items-start gap-2 animate-in fade-in duration-150 ${
+                    aiTestResult.success
+                      ? "bg-emerald-950/20 text-emerald-300 border-emerald-900/40"
+                      : "bg-rose-950/20 text-rose-300 border-rose-900/40"
+                  }`}
+                >
+                  {aiTestResult.success ? (
+                    <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  )}
+                  <span className="leading-relaxed break-words">{aiTestResult.message}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-2">
+                <button
+                  type="button"
+                  onClick={handleTestAIConnection}
+                  disabled={aiTesting || aiSaving || (!apiKey && !hasApiKey && provider !== "custom")}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700 transition-colors disabled:opacity-40"
+                >
+                  {aiTesting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+                  )}
+                  <span>
+                    {locale === "ru"
+                      ? aiTesting
+                        ? "Проверка..."
+                        : "Проверить подключение"
+                      : aiTesting
+                      ? "Testing..."
+                      : "Test Connection"}
+                  </span>
+                </button>
+
                 <button
                   type="submit"
                   disabled={aiSaving}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl font-semibold text-white bg-violet-600 hover:bg-violet-500 active:scale-[0.98] transition-all disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-violet-600 hover:bg-violet-500 active:scale-[0.98] transition-all disabled:opacity-50"
                 >
                   {aiSaving ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />

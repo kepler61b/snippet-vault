@@ -64,6 +64,7 @@ model Snippet {
   collection   Collection?   @relation(fields: [collectionId], references: [id], onDelete: SetNull)
 
   files        SnippetFile[]
+  revisions    SnippetRevision[]
 
   @@index([visibility])
   @@index([isFavorite])
@@ -111,4 +112,19 @@ model Passkey {
 
   @@index([userId])
   @@index([credentialId])
+}
+
+model SnippetRevision {
+  id          String   @id @default(uuid())
+  snippetId   String
+  title       String
+  description String?
+  tags        String   @default("")
+  filesJson   String   // JSON encoded array of { filename, language, content, order }
+  createdAt   DateTime @default(now())
+
+  snippet     Snippet  @relation(fields: [snippetId], references: [id], onDelete: Cascade)
+
+  @@index([snippetId])
+  @@index([createdAt])
 }

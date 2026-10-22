@@ -46,7 +46,9 @@ export async function PUT(
 
     const existing = await prisma.snippet.findUnique({
       where: { id },
-      select: { id: true },
+      include: {
+        files: { orderBy: { order: "asc" } },
+      },
     });
 
     if (!existing) {
@@ -64,7 +66,40 @@ export async function PUT(
 
     // Use a transaction to update snippet metadata and replace files
     const updated = await prisma.$transaction(async (tx) => {
-      // Delete old files if new files provided
+      // 1. Snapshot previous version into revisions if there are files
+      if (existing.files && existing.files.length > 0) {
+        await tx.snippetRevision.create({
+          data: {
+            snippetId: id,
+            title: existing.title,
+            description: existing.description,
+            tags: existing.tags,
+            filesJson: JSON.stringify(
+              existing.files.map((f) => ({
+                filename: f.filename,
+                language: f.language,
+                content: f.content,
+                order: f.order,
+              }))
+            ),
+          },
+        });
+
+        // Prune older revisions beyond 30 to conserve space
+        const olderRevisions = await tx.snippetRevision.findMany({
+          where: { snippetId: id },
+          orderBy: { createdAt: "desc" },
+          select: { id: true },
+          skip: 30,
+        });
+        if (olderRevisions.length > 0) {
+          await tx.snippetRevision.deleteMany({
+            where: { id: { in: olderRevisions.map((r) => r.id) } },
+          });
+        }
+      }
+
+      // 2. Delete old files if new files provided
       if (Array.isArray(files) && files.length > 0) {
         await tx.snippetFile.deleteMany({
           where: { snippetId: id },

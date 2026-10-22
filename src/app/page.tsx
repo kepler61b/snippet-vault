@@ -942,6 +942,10 @@ export default function HomePage() {
           onTriggerAI={async (action, code, language) => {
             return handleTriggerAI(action, code, language);
           }}
+          onSnippetUpdated={(updated) => {
+            setViewingSnippet(updated);
+            fetchSnippets();
+          }}
         />
       )}
 

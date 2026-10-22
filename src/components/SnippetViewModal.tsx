@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Calendar,
   Check,
@@ -16,12 +16,17 @@ import {
   Trash2,
   Wand2,
   X,
+  History,
+  Play,
 } from "lucide-react";
 import { SnippetItem, SnippetFileItem } from "@/types/snippet";
 import { CodeBlock } from "./CodeBlock";
 import { getLanguageMeta } from "@/lib/languages";
 import { CollectionIcon } from "@/lib/collection-icons";
 import { useI18n } from "@/lib/i18n";
+import { MarkdownPreview } from "./MarkdownPreview";
+import { SnippetRevisionsModal } from "./SnippetRevisionsModal";
+import { CodePlaygroundModal } from "./CodePlaygroundModal";
 
 interface SnippetViewModalProps {
   isOpen: boolean;
@@ -35,6 +40,7 @@ interface SnippetViewModalProps {
     code: string,
     language: string
   ) => Promise<any>;
+  onSnippetUpdated?: (updated: SnippetItem) => void;
 }
 
 export function SnippetViewModal({
@@ -45,22 +51,32 @@ export function SnippetViewModal({
   onDelete,
   onToggleFavorite,
   onTriggerAI,
+  onSnippetUpdated,
 }: SnippetViewModalProps) {
   const { t, locale, tFilesCount } = useI18n();
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const [internalSnippet, setInternalSnippet] = useState<SnippetItem | null>(snippet);
+  const [isRevisionsOpen, setIsRevisionsOpen] = useState(false);
+  const [isPlaygroundOpen, setIsPlaygroundOpen] = useState(false);
+
+  useEffect(() => {
+    setInternalSnippet(snippet);
+  }, [snippet]);
 
   if (!isOpen || !snippet) return null;
 
-  const currentFile = snippet.files[activeFileIndex] || snippet.files[0];
-  const tagList = snippet.tags
-    ? snippet.tags.split(",").map((t) => t.trim()).filter(Boolean)
+  const currentSnippet = internalSnippet || snippet;
+
+  const currentFile = currentSnippet.files[activeFileIndex] || currentSnippet.files[0];
+  const tagList = currentSnippet.tags
+    ? currentSnippet.tags.split(",").map((t) => t.trim()).filter(Boolean)
     : [];
 
   const handleCopyShareLink = async () => {
     try {
-      const shareUrl = `${window.location.origin}/s/${snippet.shareToken || snippet.id}`;
+      const shareUrl = `${window.location.origin}/s/${currentSnippet.shareToken || currentSnippet.id}`;
       await navigator.clipboard.writeText(shareUrl);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
@@ -93,16 +109,23 @@ export function SnippetViewModal({
   };
 
   const handleExportSnippet = () => {
-    if (!snippet) return;
+    if (!currentSnippet) return;
     const a = document.createElement("a");
-    a.href = `/api/export?type=snippet&id=${snippet.id}`;
-    a.download = `${snippet.title || "snippet"}.snippetvault.json`;
+    a.href = `/api/export?type=snippet&id=${currentSnippet.id}`;
+    a.download = `${currentSnippet.title || "snippet"}.snippetvault.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
 
-  const formattedDate = new Date(snippet.createdAt).toLocaleDateString(
+  const handleSnippetRestored = (updated: SnippetItem) => {
+    setInternalSnippet(updated);
+    if (onSnippetUpdated) {
+      onSnippetUpdated(updated);
+    }
+  };
+
+  const formattedDate = new Date(currentSnippet.createdAt).toLocaleDateString(
     locale === "ru" ? "ru-RU" : "en-US",
     {
       year: "numeric",
@@ -153,10 +176,10 @@ export function SnippetViewModal({
               </button>
             </div>
 
-            {snippet.description && (
-              <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed break-words">
-                {snippet.description}
-              </p>
+            {currentSnippet.description && (
+              <div className="text-xs sm:text-sm text-zinc-300 leading-relaxed break-words">
+                <MarkdownPreview content={currentSnippet.description} />
+              </div>
             )}
 
             <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-zinc-500 pt-0.5">
@@ -166,7 +189,7 @@ export function SnippetViewModal({
               </span>
               <span className="flex items-center gap-1">
                 <Code2 className="w-3.5 h-3.5" />
-                {tFilesCount(snippet.files.length)}
+                {tFilesCount(currentSnippet.files.length)}
               </span>
             </div>
           </div>
@@ -174,20 +197,29 @@ export function SnippetViewModal({
           {/* Action buttons */}
           <div className="flex items-center gap-1.5 self-start shrink-0 pt-1 sm:pt-0">
             <button
-              onClick={() => onToggleFavorite(snippet.id)}
+              onClick={() => onToggleFavorite(currentSnippet.id)}
               className={`p-2 rounded-xl transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
-                snippet.isFavorite
+                currentSnippet.isFavorite
                   ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
               }`}
-              title={snippet.isFavorite ? t("snippets.removeFromFavorites") : t("snippets.addToFavorites")}
+              title={currentSnippet.isFavorite ? t("snippets.removeFromFavorites") : t("snippets.addToFavorites")}
               aria-label={t("sidebar.favorites")}
             >
-              <Star className={`w-4 h-4 ${snippet.isFavorite ? "fill-amber-400" : ""}`} />
+              <Star className={`w-4 h-4 ${currentSnippet.isFavorite ? "fill-amber-400" : ""}`} />
             </button>
 
             <button
-              onClick={() => onEdit(snippet)}
+              onClick={() => setIsRevisionsOpen(true)}
+              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+              title={t("view.revisions")}
+              aria-label={t("view.revisions")}
+            >
+              <History className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => onEdit(currentSnippet)}
               className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
               title={t("view.editSnippet")}
               aria-label={t("view.editSnippet")}
@@ -207,7 +239,7 @@ export function SnippetViewModal({
             <button
               onClick={() => {
                 if (confirm(t("view.confirmDelete"))) {
-                  onDelete(snippet.id);
+                  onDelete(currentSnippet.id);
                   onClose();
                 }
               }}
@@ -249,7 +281,7 @@ export function SnippetViewModal({
             {/* File Tabs */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800 bg-zinc-900/80 px-2 py-1 gap-1">
               <div className="flex items-center gap-1 overflow-x-auto py-1 max-w-full scrollbar-none">
-                {snippet.files.map((file, idx) => {
+                {currentSnippet.files.map((file, idx) => {
                   const meta = getLanguageMeta(file.language);
                   return (
                     <button
@@ -273,6 +305,15 @@ export function SnippetViewModal({
 
               {/* AI & Quick action buttons */}
               <div className="flex items-center gap-1 overflow-x-auto py-1 border-t sm:border-t-0 border-zinc-800/60 scrollbar-none">
+                <button
+                  onClick={() => setIsPlaygroundOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-teal-400 hover:bg-teal-500/10 transition-colors flex-shrink-0"
+                  title={t("view.runCodeTooltip")}
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  <span>{t("view.runCode")}</span>
+                </button>
+
                 <button
                   onClick={async () => {
                     try {
@@ -368,6 +409,22 @@ export function SnippetViewModal({
           </button>
         </div>
       </div>
+
+      {/* Version History Modal */}
+      <SnippetRevisionsModal
+        isOpen={isRevisionsOpen}
+        onClose={() => setIsRevisionsOpen(false)}
+        snippet={currentSnippet}
+        onSnippetRestored={handleSnippetRestored}
+      />
+
+      {/* Code Playground Modal */}
+      <CodePlaygroundModal
+        isOpen={isPlaygroundOpen}
+        onClose={() => setIsPlaygroundOpen(false)}
+        files={currentSnippet.files}
+        initialFileIndex={activeFileIndex}
+      />
     </div>
   );
 }

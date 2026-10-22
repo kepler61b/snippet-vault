@@ -11,11 +11,14 @@ import {
   FileCode,
   Share2,
   Terminal,
+  Play,
 } from "lucide-react";
 import { SnippetItem } from "@/types/snippet";
 import { CodeBlock } from "@/components/CodeBlock";
 import { getLanguageMeta } from "@/lib/languages";
 import { useI18n } from "@/lib/i18n";
+import { MarkdownPreview } from "@/components/MarkdownPreview";
+import { CodePlaygroundModal } from "@/components/CodePlaygroundModal";
 
 interface SharedSnippetClientProps {
   snippet: SnippetItem;
@@ -26,6 +29,7 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const [isPlaygroundOpen, setIsPlaygroundOpen] = useState(false);
 
   const currentFile = snippet.files[activeFileIndex] || snippet.files[0];
   const tagList = snippet.tags
@@ -131,9 +135,9 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
           </h1>
 
           {snippet.description && (
-            <p className="text-sm text-zinc-400 leading-relaxed max-w-3xl">
-              {snippet.description}
-            </p>
+            <div className="text-sm text-zinc-300 leading-relaxed max-w-3xl">
+              <MarkdownPreview content={snippet.description} />
+            </div>
           )}
 
           <div className="flex items-center gap-4 text-xs text-zinc-500 pt-1">
@@ -190,6 +194,15 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
 
             <div className="flex items-center gap-1.5 py-1">
               <button
+                onClick={() => setIsPlaygroundOpen(true)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-teal-400 hover:bg-teal-500/10 transition-colors"
+                title={locale === "ru" ? "Запустить в песочнице" : "Run in playground"}
+              >
+                <Play className="w-3.5 h-3.5" />
+                <span>{locale === "ru" ? "Песочница" : "Playground"}</span>
+              </button>
+
+              <button
                 onClick={handleCopyAsMarkdown}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
                 title="Скопировать как Markdown"
@@ -222,6 +235,14 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
           )}
         </div>
       </main>
+
+      {/* Code Playground Modal */}
+      <CodePlaygroundModal
+        isOpen={isPlaygroundOpen}
+        onClose={() => setIsPlaygroundOpen(false)}
+        files={snippet.files}
+        initialFileIndex={activeFileIndex}
+      />
     </div>
   );
 }
