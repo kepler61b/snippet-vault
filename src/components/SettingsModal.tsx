@@ -37,7 +37,6 @@ import {
   X,
 } from "lucide-react";
 import { startRegistration, browserSupportsWebAuthn } from "@simplewebauthn/browser";
-import { SUPPORTED_LANGUAGES } from "@/lib/languages";
 import { ViewMode, SortOption, SORT_OPTIONS, CollectionItem } from "@/types/snippet";
 import { CollectionIcon } from "@/lib/collection-icons";
 import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
@@ -216,7 +215,6 @@ export function SettingsModal({
   const [aiSuccess, setAiSuccess] = useState(false);
 
   // General App Preferences
-  const [defaultLanguage, setDefaultLanguage] = useState("typescript");
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("grid");
   const [defaultSortBy, setDefaultSortBy] = useState<SortOption>("CREATED_DESC");
   const [generalSaving, setGeneralSaving] = useState(false);
@@ -267,8 +265,6 @@ export function SettingsModal({
     }
 
     // 3. General preferences from localStorage
-    const savedLang = localStorage.getItem("snippetvault_default_language");
-    if (savedLang) setDefaultLanguage(savedLang);
     const savedView = localStorage.getItem("snippetvault_view_mode") as ViewMode;
     if (savedView === "grid" || savedView === "list") setDefaultViewMode(savedView);
     const savedSort = localStorage.getItem("snippetvault_sort_by") as SortOption;
@@ -574,7 +570,6 @@ export function SettingsModal({
   const handleSaveGeneral = (e: React.FormEvent) => {
     e.preventDefault();
     setGeneralSaving(true);
-    localStorage.setItem("snippetvault_default_language", defaultLanguage);
     localStorage.setItem("snippetvault_view_mode", defaultViewMode);
     localStorage.setItem("snippetvault_sort_by", defaultSortBy);
     onSettingsChanged?.();
@@ -858,28 +853,6 @@ export function SettingsModal({
             {/* TAB: GENERAL SETTINGS */}
             {activeTab === "general" && (
               <form onSubmit={handleSaveGeneral} className="space-y-5 animate-in fade-in duration-200">
-                <div className="space-y-1.5">
-                  <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                    Язык по умолчанию для новых сниппетов
-                  </label>
-                  <CustomSelect
-                    value={defaultLanguage}
-                    onChange={setDefaultLanguage}
-                    options={SUPPORTED_LANGUAGES.map((l) => ({
-                      value: l.id,
-                      label: l.name,
-                      icon: (
-                        <span
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: l.color }}
-                        />
-                      ),
-                    }))}
-                    searchable
-                    searchPlaceholder="Поиск языка..."
-                  />
-                </div>
-
                 {/* Default View Mode */}
                 <div className="space-y-2">
                   <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
