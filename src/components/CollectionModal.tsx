@@ -143,8 +143,8 @@ export function CollectionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-1.5 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative w-full max-w-lg max-h-[96dvh] rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+      <div className="relative w-full max-w-lg h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[96dvh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content safe-top">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -170,7 +170,8 @@ export function CollectionModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 ml-2"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 ml-2 min-w-[36px] min-h-[36px] flex items-center justify-center"
+            aria-label="Закрыть"
           >
             <X className="w-5 h-5" />
           </button>
@@ -374,7 +375,7 @@ export function CollectionModal({
           </div>
 
           {/* Footer Actions */}
-          <div className="pt-3 border-t border-zinc-800 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="pt-3 border-t border-zinc-800 flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 safe-bottom">
             {isEditing && onDelete ? (
               <button
                 type="button"

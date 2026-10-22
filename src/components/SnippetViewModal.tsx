@@ -107,8 +107,8 @@ export function SnippetViewModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative w-full max-w-5xl h-[98dvh] sm:h-[92vh] max-h-[100dvh] flex flex-col rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+      <div className="relative w-full max-w-5xl h-[100dvh] sm:h-[92vh] max-h-[100dvh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top">
         {/* Header */}
         <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/70 space-y-2 sm:space-y-0 sm:flex sm:items-start sm:justify-between sm:gap-4">
           <div className="space-y-1.5 max-w-2xl min-w-0 flex-1">
@@ -141,7 +141,8 @@ export function SnippetViewModal({
               {/* Close button for mobile only right in top-right */}
               <button
                 onClick={onClose}
-                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors sm:hidden shrink-0"
+                className="p-1.5 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors sm:hidden shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                aria-label="Закрыть"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -166,31 +167,34 @@ export function SnippetViewModal({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-1.5 self-start shrink-0 pt-1 sm:pt-0">
+          <div className="flex items-center gap-1.5 self-start shrink-0 pt-1 sm:pt-0">
             <button
               onClick={() => onToggleFavorite(snippet.id)}
-              className={`p-1.5 sm:p-2 rounded-xl transition-colors ${
+              className={`p-2 rounded-xl transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
                 snippet.isFavorite
                   ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
               }`}
               title={snippet.isFavorite ? "В избранном" : "В избранное"}
+              aria-label="Избранное"
             >
               <Star className={`w-4 h-4 ${snippet.isFavorite ? "fill-amber-400" : ""}`} />
             </button>
 
             <button
               onClick={() => onEdit(snippet)}
-              className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors"
+              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
               title="Редактировать сниппет"
+              aria-label="Редактировать"
             >
               <Edit3 className="w-4 h-4" />
             </button>
 
             <button
               onClick={handleExportSnippet}
-              className="p-1.5 sm:p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors"
+              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
               title="Экспортировать сниппет в JSON"
+              aria-label="Экспорт"
             >
               <Download className="w-4 h-4" />
             </button>
@@ -202,15 +206,17 @@ export function SnippetViewModal({
                   onClose();
                 }
               }}
-              className="p-1.5 sm:p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-zinc-800 transition-colors"
+              className="p-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
               title="Удалить"
+              aria-label="Удалить"
             >
               <Trash2 className="w-4 h-4" />
             </button>
 
             <button
               onClick={onClose}
-              className="hidden sm:flex p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="hidden sm:flex p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] items-center justify-center"
+              aria-label="Закрыть"
             >
               <X className="w-5 h-5" />
             </button>
@@ -331,7 +337,7 @@ export function SnippetViewModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-4 border-t border-zinc-800 bg-zinc-900/60">
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-4 border-t border-zinc-800 bg-zinc-900/60 safe-bottom">
           <button
             onClick={handleCopyShareLink}
             className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-medium text-zinc-300 hover:text-white bg-zinc-800/80 hover:bg-zinc-700 transition-colors"

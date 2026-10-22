@@ -6,9 +6,6 @@ import {
   Copy,
   Download,
   Edit3,
-  ExternalLink,
-  FileCode,
-  MoreVertical,
   Star,
   Trash2,
 } from "lucide-react";
@@ -34,8 +31,6 @@ export function SnippetListItem({
   onSelectTag,
 }: SnippetListItemProps) {
   const [copied, setCopied] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const primaryFile = snippet.files[0];
   const fileCount = snippet.files?.length || 0;
@@ -60,18 +55,6 @@ export function SnippetListItem({
     }
   };
 
-  const handleCopyShareLink = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      const shareUrl = `${window.location.origin}/s/${snippet.shareToken || snippet.id}`;
-      await navigator.clipboard.writeText(shareUrl);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const formattedDate = new Date(snippet.updatedAt || snippet.createdAt).toLocaleDateString(
     "ru-RU",
     {
@@ -88,10 +71,10 @@ export function SnippetListItem({
   return (
     <div
       onClick={() => onView(snippet)}
-      className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/90 hover:border-zinc-700/80 transition-all cursor-pointer backdrop-blur-sm card-lift"
+      className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 p-3 sm:px-4 sm:py-3 rounded-xl border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/90 hover:border-zinc-700/80 transition-all cursor-pointer backdrop-blur-sm card-lift"
     >
       {/* Left: Star + Main info */}
-      <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+      <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
         {/* Star Button */}
         <button
           type="button"
@@ -99,8 +82,9 @@ export function SnippetListItem({
             e.stopPropagation();
             onToggleFavorite(snippet.id);
           }}
-          className="p-1.5 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-colors flex-shrink-0 mt-0.5 sm:mt-0"
+          className="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-colors shrink-0 mt-0.5 sm:mt-0 min-w-[34px] min-h-[34px] flex items-center justify-center active:scale-90"
           title={snippet.isFavorite ? "Убрать из избранного" : "Добавить в избранное"}
+          aria-label="Избранное"
         >
           <Star
             className={`w-4 h-4 ${
@@ -110,12 +94,12 @@ export function SnippetListItem({
         </button>
 
         {/* Content details */}
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             {/* Collection Badge */}
             {snippet.collection && (
               <span
-                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border flex-shrink-0"
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border shrink-0"
                 style={{
                   backgroundColor: `${snippet.collection.color || "#8b5cf6"}15`,
                   borderColor: `${snippet.collection.color || "#8b5cf6"}35`,
@@ -127,14 +111,14 @@ export function SnippetListItem({
                   iconType={snippet.collection.iconType}
                   iconValue={snippet.collection.iconValue}
                   color={snippet.collection.color}
-                  className="w-3 h-3"
+                  className="w-3 h-3 shrink-0"
                 />
-                <span className="truncate max-w-[110px]">{snippet.collection.name}</span>
+                <span className="truncate max-w-[100px]">{snippet.collection.name}</span>
               </span>
             )}
 
             {/* Title */}
-            <h3 className="text-sm font-semibold text-zinc-100 group-hover:text-white truncate transition-colors">
+            <h3 className="text-xs sm:text-sm font-semibold text-zinc-100 group-hover:text-white truncate transition-colors">
               {snippet.title}
             </h3>
           </div>
@@ -149,15 +133,15 @@ export function SnippetListItem({
       </div>
 
       {/* Right: Languages, Tags, Date, Actions */}
-      <div className="flex items-center justify-between sm:justify-end gap-3 flex-shrink-0 border-t sm:border-t-0 border-zinc-800/60 pt-2 sm:pt-0">
+      <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0 border-t sm:border-t-0 border-zinc-800/60 pt-2 sm:pt-0">
         {/* Languages badges */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
           {languages.slice(0, 3).map((lang) => {
             const meta = getLanguageMeta(lang);
             return (
               <span
                 key={lang}
-                className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md bg-zinc-800/90 text-zinc-300 border border-zinc-700/50"
+                className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 sm:px-2 py-0.5 rounded-md bg-zinc-800/90 text-zinc-300 border border-zinc-700/50 shrink-0"
               >
                 <span
                   className="w-1.5 h-1.5 rounded-full"
@@ -169,7 +153,7 @@ export function SnippetListItem({
           })}
           {fileCount > 1 && (
             <span
-              className="text-[10px] text-zinc-400 bg-zinc-800/60 px-1.5 py-0.5 rounded border border-zinc-700/40"
+              className="text-[10px] text-zinc-400 bg-zinc-800/60 px-1.5 py-0.5 rounded border border-zinc-700/40 shrink-0"
               title={`${fileCount} файлов в сниппете`}
             >
               {fileCount} ф.
@@ -200,22 +184,23 @@ export function SnippetListItem({
         )}
 
         {/* Date */}
-        <span className="text-[11px] text-zinc-400 whitespace-nowrap min-w-[50px] text-right">
+        <span className="text-[11px] text-zinc-400 whitespace-nowrap text-right shrink-0">
           {formattedDate}
         </span>
 
         {/* Quick Actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {primaryFile && (
             <button
               type="button"
               onClick={handleCopyCode}
-              className={`p-1.5 rounded-lg border transition-all ${
+              className={`p-1.5 rounded-lg border transition-all min-w-[32px] min-h-[32px] flex items-center justify-center ${
                 copied
                   ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
                   : "bg-zinc-800/60 hover:bg-zinc-800 border-zinc-700/50 text-zinc-400 hover:text-white"
               }`}
               title={copied ? "Скопировано!" : "Скопировать код первого файла"}
+              aria-label="Копировать код"
             >
               {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
             </button>
@@ -227,8 +212,9 @@ export function SnippetListItem({
               e.stopPropagation();
               onEdit(snippet);
             }}
-            className="p-1.5 rounded-lg bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-400 hover:text-white transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center"
             title="Редактировать сниппет"
+            aria-label="Редактировать"
           >
             <Edit3 className="w-3.5 h-3.5" />
           </button>
@@ -244,8 +230,9 @@ export function SnippetListItem({
               a.click();
               document.body.removeChild(a);
             }}
-            className="p-1.5 rounded-lg bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/50 text-zinc-400 hover:text-white transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center"
             title="Экспортировать сниппет (.json)"
+            aria-label="Экспорт"
           >
             <Download className="w-3.5 h-3.5" />
           </button>
@@ -258,8 +245,9 @@ export function SnippetListItem({
                 onDelete(snippet.id);
               }
             }}
-            className="p-1.5 rounded-lg bg-zinc-800/60 hover:bg-rose-500/20 border border-zinc-700/50 text-zinc-400 hover:text-rose-400 transition-colors"
+            className="p-1.5 rounded-lg bg-zinc-800/60 hover:bg-rose-500/20 border border-zinc-700/50 text-zinc-400 hover:text-rose-400 transition-colors min-w-[32px] min-h-[32px] flex items-center justify-center"
             title="Удалить сниппет"
+            aria-label="Удалить"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>

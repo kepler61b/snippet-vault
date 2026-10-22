@@ -92,7 +92,8 @@ export function SettingsModal({
     const contentH = innerContentRef.current.offsetHeight;
     if (contentH === 0) return;
     const targetH = headerH + tabsH + contentH + footerH;
-    const maxH = window.innerHeight * 0.92;
+    const viewportH = window.visualViewport?.height || window.innerHeight;
+    const maxH = window.innerWidth < 640 ? viewportH : viewportH * 0.92;
     const finalH = Math.min(targetH, maxH);
     setModalHeight(Math.round(finalH));
   };
@@ -737,7 +738,7 @@ export function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-1.5 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
       <div
         ref={dialogRef}
         style={{
@@ -746,7 +747,7 @@ export function SettingsModal({
             ? "height 0.32s cubic-bezier(0.16, 1, 0.3, 1)"
             : undefined,
         }}
-        className="relative w-full max-w-2xl max-h-[96dvh] sm:max-h-[92vh] rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height]"
+        className="relative w-full max-w-2xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height] safe-top"
       >
         {/* Header */}
         <div
@@ -768,7 +769,8 @@ export function SettingsModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 ml-2"
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 ml-2 min-w-[36px] min-h-[36px] flex items-center justify-center"
+            aria-label="Закрыть"
           >
             <X className="w-5 h-5" />
           </button>
@@ -862,7 +864,7 @@ export function SettingsModal({
                   <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
                     Отображение списка сниппетов по умолчанию
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <button
                       type="button"
                       onClick={() => setDefaultViewMode("grid")}

@@ -333,8 +333,8 @@ export function AdminModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative w-full max-w-4xl h-[96dvh] sm:h-[90vh] rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+      <div className="relative w-full max-w-4xl h-[100dvh] sm:h-[90vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content safe-top">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -361,14 +361,16 @@ export function AdminModal({
               type="button"
               onClick={loadUsersAndSettings}
               disabled={loadingUsers}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
               title="Обновить данные"
+              aria-label="Обновить данные"
             >
               <RefreshCw className={`w-4 h-4 ${loadingUsers ? "animate-spin text-violet-400" : ""}`} />
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0"
+              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"
+              aria-label="Закрыть"
             >
               <X className="w-5 h-5" />
             </button>
@@ -602,7 +604,7 @@ export function AdminModal({
                                 user.role === "ADMIN" ? "USER" : "ADMIN"
                               )
                             }
-                            className={`p-1.5 sm:px-2 sm:py-1 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1 ${
+                            className={`p-2 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium border transition-colors flex items-center justify-center gap-1 min-w-[34px] min-h-[34px] ${
                               user.role === "ADMIN"
                                 ? "border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800"
                                 : "border-violet-500/30 bg-violet-600/10 text-violet-300 hover:bg-violet-600/20"
@@ -631,7 +633,7 @@ export function AdminModal({
                               setResetPasswordVal("");
                               setResetError(null);
                             }}
-                            className="p-1.5 sm:px-2 sm:py-1 rounded-lg text-xs font-medium border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors flex items-center gap-1"
+                            className="p-2 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1 min-w-[34px] min-h-[34px]"
                             title="Сбросить / задать новый пароль"
                           >
                             <KeyRound className="w-3.5 h-3.5" />
@@ -643,7 +645,7 @@ export function AdminModal({
                             type="button"
                             disabled={isSelf}
                             onClick={() => handleToggleBan(user)}
-                            className={`p-1.5 sm:px-2 sm:py-1 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1 ${
+                            className={`p-2 sm:px-2.5 sm:py-1 rounded-lg text-xs font-medium border transition-colors flex items-center justify-center gap-1 min-w-[34px] min-h-[34px] ${
                               user.isBanned
                                 ? "border-emerald-500/30 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20"
                                 : "border-rose-500/30 bg-rose-600/10 text-rose-300 hover:bg-rose-600/20"
@@ -674,7 +676,7 @@ export function AdminModal({
                             type="button"
                             disabled={isSelf || isLocalAdmin}
                             onClick={() => setDeleteTargetUser(user)}
-                            className={`p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-zinc-800 transition-colors ${
+                            className={`p-2 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-zinc-800 transition-colors min-w-[34px] min-h-[34px] flex items-center justify-center ${
                               isSelf || isLocalAdmin ? "opacity-30 cursor-not-allowed" : ""
                             }`}
                             title={
@@ -735,7 +737,7 @@ export function AdminModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-3.5 border-t border-zinc-800 bg-zinc-900/40 shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-3.5 border-t border-zinc-800 bg-zinc-900/40 shrink-0 safe-bottom">
           <span className="text-[11px] text-zinc-500">
             SnippetVault Server Administration
           </span>

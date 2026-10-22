@@ -530,7 +530,7 @@ export default function HomePage() {
       />
 
       {/* Main Content Area */}
-      <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 flex flex-col lg:flex-row gap-8">
+      <div className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-8 flex-1 flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
         {/* Left Sidebar */}
         <Sidebar
           totalCount={snippets.length}
@@ -570,30 +570,34 @@ export default function HomePage() {
         <main className="flex-1 min-w-0 space-y-6">
           {/* Mobile Filter & Search Bar */}
           <div className="flex items-center gap-2 lg:hidden w-full">
-            <div className="flex-1 flex items-center px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900/80 text-xs text-zinc-300">
-              <Search className="w-3.5 h-3.5 text-zinc-400 mr-2 flex-shrink-0" />
+            <div className="flex-1 flex items-center px-3 py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/80 text-xs text-zinc-300 min-h-[42px]">
+              <Search className="w-4 h-4 text-zinc-400 mr-2 shrink-0" />
               <input
                 type="text"
                 placeholder="Поиск по коду, тегам..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent outline-none w-full text-xs"
+                className="bg-transparent outline-none w-full text-xs placeholder-zinc-500"
               />
               {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="text-zinc-500 hover:text-white">
-                  <X className="w-3 h-3" />
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="text-zinc-500 hover:text-white p-1"
+                  aria-label="Очистить поиск"
+                >
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
             <button
               onClick={() => setIsMobileFilterOpen(true)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors flex-shrink-0 ${
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-medium border transition-colors shrink-0 min-h-[42px] active:scale-95 ${
                 selectedFilter !== "ALL" || selectedLanguage !== null || selectedTag !== null
                   ? "bg-violet-600/20 border-violet-500/50 text-violet-300"
                   : "bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white"
               }`}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <SlidersHorizontal className="w-4 h-4 text-violet-400" />
               <span>Фильтры</span>
               {(selectedFilter !== "ALL" || selectedLanguage !== null || selectedTag !== null) && (
                 <span className="w-4 h-4 rounded-full bg-violet-600 text-white text-[10px] flex items-center justify-center font-bold">
@@ -606,11 +610,11 @@ export default function HomePage() {
           </div>
 
           {/* Top Bar inside content: Quick Count and active criteria */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-zinc-800/80">
-            <div className="flex items-start sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-3 border-b border-zinc-800/80">
+            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
               {activeCollection && (
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 border"
                   style={{
                     backgroundColor: activeCollection.color ? `${activeCollection.color}15` : undefined,
                     borderColor: activeCollection.color ? `${activeCollection.color}35` : undefined,
@@ -620,18 +624,18 @@ export default function HomePage() {
                   <CollectionIcon
                     iconType={activeCollection.iconType}
                     iconValue={activeCollection.iconValue}
-                    className="w-5 h-5"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                   />
                 </div>
               )}
               <div>
-                <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
                   <span>{activeCollection ? activeCollection.name : "Сниппеты"}</span>
                   <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
                     {filteredSnippets.length}
                   </span>
                 </h1>
-                <p className="text-xs text-zinc-500">
+                <p className="text-[11px] sm:text-xs text-zinc-500">
                   {activeCollection?.description
                     ? activeCollection.description
                     : activeCollection
@@ -843,7 +847,7 @@ export default function HomePage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-900 bg-zinc-950 py-6 text-center text-xs text-zinc-500">
+      <footer className="border-t border-zinc-900 bg-zinc-950 py-5 sm:py-6 text-center text-xs text-zinc-500 safe-bottom">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Terminal className="w-3.5 h-3.5 text-violet-500" />

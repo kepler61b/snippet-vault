@@ -5,6 +5,8 @@ import "./globals.css";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
   themeColor: "#09090b",
 };
 
@@ -19,7 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SnippetVault — Хранилище сниппетов кода & AI Ассистент",
+  title: "SnippetVault — Локальное хранилище сниппетов кода",
   description:
     "Современный веб-сервис для хранения, поиска, экспорта и анализа фрагментов кода с поддержкой мульти-файлов, синтаксической подсветки и AI.",
 };

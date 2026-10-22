@@ -87,16 +87,16 @@ export function SnippetCard({
   return (
     <div
       onClick={() => onView(snippet)}
-      className="group relative flex flex-col justify-between rounded-2xl border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-zinc-700/80 p-5 cursor-pointer hover:shadow-xl hover:shadow-indigo-500/10 backdrop-blur-sm card-lift"
+      className="group relative flex flex-col justify-between rounded-2xl border border-zinc-800/80 bg-zinc-900/40 hover:bg-zinc-900/80 hover:border-zinc-700/80 p-3.5 sm:p-5 cursor-pointer hover:shadow-xl hover:shadow-indigo-500/10 backdrop-blur-sm card-lift"
     >
       <div>
         {/* Top Header */}
-        <div className="flex items-start justify-between gap-3 mb-2.5">
+        <div className="flex items-start justify-between gap-2.5 mb-2 sm:mb-2.5">
           <div className="flex-1 min-w-0">
             {snippet.collection && (
               <div className="flex items-center gap-2 mb-1">
                 <span
-                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border mr-1 flex-shrink-0"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border mr-1 shrink-0"
                   style={{
                     backgroundColor: `${snippet.collection.color || "#8b5cf6"}15`,
                     borderColor: `${snippet.collection.color || "#8b5cf6"}35`,
@@ -108,94 +108,108 @@ export function SnippetCard({
                     iconType={snippet.collection.iconType}
                     iconValue={snippet.collection.iconValue}
                     color={snippet.collection.color}
-                    className="w-3 h-3"
+                    className="w-3 h-3 shrink-0"
                   />
                   <span className="truncate max-w-[100px]">{snippet.collection.name}</span>
                 </span>
               </div>
             )}
 
-              <h3 className="text-base font-semibold text-zinc-100 group-hover:text-white truncate transition-colors">
-                {snippet.title}
-              </h3>
-              {snippet.description && (
-                <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
-                  {snippet.description}
-                </p>
-              )}
-            </div>
+            <h3 className="text-sm sm:text-base font-semibold text-zinc-100 group-hover:text-white truncate transition-colors">
+              {snippet.title}
+            </h3>
+            {snippet.description && (
+              <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed mt-0.5">
+                {snippet.description}
+              </p>
+            )}
+          </div>
 
           {/* Star & Action Menu */}
-          <div className="flex items-center gap-1 -mr-1">
+          <div className="flex items-center gap-0.5 sm:gap-1 -mr-1 shrink-0">
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleFavorite(snippet.id);
               }}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-all active:scale-90"
+              className="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-zinc-800 transition-all active:scale-90 min-w-[34px] min-h-[34px] flex items-center justify-center"
               title={snippet.isFavorite ? "Убрать из избранного" : "В избранное"}
+              aria-label="Избранное"
             >
               <Star
                 className={`w-4 h-4 transition-all duration-200 ${
                   snippet.isFavorite
                     ? "fill-amber-400 text-amber-400 scale-110"
-                    : "text-zinc-500 hover:text-amber-400 hover:scale-115"
+                    : "text-zinc-500 hover:text-amber-400"
                 }`}
               />
             </button>
 
             <div className="relative">
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setMenuOpen(!menuOpen);
                 }}
-                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors min-w-[34px] min-h-[34px] flex items-center justify-center"
+                title="Опции сниппета"
+                aria-label="Опции"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
 
               {menuOpen && (
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 mt-1 w-44 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-20 text-xs"
-                >
-                  <button
-                    onClick={() => {
+                <>
+                  <div
+                    className="fixed inset-0 z-20"
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setMenuOpen(false);
-                      onEdit(snippet);
                     }}
-                    className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                  />
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute right-0 mt-1 w-44 rounded-xl border border-zinc-800 bg-zinc-950 p-1 shadow-xl z-30 text-xs animate-in fade-in zoom-in-95 duration-100"
                   >
-                    <Edit3 className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Редактировать</span>
-                  </button>
-                  <button
-                    onClick={handleCopyShareLink}
-                    className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-white"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>{copiedLink ? "Ссылка скопирована!" : "Скопировать ссылку"}</span>
-                  </button>
-                  <button
-                    onClick={handleExportSnippet}
-                    className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-white"
-                  >
-                    <Download className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Экспорт (.json)</span>
-                  </button>
-                  <div className="my-1 border-t border-zinc-800" />
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onDelete(snippet.id);
-                    }}
-                    className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                    <span>Удалить</span>
-                  </button>
-                </div>
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onEdit(snippet);
+                      }}
+                      className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>Редактировать</span>
+                    </button>
+                    <button
+                      onClick={handleCopyShareLink}
+                      className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>{copiedLink ? "Ссылка скопирована!" : "Скопировать ссылку"}</span>
+                    </button>
+                    <button
+                      onClick={handleExportSnippet}
+                      className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                    >
+                      <Download className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>Экспорт (.json)</span>
+                    </button>
+                    <div className="my-1 border-t border-zinc-800" />
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDelete(snippet.id);
+                      }}
+                      className="flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Удалить</span>
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -203,13 +217,13 @@ export function SnippetCard({
 
         {/* Code Preview Box */}
         {previewLines && (
-          <div className="my-3 rounded-xl border border-zinc-800/80 bg-zinc-950/80 p-3 font-mono text-[11px] text-zinc-300 overflow-hidden relative">
-            <div className="flex items-center justify-between text-[10px] text-zinc-400 mb-2 border-b border-zinc-800/60 pb-1">
-              <span className="flex items-center gap-1 font-semibold text-zinc-400">
-                <FileCode className="w-3 h-3" />
-                {primaryFile?.filename || "code"}
+          <div className="my-2.5 sm:my-3 rounded-xl border border-zinc-800/80 bg-zinc-950/80 p-2.5 sm:p-3 font-mono text-[10.5px] sm:text-[11px] text-zinc-300 overflow-hidden relative">
+            <div className="flex items-center justify-between text-[10px] text-zinc-400 mb-1.5 sm:mb-2 border-b border-zinc-800/60 pb-1">
+              <span className="flex items-center gap-1 font-semibold text-zinc-400 truncate max-w-[140px] sm:max-w-none">
+                <FileCode className="w-3 h-3 shrink-0" />
+                <span className="truncate">{primaryFile?.filename || "code"}</span>
               </span>
-              <span>{primaryFile?.language}</span>
+              <span className="shrink-0">{primaryFile?.language}</span>
             </div>
             <pre className="overflow-hidden text-zinc-300/90 whitespace-pre font-mono leading-relaxed max-h-20 opacity-85">
               {previewLines}
@@ -220,7 +234,7 @@ export function SnippetCard({
       </div>
 
       {/* Footer Details */}
-      <div className="mt-2 pt-3 border-t border-zinc-800/60 flex flex-col gap-2.5">
+      <div className="mt-1 pt-2.5 sm:pt-3 border-t border-zinc-800/60 flex flex-col gap-2">
         {/* Tags */}
         {tagList.length > 0 && (
           <div className="flex flex-wrap gap-1">
@@ -246,37 +260,39 @@ export function SnippetCard({
 
         {/* Bottom Bar: Files, Languages, Copy */}
         <div className="flex items-center justify-between text-xs text-zinc-400">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 font-medium text-zinc-400">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex items-center gap-1 font-medium text-zinc-400 shrink-0">
               <Code2 className="w-3.5 h-3.5" />
-              {fileCount} {fileCount === 1 ? "файл" : fileCount < 5 ? "файла" : "файлов"}
+              <span>{fileCount} {fileCount === 1 ? "файл" : fileCount < 5 ? "файла" : "файлов"}</span>
             </span>
 
             {/* Language Badges */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 truncate">
               {snippet.files.slice(0, 2).map((f, i) => {
                 const meta = getLanguageMeta(f.language);
                 return (
                   <span
                     key={i}
-                    className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-medium"
+                    className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-medium shrink-0"
                   >
                     <span
                       className="w-1.5 h-1.5 rounded-full"
                       style={{ backgroundColor: meta.color }}
                     />
-                    {meta.name}
+                    <span className="truncate">{meta.name}</span>
                   </span>
                 );
               })}
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <button
+              type="button"
               onClick={handleCopyCode}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
+              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all min-w-[32px] min-h-[32px] flex items-center justify-center"
               title="Копировать первый файл"
+              aria-label="Копировать код"
             >
               {copied ? (
                 <Check className="w-3.5 h-3.5 text-emerald-400" />

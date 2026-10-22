@@ -46,9 +46,9 @@ export function CustomSelect({
 
   const selectedOption = options.find((opt) => opt.value === value);
 
-  // Close dropdown on click outside
+  // Close dropdown on click/touch outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: Event) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
         setSearch("");
@@ -56,9 +56,11 @@ export function CustomSelect({
     };
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside, { passive: true });
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
     };
   }, [isOpen]);
 
@@ -99,7 +101,7 @@ export function CustomSelect({
         onClick={() => {
           if (!disabled) setIsOpen((prev) => !prev);
         }}
-        className={`w-full flex items-center justify-between gap-2 px-3.5 py-2 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-zinc-700/80 text-sm text-zinc-100 outline-none transition-all cursor-pointer ${
+        className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-zinc-700/80 text-xs sm:text-sm text-zinc-100 outline-none transition-all cursor-pointer min-h-[42px] ${
           isOpen ? "border-violet-500 ring-1 ring-violet-500/50 bg-zinc-900" : ""
         } ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${triggerClassName}`}
       >
@@ -150,9 +152,9 @@ export function CustomSelect({
                   <button
                     type="button"
                     onClick={() => setSearch("")}
-                    className="text-zinc-500 hover:text-white"
+                    className="text-zinc-500 hover:text-white p-1"
                   >
-                    <X className="w-3 h-3" />
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
@@ -160,7 +162,7 @@ export function CustomSelect({
           )}
 
           {/* Options list (scrollable) */}
-          <div className="max-h-60 overflow-y-auto space-y-0.5">
+          <div className="max-h-60 overflow-y-auto space-y-0.5 overscroll-contain">
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-3 text-center text-xs text-zinc-500">
                 Ничего не найдено
@@ -177,7 +179,7 @@ export function CustomSelect({
                       setIsOpen(false);
                       setSearch("");
                     }}
-                    className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-left text-xs sm:text-sm transition-colors ${
+                    className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-left text-xs sm:text-sm transition-colors active:scale-[0.99] ${
                       isSelected
                         ? "bg-violet-600/20 text-violet-200 font-medium border border-violet-500/30"
                         : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white border border-transparent"

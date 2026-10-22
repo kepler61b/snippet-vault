@@ -170,11 +170,11 @@ export function CommandPalette({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-2 sm:pt-20 p-1.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-1.5 sm:pt-20 p-1.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop safe-top"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl max-h-[92dvh] sm:max-h-[88vh] rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content"
+        className="w-full max-w-2xl max-h-[96dvh] sm:max-h-[88vh] rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content"
       >
         {/* Search Input Bar */}
         <div className="flex items-center px-3 sm:px-4 border-b border-zinc-800 bg-zinc-900/60">
@@ -186,7 +186,7 @@ export function CommandPalette({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full py-3 sm:py-4 bg-transparent text-xs sm:text-sm text-zinc-100 placeholder-zinc-500 outline-none"
+            className="w-full py-3 sm:py-4 bg-transparent text-base sm:text-sm text-zinc-100 placeholder-zinc-500 outline-none"
           />
           <kbd className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono text-zinc-500 bg-zinc-900 rounded border border-zinc-800 shrink-0">
             ESC
@@ -194,7 +194,8 @@ export function CommandPalette({
           <button
             type="button"
             onClick={onClose}
-            className="sm:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white shrink-0 ml-1"
+            className="sm:hidden p-2 rounded-xl text-zinc-400 hover:text-white shrink-0 ml-1 min-w-[36px] min-h-[36px] flex items-center justify-center"
+            aria-label="Закрыть"
           >
             <X className="w-4 h-4" />
           </button>

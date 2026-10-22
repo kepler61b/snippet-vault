@@ -9,6 +9,7 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -17,6 +18,42 @@ body {
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Touch targets and interactions */
+button, a, input, select, textarea {
+  touch-action: manipulation;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Prevent unwanted auto-zooming in iOS Safari when clicking on input fields */
+@media (max-width: 640px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* iOS Momentum Scrolling */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area padding utilities */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Smooth custom scrollbars */
@@ -129,15 +166,6 @@ body {
 
 .animate-star {
   animation: starPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-/* Smooth micro-interactions for buttons & links */
-button, a, input, select, textarea {
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-button:active:not(:disabled) {
-  transform: scale(0.96);
 }
 
 /* Card hover elevation */

@@ -182,28 +182,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col justify-center items-center p-4 relative overflow-hidden selection:bg-violet-500/30 selection:text-white">
+    <div className="min-h-[100dvh] bg-zinc-950 flex flex-col justify-center items-center p-3 sm:p-6 relative overflow-hidden selection:bg-violet-500/30 selection:text-white safe-top safe-bottom">
       {/* Background glowing decorations */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10 space-y-6">
+      <div className="w-full max-w-md relative z-10 space-y-5 sm:space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-sky-500 text-white shadow-xl shadow-indigo-500/25 mb-1">
-            <Terminal className="w-6 h-6 text-white" />
+          <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-sky-500 text-white shadow-xl shadow-indigo-500/25 mb-1">
+            <Terminal className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
-          <div className="flex items-center justify-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+            <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
               {APP_CONFIG.name}
             </h1>
             {APP_CONFIG.env === "prod" ? (
-              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              <span className="inline-flex items-center gap-1 text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 <span>Prod {APP_CONFIG.version}</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
+              <span className="inline-flex items-center gap-1 text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
                 <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
                 <span>Dev {APP_CONFIG.version}</span>
               </span>
@@ -215,13 +215,13 @@ export default function LoginPage() {
         </div>
 
         {/* Auth Card */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl p-6 sm:p-8 shadow-2xl animate-modal-content">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl p-5 sm:p-8 shadow-2xl animate-modal-content">
           {!require2FA ? (
             <>
               {/* Header inside card */}
-              <div className="mb-6 text-center">
-                <h2 className="text-base font-semibold text-white">Вход в систему</h2>
-                <p className="text-xs text-zinc-400 mt-1">
+              <div className="mb-5 sm:mb-6 text-center">
+                <h2 className="text-sm sm:text-base font-semibold text-white">Вход в систему</h2>
+                <p className="text-xs text-zinc-400 mt-0.5 sm:mt-1">
                   Введите ваши учетные данные для авторизации
                 </p>
               </div>
@@ -246,9 +246,9 @@ export default function LoginPage() {
                       placeholder="developer@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 focus:bg-zinc-950 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-all"
+                      className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 focus:bg-zinc-950 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-base sm:text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-all min-h-[44px]"
                     />
-                    <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-3 pointer-events-none" />
+                    <Mail className="w-4 h-4 text-zinc-500 absolute left-3 top-3.5 pointer-events-none" />
                   </div>
                 </div>
 
@@ -263,13 +263,14 @@ export default function LoginPage() {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 focus:bg-zinc-950 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-all"
+                      className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 focus:bg-zinc-950 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-base sm:text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-all min-h-[44px]"
                     />
-                    <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3 pointer-events-none" />
+                    <Lock className="w-4 h-4 text-zinc-500 absolute left-3 top-3.5 pointer-events-none" />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-zinc-500 hover:text-zinc-300 transition-colors"
+                      className="absolute right-3 top-3 text-zinc-500 hover:text-zinc-300 p-1 transition-colors"
+                      aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
                     >
                       {showPassword ? (
                         <EyeOff className="w-4 h-4" />
@@ -283,7 +284,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                   <span>Войти в аккаунт</span>
@@ -306,7 +307,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={handlePasskeyLogin}
                     disabled={passkeyLoading || loading}
-                    className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-zinc-200 bg-zinc-950/80 hover:bg-zinc-800/80 hover:text-white border border-zinc-800 hover:border-zinc-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 group"
+                    className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-zinc-200 bg-zinc-950/80 hover:bg-zinc-800/80 hover:text-white border border-zinc-800 hover:border-zinc-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 min-h-[44px] group"
                   >
                     {passkeyLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
@@ -331,7 +332,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={fillLocalAdminCredentials}
-                    className="w-full py-2 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                    className="w-full py-2.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-medium transition-colors flex items-center justify-center gap-1.5 min-h-[40px] active:scale-[0.98]"
                   >
                     <KeyRound className="w-3.5 h-3.5" />
                     <span>Заполнить: admin@snippetvault.local / admin12345</span>

@@ -34,8 +34,9 @@ export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
+          className="absolute right-3.5 top-3.5 p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
           title="Закрыть"
+          aria-label="Закрыть"
         >
           <X className="w-4 h-4" />
         </button>
@@ -77,7 +78,7 @@ export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 active:scale-95 transition-all text-center"
+            className="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-medium text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 active:scale-95 transition-all text-center min-h-[44px]"
           >
             ОК
           </button>
@@ -85,7 +86,7 @@ export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
           <button
             type="button"
             onClick={onConfigure}
-            className="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 active:scale-95 transition-all flex items-center justify-center gap-1.5 min-h-[44px]"
           >
             <Settings className="w-4 h-4" />
             <span>Настроить</span>

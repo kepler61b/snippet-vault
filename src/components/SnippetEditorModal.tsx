@@ -60,6 +60,13 @@ export function SnippetEditorModal({
   const [isCreatingCollectionLoading, setIsCreatingCollectionLoading] = useState(false);
   const [collectionError, setCollectionError] = useState<string | null>(null);
   const newColInputRef = useRef<HTMLInputElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
+
+  const handleCodeScroll = (e: React.UIEvent<HTMLTextAreaElement>) => {
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = e.currentTarget.scrollTop;
+    }
+  };
 
   useEffect(() => {
     setLocalCollections(collections);
@@ -381,12 +388,12 @@ export function SnippetEditorModal({
   }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative w-full max-w-5xl h-[98dvh] sm:h-[92vh] max-h-[100dvh] flex flex-col rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+      <div className="relative w-full max-w-5xl h-[100dvh] sm:h-[92vh] max-h-[100dvh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top">
         {/* Header */}
         <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-4 border-b border-zinc-800 bg-zinc-900/70">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-600/20 text-violet-400 border border-violet-500/30 flex-shrink-0">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-600/20 text-violet-400 border border-violet-500/30 shrink-0">
               <FileCode className="w-4 h-4" />
             </div>
             <div className="truncate">
@@ -399,21 +406,25 @@ export function SnippetEditorModal({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
+              type="button"
               onClick={() => setIsFavorite(!isFavorite)}
-              className={`p-2 rounded-xl transition-colors ${
+              className={`p-2 rounded-xl transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
                 isFavorite
                   ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                   : "text-zinc-400 hover:text-white hover:bg-zinc-800"
               }`}
               title={isFavorite ? "В избранном" : "Добавить в избранное"}
+              aria-label="Избранное"
             >
               <Star className={`w-4 h-4 ${isFavorite ? "fill-amber-400" : ""}`} />
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+              aria-label="Закрыть"
             >
               <X className="w-5 h-5" />
             </button>
@@ -805,7 +816,8 @@ export function SnippetEditorModal({
             <div className="relative flex bg-zinc-950 font-mono text-xs sm:text-sm min-h-[220px] sm:min-h-[340px] max-h-[46vh] sm:max-h-[50vh] overflow-hidden">
               {/* Line numbers column */}
               <div
-                className="select-none py-2.5 sm:py-3 px-2 sm:px-3 text-right text-zinc-600 bg-zinc-950 border-r border-zinc-800/80 font-mono text-[11px] sm:text-sm leading-5 sm:leading-6 flex-shrink-0"
+                ref={lineNumbersRef}
+                className="select-none py-2.5 sm:py-3 px-2 sm:px-3 text-right text-zinc-600 bg-zinc-950 border-r border-zinc-800/80 font-mono text-[11px] sm:text-sm leading-5 sm:leading-6 shrink-0 overflow-hidden"
                 aria-hidden="true"
               >
                 {currentLines.map((_, i) => (
@@ -818,6 +830,7 @@ export function SnippetEditorModal({
                 value={currentFile.content}
                 onChange={(e) => handleCodeChange(e.target.value)}
                 onKeyDown={handleKeyDown}
+                onScroll={handleCodeScroll}
                 placeholder="Вставьте исходный код сюда..."
                 spellCheck={false}
                 className="flex-1 p-2.5 sm:p-3 bg-transparent text-zinc-100 placeholder-zinc-600 outline-none resize-none font-mono text-[11px] sm:text-sm leading-5 sm:leading-6 overflow-y-auto whitespace-pre tab-size-2"
@@ -827,7 +840,7 @@ export function SnippetEditorModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-4 border-t border-zinc-800 bg-zinc-900/60">
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-4 border-t border-zinc-800 bg-zinc-900/60 safe-bottom">
           <span className="text-[11px] sm:text-xs text-zinc-500">
             {files.length} {files.length === 1 ? "файл" : "файлов"}
           </span>

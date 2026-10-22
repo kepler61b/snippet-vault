@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus, Search, Settings, ShieldCheck, Terminal, User } from "lucide-react";
+import { Plus, Search, ShieldCheck, Terminal } from "lucide-react";
 import { APP_CONFIG } from "@/lib/version";
 
 interface NavbarProps {
@@ -32,37 +32,37 @@ export function Navbar({
   const isAdmin = currentUser?.role === "ADMIN";
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md safe-top">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-sky-500 shadow-lg shadow-indigo-500/20 text-white font-mono font-bold text-lg flex-shrink-0">
-            <Terminal className="w-5 h-5 text-white" />
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-sky-500 shadow-md sm:shadow-lg shadow-indigo-500/20 text-white font-mono font-bold text-sm sm:text-lg shrink-0">
+            <Terminal className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
-          <div>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="font-bold text-base sm:text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="font-bold text-sm sm:text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent truncate">
                 SnippetVault
               </span>
               {APP_CONFIG.env === "prod" ? (
-                <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                <span className="inline-flex items-center gap-1 text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                   <span>Prod {APP_CONFIG.version}</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-md bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
+                <span className="inline-flex items-center gap-1 text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
                   <span>Dev {APP_CONFIG.version}</span>
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-400 hidden sm:block">
+            <p className="text-[11px] text-zinc-400 hidden sm:block truncate">
               {APP_CONFIG.description}
             </p>
           </div>
         </div>
 
-        {/* Global Search & Command Palette Bar */}
+        {/* Global Search & Command Palette Bar (Desktop) */}
         <div className="flex-1 max-w-md hidden md:block">
           <div
             onClick={onOpenCommandPalette}
@@ -79,11 +79,13 @@ export function Navbar({
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Quick search on mobile */}
           <button
             onClick={onOpenCommandPalette}
-            className="md:hidden p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all hover:scale-105 active:scale-95"
+            className="md:hidden p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all active:scale-95 flex items-center justify-center min-w-[34px] min-h-[34px]"
             title="Поиск (Ctrl+K)"
+            aria-label="Поиск"
           >
             <Search className="w-4 h-4" />
           </button>
@@ -92,7 +94,7 @@ export function Navbar({
           {isAdmin && onOpenAdminModal && (
             <button
               onClick={onOpenAdminModal}
-              className="p-2 sm:p-2.5 rounded-xl text-violet-300 hover:text-white bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 hover:border-violet-500/50 transition-all hover:scale-105 active:scale-95 shadow-sm shadow-violet-500/10 flex items-center justify-center"
+              className="p-2 sm:p-2.5 rounded-xl text-violet-300 hover:text-white bg-violet-600/15 hover:bg-violet-600/25 border border-violet-500/30 hover:border-violet-500/50 transition-all active:scale-95 shadow-sm shadow-violet-500/10 flex items-center justify-center min-w-[34px] min-h-[34px]"
               title="Панель администратора"
               aria-label="Панель администратора"
             >
@@ -103,10 +105,11 @@ export function Navbar({
           {/* User Profile / Settings button */}
           <button
             onClick={onOpenSettingsModal}
-            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all hover:scale-105 active:scale-95"
+            className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-2 rounded-xl text-xs sm:text-sm font-medium text-zinc-300 hover:text-white hover:bg-zinc-800/80 border border-zinc-800 transition-all active:scale-95 min-w-[34px] min-h-[34px] justify-center"
             title="Личный кабинет и настройки"
+            aria-label="Личный кабинет"
           >
-            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
               {initial}
             </div>
             <span className="hidden sm:inline max-w-[100px] truncate">
@@ -114,12 +117,14 @@ export function Navbar({
             </span>
           </button>
 
+          {/* Create Snippet Button */}
           <button
             onClick={onOpenCreateModal}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 hover:shadow-violet-600/40 hover:-translate-y-0.5 active:scale-95 transition-all duration-150"
+            className="flex items-center justify-center gap-1.5 p-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 hover:shadow-violet-600/40 active:scale-95 transition-all duration-150 min-w-[34px] min-h-[34px]"
+            title="Создать сниппет"
           >
             <Plus className="w-4 h-4" />
-            <span>Сниппет</span>
+            <span className="hidden sm:inline">Сниппет</span>
           </button>
         </div>
       </div>
