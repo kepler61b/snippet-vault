@@ -1,4 +1,7 @@
 # Multi-stage Dockerfile for SnippetVault
+ARG NEXT_PUBLIC_APP_ENV=prod
+ARG NEXT_PUBLIC_APP_VERSION=0.5.0
+
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
@@ -20,6 +23,11 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
+ARG NEXT_PUBLIC_APP_ENV
+ARG NEXT_PUBLIC_APP_VERSION
+ENV NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV
+ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
+
 # Build Next.js in standalone mode
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
@@ -29,6 +37,11 @@ RUN npm run build
 FROM node:20-alpine AS runner
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
+
+ARG NEXT_PUBLIC_APP_ENV
+ARG NEXT_PUBLIC_APP_VERSION
+ENV NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV
+ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
