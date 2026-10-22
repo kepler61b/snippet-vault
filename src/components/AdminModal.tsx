@@ -399,8 +399,8 @@ export function AdminModal({
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
             }`}
           >
-            <Lock className="w-3.5 h-3.5" />
-            <span>Регистрация & Статистика</span>
+            <Shield className="w-3.5 h-3.5" />
+            <span>Система & Статистика</span>
           </button>
         </div>
 
@@ -683,61 +683,39 @@ export function AdminModal({
           {/* TAB 2: SYSTEM SETTINGS & STATS */}
           {activeTab === "settings" && (
             <div className="space-y-5 animate-in fade-in duration-200">
-              {/* Registration Control Card */}
+              {/* Registration Policy Card */}
               <div className="p-4 sm:p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-violet-400" />
+                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
                       <h3 className="text-sm font-semibold text-white">
-                        Публичная регистрация новых пользователей
+                        Политика регистрации: Закрытый доступ
                       </h3>
                     </div>
                     <p className="text-xs text-zinc-400 leading-relaxed max-w-xl">
-                      Если выключить эту опцию, вкладка регистрации на странице логина будет скрыта.
-                      Новые аккаунты сможет создавать только администратор через эту панель.
+                      Публичная самостоятельная регистрация на странице авторизации отключена. Создавать новые учетные записи может исключительно администратор системы через данную панель управления.
                     </p>
                   </div>
 
-                  {/* Toggle button */}
                   <button
                     type="button"
-                    disabled={savingSettings}
-                    onClick={() => handleToggleRegistration(!registrationDisabled)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      registrationDisabled ? "bg-rose-600" : "bg-emerald-600"
-                    }`}
+                    onClick={() => {
+                      setActiveTab("users");
+                      setShowCreateModal(true);
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-md shadow-violet-600/20 active:scale-95 transition-all flex items-center gap-1.5 shrink-0"
                   >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                        registrationDisabled ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Создать пользователя</span>
                   </button>
                 </div>
 
-                <div
-                  className={`p-3 rounded-xl border text-xs flex items-center gap-2.5 ${
-                    registrationDisabled
-                      ? "bg-rose-950/20 border-rose-800/40 text-rose-300"
-                      : "bg-emerald-950/20 border-emerald-800/40 text-emerald-300"
-                  }`}
-                >
-                  {registrationDisabled ? (
-                    <>
-                      <Lock className="w-4 h-4 shrink-0 text-rose-400" />
-                      <span>
-                        Регистрация <strong>ОТКЛЮЧЕНА</strong>. Вход доступен только существующим пользователям.
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4 shrink-0 text-emerald-400" />
-                      <span>
-                        Регистрация <strong>ОТКРЫТА</strong>. Любой посетитель может создать аккаунт.
-                      </span>
-                    </>
-                  )}
+                <div className="p-3 rounded-xl border border-emerald-800/40 bg-emerald-950/20 text-xs flex items-center gap-2.5 text-emerald-300">
+                  <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
+                  <span>
+                    Режим безопасности: <strong>Административный контроль</strong>. Вход доступен только существующим учетным записям.
+                  </span>
                 </div>
               </div>
 

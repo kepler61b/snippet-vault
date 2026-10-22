@@ -4,17 +4,22 @@ import prisma from "@/lib/db";
 export async function GET() {
   try {
     const totalUsers = await prisma.user.count();
-    const regDisabledSetting = await prisma.setting.findUnique({
-      where: { key: "registration_disabled" },
+    const otherUsersCount = await prisma.user.count({
+      where: {
+        email: {
+          not: "admin@snippetvault.local",
+        },
+      },
     });
 
-    const registrationDisabled = regDisabledSetting?.value === "true";
+    // Show local admin prompt if no other accounts exist besides local administrator
+    const showLocalAdminPrompt = otherUsersCount === 0;
 
     return NextResponse.json({
       success: true,
-      hasUsers: totalUsers > 0,
+      showLocalAdminPrompt,
+      otherUsersCount,
       totalUsers,
-      registrationDisabled,
       localAdminEmail: "admin@snippetvault.local",
     });
   } catch (error: any) {
@@ -23,8 +28,9 @@ export async function GET() {
       {
         success: false,
         error: error.message || "Failed to fetch auth status",
-        hasUsers: true,
-        registrationDisabled: false,
+        showLocalAdminPrompt: false,
+        otherUsersCount: 0,
+        totalUsers: 0,
       },
       { status: 500 }
     );

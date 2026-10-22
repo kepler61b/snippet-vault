@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -12,19 +12,15 @@ import {
   Lock,
   Mail,
   ShieldCheck,
-  Sparkles,
   Terminal,
-  User,
 } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 export default function LoginPage() {
   const router = useRouter();
 
-  const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   // 2FA state
@@ -37,14 +33,15 @@ export default function LoginPage() {
   const [passkeySupported, setPasskeySupported] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // System status
+  // System auth status
   const [authStatus, setAuthStatus] = useState<{
-    hasUsers: boolean;
-    registrationDisabled: boolean;
+    showLocalAdminPrompt: boolean;
+    otherUsersCount: number;
+    totalUsers: number;
     localAdminEmail?: string;
   } | null>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setPasskeySupported(browserSupportsWebAuthn());
 
     // Load auth status
@@ -53,13 +50,11 @@ export default function LoginPage() {
       .then((data) => {
         if (data.success) {
           setAuthStatus({
-            hasUsers: data.hasUsers,
-            registrationDisabled: data.registrationDisabled,
-            localAdminEmail: data.localAdminEmail,
+            showLocalAdminPrompt: Boolean(data.showLocalAdminPrompt),
+            otherUsersCount: data.otherUsersCount || 0,
+            totalUsers: data.totalUsers || 0,
+            localAdminEmail: data.localAdminEmail || "admin@snippetvault.local",
           });
-          if (data.registrationDisabled && mode === "register") {
-            setMode("login");
-          }
         }
       })
       .catch((err) => console.error("Error loading auth status:", err));
@@ -71,43 +66,26 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      if (mode === "login") {
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        const data = await res.json();
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
 
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || "Неверный email или пароль");
-        }
-
-        if (data.require2FA) {
-          setRequire2FA(true);
-          setTempToken(data.tempToken);
-          setLoading(false);
-          return;
-        }
-
-        // Login success
-        window.location.href = "/";
-      } else {
-        // Register
-        const res = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password, name }),
-        });
-        const data = await res.json();
-
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || "Ошибка регистрации");
-        }
-
-        // Register success
-        window.location.href = "/";
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Неверный email или пароль");
       }
+
+      if (data.require2FA) {
+        setRequire2FA(true);
+        setTempToken(data.tempToken);
+        setLoading(false);
+        return;
+      }
+
+      // Login success -> redirect to main app
+      window.location.href = "/";
     } catch (err: any) {
       setError(err.message || "Произошла ошибка при отправке запроса");
       setLoading(false);
@@ -197,10 +175,9 @@ export default function LoginPage() {
     }
   };
 
-  const fillDemoCredentials = () => {
+  const fillLocalAdminCredentials = () => {
     setEmail("admin@snippetvault.local");
     setPassword("admin12345");
-    setMode("login");
   };
 
   return (
@@ -227,65 +204,12 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-xl p-6 sm:p-8 shadow-2xl animate-modal-content">
           {!require2FA ? (
             <>
-              {/* First-time local admin banner when database has 0 users */}
-              {authStatus && !authStatus.hasUsers && (
-                <div className="mb-5 p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs space-y-2">
-                  <div className="flex items-center gap-2 font-semibold text-amber-300">
-                    <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>Первичная настройка системы</span>
-                  </div>
-                  <p className="text-[11px] text-amber-200/80 leading-relaxed">
-                    В базе данных еще нет пользователей. Доступен вход под локальным администратором для первоначальной настройки и создания учетных записей.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={fillDemoCredentials}
-                    className="w-full py-1.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <KeyRound className="w-3.5 h-3.5" />
-                    <span>Заполнить: admin@snippetvault.local / admin12345</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Tab Switcher: Login / Register */}
-              <div className="grid grid-cols-2 p-1 mb-6 rounded-xl bg-zinc-950/80 border border-zinc-800/80 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode("login");
-                    setError(null);
-                  }}
-                  className={`py-2 rounded-lg transition-all ${
-                    mode === "login"
-                      ? "bg-violet-600 text-white shadow-sm"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
-                >
-                  Вход
-                </button>
-                <button
-                  type="button"
-                  disabled={authStatus?.registrationDisabled}
-                  onClick={() => {
-                    if (authStatus?.registrationDisabled) return;
-                    setMode("register");
-                    setError(null);
-                  }}
-                  title={authStatus?.registrationDisabled ? "Регистрация отключена администратором" : undefined}
-                  className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                    authStatus?.registrationDisabled
-                      ? "opacity-40 cursor-not-allowed text-zinc-500"
-                      : mode === "register"
-                      ? "bg-violet-600 text-white shadow-sm"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
-                >
-                  <span>Регистрация</span>
-                  {authStatus?.registrationDisabled && (
-                    <Lock className="w-3 h-3 text-zinc-500" />
-                  )}
-                </button>
+              {/* Header inside card */}
+              <div className="mb-6 text-center">
+                <h2 className="text-base font-semibold text-white">Вход в систему</h2>
+                <p className="text-xs text-zinc-400 mt-1">
+                  Введите ваши учетные данные для авторизации
+                </p>
               </div>
 
               {/* Error Message */}
@@ -297,24 +221,6 @@ export default function LoginPage() {
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
-                {mode === "register" && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-zinc-300">
-                      Имя пользователя
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Александр"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950/80 focus:bg-zinc-950 focus:border-violet-500 focus:ring-1 focus:ring-violet-500 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-all"
-                      />
-                      <User className="w-4 h-4 text-zinc-500 absolute left-3 top-3 pointer-events-none" />
-                    </div>
-                  </div>
-                )}
-
                 <div className="space-y-1.5">
                   <label className="text-xs font-medium text-zinc-300">
                     Email адрес
@@ -366,12 +272,12 @@ export default function LoginPage() {
                   className="w-full py-2.5 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-md shadow-violet-600/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>{mode === "login" ? "Войти в аккаунт" : "Создать аккаунт"}</span>
+                  <span>Войти в аккаунт</span>
                 </button>
               </form>
 
               {/* Passkey 1-click login */}
-              {mode === "login" && passkeySupported && (
+              {passkeySupported && (
                 <>
                   <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">
@@ -398,19 +304,23 @@ export default function LoginPage() {
                 </>
               )}
 
-              {/* Initial local admin quick action (only if no users exist in DB) */}
-              {authStatus && !authStatus.hasUsers && (
-                <div className="mt-5 pt-4 border-t border-zinc-800/80 flex flex-col items-center gap-2">
-                  <span className="text-[11px] text-zinc-500">
-                    Локальный администратор по умолчанию:
-                  </span>
+              {/* Local Admin Prompt: displayed ONLY if there are no other accounts besides the local administrator */}
+              {authStatus?.showLocalAdminPrompt && (
+                <div className="mt-5 p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs space-y-2 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 font-semibold text-amber-300">
+                    <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Первый вход в систему</span>
+                  </div>
+                  <p className="text-[11px] text-amber-200/80 leading-relaxed">
+                    В системе еще нет зарегистрированных пользователей. Войдите под локальным администратором, чтобы создать учетные записи и управлять системой.
+                  </p>
                   <button
                     type="button"
-                    onClick={fillDemoCredentials}
-                    className="px-3 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-xs text-zinc-300 hover:text-white transition-all flex items-center gap-1.5"
+                    onClick={fillLocalAdminCredentials}
+                    className="w-full py-2 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
                   >
-                    <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                    <span>admin@snippetvault.local / admin12345</span>
+                    <KeyRound className="w-3.5 h-3.5" />
+                    <span>Заполнить: admin@snippetvault.local / admin12345</span>
                   </button>
                 </div>
               )}
