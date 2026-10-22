@@ -23,13 +23,20 @@ export async function DELETE(
 
     const targetUser = await prisma.user.findUnique({
       where: { id: targetId },
-      select: { id: true, role: true },
+      select: { id: true, role: true, email: true },
     });
 
     if (!targetUser) {
       return NextResponse.json(
         { success: false, error: "Пользователь не найден" },
         { status: 404 }
+      );
+    }
+
+    if (targetUser.email.toLowerCase() === "admin@snippetvault.local") {
+      return NextResponse.json(
+        { success: false, error: "Учетную запись локального администратора нельзя удалить" },
+        { status: 400 }
       );
     }
 
@@ -89,6 +96,14 @@ export async function PATCH(
       if (role !== "ADMIN" && role !== "USER") {
         return NextResponse.json(
           { success: false, error: "Недопустимая роль. Допустимы: ADMIN или USER" },
+          { status: 400 }
+        );
+      }
+
+      // Local administrator cannot be demoted to USER
+      if (targetUser.email.toLowerCase() === "admin@snippetvault.local" && role === "USER") {
+        return NextResponse.json(
+          { success: false, error: "Роль локального администратора нельзя изменить на Пользователь" },
           { status: 400 }
         );
       }

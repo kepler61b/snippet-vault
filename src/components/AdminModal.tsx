@@ -506,6 +506,7 @@ export function AdminModal({
                 ) : (
                   filteredUsers.map((user) => {
                     const isSelf = user.id === currentUser?.id;
+                    const isLocalAdmin = user.email.toLowerCase() === "admin@snippetvault.local";
                     const initial = (user.name || user.email || "U")[0].toUpperCase();
                     const formattedDate = new Date(user.createdAt).toLocaleDateString("ru-RU", {
                       day: "numeric",
@@ -552,6 +553,13 @@ export function AdminModal({
                                 </span>
                               )}
 
+                              {isLocalAdmin && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
+                                  <KeyRound className="w-2.5 h-2.5 text-amber-400" />
+                                  <span>Локальный админ</span>
+                                </span>
+                              )}
+
                               {/* Ban Badge */}
                               {user.isBanned && (
                                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-rose-600/20 text-rose-300 border border-rose-500/30 shrink-0">
@@ -587,7 +595,7 @@ export function AdminModal({
                           {/* Role switch button */}
                           <button
                             type="button"
-                            disabled={isSelf}
+                            disabled={isSelf || isLocalAdmin}
                             onClick={() =>
                               handleChangeRole(
                                 user,
@@ -598,10 +606,12 @@ export function AdminModal({
                               user.role === "ADMIN"
                                 ? "border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800"
                                 : "border-violet-500/30 bg-violet-600/10 text-violet-300 hover:bg-violet-600/20"
-                            } ${isSelf ? "opacity-30 cursor-not-allowed" : ""}`}
+                            } ${isSelf || isLocalAdmin ? "opacity-30 cursor-not-allowed" : ""}`}
                             title={
                               isSelf
                                 ? "Нельзя изменить свою роль"
+                                : isLocalAdmin
+                                ? "Роль локального администратора нельзя изменить"
                                 : user.role === "ADMIN"
                                 ? "Понизить до Пользователя"
                                 : "Повысить до Администратора"
@@ -662,12 +672,18 @@ export function AdminModal({
                           {/* Delete button */}
                           <button
                             type="button"
-                            disabled={isSelf}
+                            disabled={isSelf || isLocalAdmin}
                             onClick={() => setDeleteTargetUser(user)}
                             className={`p-1.5 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-zinc-800 transition-colors ${
-                              isSelf ? "opacity-30 cursor-not-allowed" : ""
+                              isSelf || isLocalAdmin ? "opacity-30 cursor-not-allowed" : ""
                             }`}
-                            title={isSelf ? "Нельзя удалить собственный аккаунт" : "Удалить пользователя"}
+                            title={
+                              isSelf
+                                ? "Нельзя удалить собственный аккаунт"
+                                : isLocalAdmin
+                                ? "Учетную запись локального администратора нельзя удалить"
+                                : "Удалить пользователя"
+                            }
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -683,42 +699,6 @@ export function AdminModal({
           {/* TAB 2: SYSTEM SETTINGS & STATS */}
           {activeTab === "settings" && (
             <div className="space-y-5 animate-in fade-in duration-200">
-              {/* Registration Policy Card */}
-              <div className="p-4 sm:p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                      <h3 className="text-sm font-semibold text-white">
-                        Политика регистрации: Закрытый доступ
-                      </h3>
-                    </div>
-                    <p className="text-xs text-zinc-400 leading-relaxed max-w-xl">
-                      Публичная самостоятельная регистрация на странице авторизации отключена. Создавать новые учетные записи может исключительно администратор системы через данную панель управления.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab("users");
-                      setShowCreateModal(true);
-                    }}
-                    className="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-md shadow-violet-600/20 active:scale-95 transition-all flex items-center gap-1.5 shrink-0"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>Создать пользователя</span>
-                  </button>
-                </div>
-
-                <div className="p-3 rounded-xl border border-emerald-800/40 bg-emerald-950/20 text-xs flex items-center gap-2.5 text-emerald-300">
-                  <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400" />
-                  <span>
-                    Режим безопасности: <strong>Административный контроль</strong>. Вход доступен только существующим учетным записям.
-                  </span>
-                </div>
-              </div>
-
               {/* System Stats Card */}
               {stats && (
                 <div className="p-4 sm:p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
