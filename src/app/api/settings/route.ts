@@ -20,6 +20,7 @@ export async function GET() {
         maskedKey,
         baseUrl: config.baseUrl,
         model: config.model,
+        proxyUrl: config.proxyUrl || "",
       },
     });
   } catch (error: any) {
@@ -33,13 +34,17 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { provider, apiKey, baseUrl, model } = body;
+    const { provider, apiKey, baseUrl, model, proxyUrl } = body;
 
     const updates = [
       { key: "AI_PROVIDER", value: provider || "openai" },
       { key: "AI_BASE_URL", value: baseUrl || "https://api.openai.com/v1" },
       { key: "AI_MODEL", value: model || "gpt-4o-mini" },
     ];
+
+    if (proxyUrl !== undefined) {
+      updates.push({ key: "AI_PROXY", value: String(proxyUrl).trim() });
+    }
 
     if (apiKey !== undefined && apiKey !== "") {
       updates.push({ key: "AI_API_KEY", value: apiKey });

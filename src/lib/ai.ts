@@ -1,18 +1,29 @@
 import { prisma } from "./db";
+import { fetch as undiciFetch } from "undici";
+import { getProxyDispatcher } from "./proxy";
 
 export interface AISettings {
   provider: "openai" | "gemini" | "custom";
   apiKey: string;
   baseUrl: string;
   model: string;
+  proxyUrl?: string;
 }
 
 export async function getAISettings(): Promise<AISettings> {
+  const defaultProxy =
+    process.env.AI_PROXY ||
+    process.env.HTTPS_PROXY ||
+    process.env.HTTP_PROXY ||
+    process.env.all_proxy ||
+    process.env.ALL_PROXY ||
+    "";
+
   try {
     const records = await prisma.setting.findMany({
       where: {
         key: {
-          in: ["AI_PROVIDER", "AI_API_KEY", "AI_BASE_URL", "AI_MODEL"],
+          in: ["AI_PROVIDER", "AI_API_KEY", "AI_BASE_URL", "AI_MODEL", "AI_PROXY"],
         },
       },
     });
@@ -27,6 +38,7 @@ export async function getAISettings(): Promise<AISettings> {
       apiKey: map.get("AI_API_KEY") || process.env.AI_API_KEY || "",
       baseUrl: map.get("AI_BASE_URL") || process.env.AI_BASE_URL || "https://api.openai.com/v1",
       model: map.get("AI_MODEL") || process.env.AI_MODEL || "gpt-4o-mini",
+      proxyUrl: map.get("AI_PROXY") !== undefined ? (map.get("AI_PROXY") || "") : defaultProxy,
     };
   } catch {
     return {
@@ -34,6 +46,7 @@ export async function getAISettings(): Promise<AISettings> {
       apiKey: process.env.AI_API_KEY || "",
       baseUrl: process.env.AI_BASE_URL || "https://api.openai.com/v1",
       model: process.env.AI_MODEL || "gpt-4o-mini",
+      proxyUrl: defaultProxy,
     };
   }
 }
@@ -72,6 +85,8 @@ export async function executeAIRequestWithConfig(
     throw error;
   }
 
+  const dispatcher = getProxyDispatcher(config.proxyUrl);
+
   if (config.provider === "gemini") {
     // Google Gemini API
     const model = (config.model || "gemini-3.5-flash").trim();
@@ -106,7 +121,11 @@ export async function executeAIRequestWithConfig(
         }),
       };
 
-      res = await fetch(url, fetchOpts);
+      if (dispatcher) {
+        fetchOpts.dispatcher = dispatcher;
+      }
+
+      res = (await undiciFetch(url, fetchOpts)) as unknown as Response;
     } catch (fetchErr: any) {
       const cause = fetchErr?.cause;
       const causeMsg = cause?.code || cause?.message || "";
@@ -115,12 +134,15 @@ export async function executeAIRequestWithConfig(
         cause?.code === "ECONNRESET" ||
         cause?.code === "ECONNREFUSED" ||
         cause?.code === "UND_ERR_CONNECT_TIMEOUT" ||
-        cause?.code === "ENOTFOUND";
+        cause?.code === "ENOTFOUND" ||
+        fetchErr?.message?.includes("fetch failed");
 
       let hint = "";
-      if (isConnectionError) {
+      if (config.proxyUrl) {
+        hint = ` (Запрос отправлялся через прокси: ${config.proxyUrl}. Проверьте доступность и статус вашего прокси/SOCKS5 сервера).`;
+      } else if (isConnectionError) {
         hint =
-          " (Сервер не смог установить соединение с серверами Google Gemini. В РФ сервис заблокирован; настройте VPN или прокси на сервере/хосте).";
+          " (Сервер не смог установить соединение с серверами Google Gemini. В РФ сервис заблокирован; укажите Прокси-сервер (HTTP/SOCKS5) в настройках AI или настройте VPN).";
       }
 
       throw new Error(
@@ -171,7 +193,11 @@ export async function executeAIRequestWithConfig(
         }),
       };
 
-      res = await fetch(endpoint, fetchOpts);
+      if (dispatcher) {
+        fetchOpts.dispatcher = dispatcher;
+      }
+
+      res = (await undiciFetch(endpoint, fetchOpts)) as unknown as Response;
     } catch (fetchErr: any) {
       const cause = fetchErr?.cause;
       const causeMsg = cause?.code || cause?.message || "";
@@ -180,13 +206,16 @@ export async function executeAIRequestWithConfig(
         cause?.code === "ECONNRESET" ||
         cause?.code === "ECONNREFUSED" ||
         cause?.code === "UND_ERR_CONNECT_TIMEOUT" ||
-        cause?.code === "ENOTFOUND";
+        cause?.code === "ENOTFOUND" ||
+        fetchErr?.message?.includes("fetch failed");
 
       let hint = "";
-      if (isConnectionError) {
+      if (config.proxyUrl) {
+        hint = ` (Запрос отправлялся через прокси: ${config.proxyUrl}. Проверьте доступность и статус вашего прокси/SOCKS5 сервера).`;
+      } else if (isConnectionError) {
         hint =
           config.provider === "openai"
-            ? " (Сервер не смог установить соединение с серверами OpenAI. В РФ сервис заблокирован; настройте VPN или прокси на сервере/хосте)."
+            ? " (Сервер не смог установить соединение с серверами OpenAI. В РФ сервис заблокирован; укажите Прокси-сервер (HTTP/SOCKS5) в настройках AI или настройте VPN)."
             : " (Сервер не смог подключиться к указанному Base URL. Проверьте адрес и доступность сервиса).";
       }
 

@@ -220,6 +220,7 @@ export function SettingsModal({
   const [maskedKey, setMaskedKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
   const [model, setModel] = useState("gpt-4o-mini");
+  const [proxyUrl, setProxyUrl] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSaving, setAiSaving] = useState(false);
@@ -275,6 +276,7 @@ export function SettingsModal({
         setMaskedKey(data.settings.maskedKey || "");
         setBaseUrl(data.settings.baseUrl || "https://api.openai.com/v1");
         setModel(data.settings.model || "gpt-4o-mini");
+        setProxyUrl(data.settings.proxyUrl || "");
       }
     } catch (e) {
       console.error(e);
@@ -574,6 +576,7 @@ export function SettingsModal({
           apiKey: apiKey.trim(),
           baseUrl: baseUrl.trim(),
           model: model.trim(),
+          proxyUrl: proxyUrl.trim(),
         }),
       });
       const data = await res.json();
@@ -615,6 +618,7 @@ export function SettingsModal({
           apiKey: apiKey.trim(),
           baseUrl: baseUrl.trim(),
           model: model.trim(),
+          proxyUrl: proxyUrl.trim(),
         }),
       });
       const data = await res.json();
@@ -1826,16 +1830,63 @@ export function SettingsModal({
                 </div>
               </div>
 
+              {/* Proxy Server (HTTP / HTTPS / SOCKS5) */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>{t("settings.ai.proxyLabel")}</span>
+                  </label>
+                  {proxyUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setProxyUrl("")}
+                      className="text-[10px] text-zinc-500 hover:text-rose-400 transition-colors"
+                    >
+                      {locale === "ru" ? "Очистить" : "Clear"}
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder={t("settings.ai.proxyPlaceholder")}
+                  value={proxyUrl}
+                  onChange={(e) => setProxyUrl(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 text-xs font-mono"
+                />
+                <div className="flex flex-wrap items-center justify-between gap-1.5 pt-0.5">
+                  <span className="text-[10px] text-zinc-500">
+                    {t("settings.ai.proxyHint")}
+                  </span>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setProxyUrl("socks5://127.0.0.1:10808")}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 border border-zinc-700/60 hover:text-white transition-colors font-mono"
+                    >
+                      socks5://127.0.0.1:10808
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProxyUrl("http://127.0.0.1:8080")}
+                      className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 border border-zinc-700/60 hover:text-white transition-colors font-mono"
+                    >
+                      http://127.0.0.1:8080
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Network Warning Note */}
               <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
                 <p className="font-semibold text-zinc-300 flex items-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>{locale === "ru" ? "Важно о сетевом подключении" : "Network connection note"}</span>
+                  <span>{locale === "ru" ? "Сетевое подключение (РФ и блокировки)" : "Network connection note"}</span>
                 </p>
                 <p className="leading-relaxed">
                   {locale === "ru"
-                    ? "Запросы к AI выполняет сервер Node.js (бэкенд), а не браузер. Если ваш сервер находится в РФ, прямые подключения к Google Gemini и OpenAI блокируются. Для работы требуется VPN/прокси (на хосте или через переменную HTTPS_PROXY в .env)."
-                    : "Requests to AI are executed by the Node.js server (backend). If your server is in Russia or restricted regions, VPN or HTTPS_PROXY is required on the host."}
+                    ? "Запросы к AI выполняет сервер Node.js (бэкенд). Если сервер находится в РФ, прямые подключения к Google Gemini и OpenAI блокируются. Укажите ваш локальный SOCKS5 (например, Xray/VLESS на 10808) или HTTP-прокси в поле выше, либо используйте VPN на хосте."
+                    : "Requests to AI are executed by the Node.js backend. If your server is in Russia or restricted regions, direct connections to Google Gemini/OpenAI are blocked. Specify your SOCKS5/HTTP proxy in the field above or configure VPN on the host."}
                 </p>
               </div>
 

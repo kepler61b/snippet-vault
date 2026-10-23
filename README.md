@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.6.0-blue.svg" alt="Version 0.6.0" />
+  <img src="https://img.shields.io/badge/version-0.6.1-blue.svg" alt="Version 0.6.1" />
   <img src="https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white" alt="Docker Ready" />
   <img src="https://img.shields.io/badge/database-SQLite-003B57.svg?logo=sqlite&logoColor=white" alt="SQLite" />
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License MIT" />
@@ -39,7 +39,7 @@
 - **🤖 Встроенный AI-ассистент с автоопределением**:
   - Объяснение кода, автоматический рефакторинг, документирование.
   - Автоматическая генерация названий, описаний и тегов.
-  - Поддержка OpenAI, Google Gemini (`gemini-3.5-flash`), локальных LLM (Ollama, LM Studio) и прокси (`HTTPS_PROXY`).
+  - Поддержка OpenAI, Google Gemini (`gemini-3.5-flash`), локальных LLM (Ollama, LM Studio), а также прямое указание HTTP / SOCKS5 прокси в настройках UI (для работы из РФ).
   - Встроенная кнопка «Проверить подключение» прямо в настройках.
 - **🌐 Мультиязычный интерфейс**: Полная локализация на русский и английский языки (RU / EN) с переключением в настройках.
 - **💾 Резервное копирование и экспорт**: Экспорт всей базы или отдельных коллекций в JSON, импорт и восстановление данных.
