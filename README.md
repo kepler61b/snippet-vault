@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.6.1-blue.svg" alt="Version 0.6.1" />
+  <img src="https://img.shields.io/badge/version-0.6.2-blue.svg" alt="Version 0.6.2" />
   <img src="https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white" alt="Docker Ready" />
   <img src="https://img.shields.io/badge/database-SQLite-003B57.svg?logo=sqlite&logoColor=white" alt="SQLite" />
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License MIT" />
@@ -37,9 +37,10 @@
   - Двухфакторная аутентификация (**2FA / TOTP**).
   - Безопасный шеринг сниппетов по приватной секретной ссылке.
 - **🤖 Встроенный AI-ассистент с автоопределением**:
-  - Объяснение кода, автоматический рефакторинг, документирование.
+  - Интерактивный встроенный блок AI функций («Объяснить код», «Рефакторинг», «Документировать») со шкалой загрузки и плавным раскрытием ответа.
+  - Автоматическое определение доступных моделей по введенному API-ключу с поисковым выпадающим списком.
   - Автоматическая генерация названий, описаний и тегов.
-  - Поддержка OpenAI, Google Gemini (`gemini-3.5-flash`), локальных LLM (Ollama, LM Studio), а также прямое указание HTTP / SOCKS5 прокси в настройках UI (для работы из РФ).
+  - Поддержка OpenAI, Google Gemini, локальных LLM (Ollama, LM Studio), а также прямое указание HTTP / SOCKS5 прокси в настройках UI (для работы из РФ).
   - Встроенная кнопка «Проверить подключение» прямо в настройках.
 - **🌐 Мультиязычный интерфейс**: Полная локализация на русский и английский языки (RU / EN) с переключением в настройках.
 - **💾 Резервное копирование и экспорт**: Экспорт всей базы или отдельных коллекций в JSON, импорт и восстановление данных.
