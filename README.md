@@ -1,7 +1,7 @@
 # ⚡ SnippetVault
 
 <p align="center">
-  <img src="public/globe.svg" width="64" height="64" alt="SnippetVault Logo" />
+  <img src="public/logo.svg" width="64" height="64" alt="SnippetVault Logo" />
 </p>
 
 <p align="center">
