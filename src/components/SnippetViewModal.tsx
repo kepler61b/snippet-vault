@@ -27,6 +27,7 @@ import { useI18n } from "@/lib/i18n";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { SnippetRevisionsModal } from "./SnippetRevisionsModal";
 import { CodePlaygroundModal } from "./CodePlaygroundModal";
+import { AICodeAssistantBlock } from "./AICodeAssistantBlock";
 
 interface SnippetViewModalProps {
   isOpen: boolean;
@@ -315,40 +316,6 @@ export function SnippetViewModal({
                 </button>
 
                 <button
-                  onClick={async () => {
-                    try {
-                      await onTriggerAI("explain", currentFile.content, currentFile.language);
-                    } catch (e: any) {
-                      if (e?.code !== "AI_KEY_REQUIRED" && !e?.message?.includes("AI_KEY_REQUIRED") && !e?.message?.includes("AI API ключ не настроен")) {
-                        alert(e.message);
-                      }
-                    }
-                  }}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 transition-colors flex-shrink-0"
-                  title={t("editor.quickActionExplain")}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{t("aiModal.tabExplain")}</span>
-                </button>
-
-                <button
-                  onClick={async () => {
-                    try {
-                      await onTriggerAI("refactor", currentFile.content, currentFile.language);
-                    } catch (e: any) {
-                      if (e?.code !== "AI_KEY_REQUIRED" && !e?.message?.includes("AI_KEY_REQUIRED") && !e?.message?.includes("AI API ключ не настроен")) {
-                        alert(e.message);
-                      }
-                    }
-                  }}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 transition-colors flex-shrink-0"
-                  title={t("editor.quickActionRefactor")}
-                >
-                  <Wand2 className="w-3.5 h-3.5" />
-                  <span>{t("aiModal.tabRefactor")}</span>
-                </button>
-
-                <button
                   onClick={handleCopyAsMarkdown}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 hover:bg-zinc-800 transition-colors flex-shrink-0"
                   title={t("view.copyMarkdown")}
@@ -378,6 +345,16 @@ export function SnippetViewModal({
                 language={currentFile.language}
                 className="border-none rounded-none"
               />
+            )}
+
+            {/* AI Code Assistant Inline Block */}
+            {currentFile && (
+              <div className="mt-3">
+                <AICodeAssistantBlock
+                  code={currentFile.content}
+                  language={currentFile.language}
+                />
+              </div>
             )}
           </div>
         </div>

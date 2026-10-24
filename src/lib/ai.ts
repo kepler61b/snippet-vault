@@ -301,3 +301,208 @@ export async function documentSnippet(code: string, language: string) {
   const prompt = `Язык: ${language}\n\nКод:\n\`\`\`${language}\n${code}\n\`\`\``;
   return executeAIRequest(systemPrompt, prompt);
 }
+
+export interface AIModelOption {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export async function listAvailableModels(rawConfig: {
+  provider?: "openai" | "gemini" | "custom";
+  apiKey?: string;
+  baseUrl?: string;
+  proxyUrl?: string;
+}): Promise<AIModelOption[]> {
+  const dbConfig = await getAISettings();
+  const apiKey = (rawConfig.apiKey !== undefined ? rawConfig.apiKey : dbConfig.apiKey).trim();
+  let provider = rawConfig.provider || dbConfig.provider;
+  let baseUrl = (rawConfig.baseUrl !== undefined ? rawConfig.baseUrl : dbConfig.baseUrl).trim();
+  const proxyUrl = (rawConfig.proxyUrl !== undefined ? rawConfig.proxyUrl : (dbConfig.proxyUrl || "")).trim();
+
+  // Auto-detect provider if user supplied Gemini key
+  if (provider === "openai" && (apiKey.startsWith("AIzaSy") || baseUrl.includes("generativelanguage.googleapis.com"))) {
+    provider = "gemini";
+    if (baseUrl.includes("api.openai.com")) {
+      baseUrl = "https://generativelanguage.googleapis.com";
+    }
+  }
+
+  if (!apiKey && provider !== "custom") {
+    throw new Error("API ключ не указан. Укажите API ключ для получения списка доступных моделей.");
+  }
+
+  const dispatcher = getProxyDispatcher(proxyUrl);
+
+  if (provider === "gemini") {
+    const host =
+      baseUrl && !baseUrl.includes("api.openai.com")
+        ? baseUrl.replace(/\/$/, "")
+        : "https://generativelanguage.googleapis.com";
+
+    const url = `${host}/v1beta/models?key=${apiKey}`;
+    const fetchOpts: any = {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    };
+    if (dispatcher) {
+      fetchOpts.dispatcher = dispatcher;
+    }
+
+    let res: Response;
+    try {
+      res = (await undiciFetch(url, fetchOpts)) as unknown as Response;
+    } catch (fetchErr: any) {
+      const cause = fetchErr?.cause;
+      const causeMsg = cause?.code || cause?.message || "";
+      let hint = "";
+      if (proxyUrl) {
+        hint = ` (Проверьте доступность прокси: ${proxyUrl})`;
+      } else if (fetchErr?.message?.includes("fetch failed") || cause?.code === "ETIMEDOUT") {
+        hint = " (В РФ сервис Google Gemini заблокирован; укажите прокси или Cloudflare AI Gateway в настройках).";
+      }
+      throw new Error(`Сетевая ошибка при получении моделей Google Gemini (${host}): ${causeMsg || fetchErr.message}${hint}`);
+    }
+
+    if (!res.ok) {
+      const errText = await res.text();
+      let msg = errText;
+      try {
+        const json = JSON.parse(errText);
+        msg = json.error?.message || errText;
+      } catch {}
+      throw new Error(`Ошибка Google Gemini API (${res.status}): ${msg}`);
+    }
+
+    const data: any = await res.json();
+    const rawList: any[] = Array.isArray(data.models) ? data.models : [];
+
+    // Filter models supporting generateContent
+    const filtered = rawList.filter(
+      (m) =>
+        !m.supportedGenerationMethods ||
+        m.supportedGenerationMethods.includes("generateContent")
+    );
+
+    const result: AIModelOption[] = filtered.map((m) => {
+      const cleanId = m.name ? m.name.replace(/^models\//, "") : "";
+      return {
+        id: cleanId,
+        name: m.displayName || cleanId,
+        description: m.description,
+      };
+    });
+
+    // Sort: flash first, then pro, then by name
+    return result.sort((a, b) => {
+      const aFlash = a.id.includes("flash");
+      const bFlash = b.id.includes("flash");
+      if (aFlash && !bFlash) return -1;
+      if (!aFlash && bFlash) return 1;
+      return a.id.localeCompare(b.id);
+    });
+  } else {
+    // OpenAI or OpenAI-compatible (Ollama, OpenRouter, DeepSeek, LM Studio)
+    let cleanBaseUrl = (baseUrl || "https://api.openai.com/v1").replace(/\/$/, "");
+    cleanBaseUrl = cleanBaseUrl.replace(/\/chat\/completions\/?$/, "");
+
+    const endpoint = `${cleanBaseUrl}/models`;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (apiKey) {
+      headers["Authorization"] = `Bearer ${apiKey}`;
+    }
+
+    const fetchOpts: any = {
+      method: "GET",
+      headers,
+    };
+    if (dispatcher) {
+      fetchOpts.dispatcher = dispatcher;
+    }
+
+    let res: Response;
+    try {
+      res = (await undiciFetch(endpoint, fetchOpts)) as unknown as Response;
+    } catch (fetchErr: any) {
+      const cause = fetchErr?.cause;
+      const causeMsg = cause?.code || cause?.message || "";
+      let hint = "";
+      if (proxyUrl) {
+        hint = ` (Проверьте доступность прокси: ${proxyUrl})`;
+      } else if (fetchErr?.message?.includes("fetch failed") || cause?.code === "ETIMEDOUT") {
+        hint =
+          provider === "openai"
+            ? " (В РФ сервис OpenAI заблокирован; укажите прокси или используйте OpenRouter / DeepSeek)."
+            : " (Не удалось подключиться к указанному Base URL).";
+      }
+      throw new Error(`Сетевая ошибка при получении моделей (${endpoint}): ${causeMsg || fetchErr.message}${hint}`);
+    }
+
+    // Fallback for native Ollama /api/tags if /models returns 404
+    if (!res.ok && res.status === 404 && (cleanBaseUrl.includes("11434") || provider === "custom")) {
+      const ollamaEndpoint = `${cleanBaseUrl.replace(/\/v1$/, "")}/api/tags`;
+      try {
+        const ollamaRes = (await undiciFetch(ollamaEndpoint, fetchOpts)) as unknown as Response;
+        if (ollamaRes.ok) {
+          const ollamaData: any = await ollamaRes.json();
+          if (Array.isArray(ollamaData.models)) {
+            return ollamaData.models.map((m: any) => ({
+              id: m.name,
+              name: m.name,
+            }));
+          }
+        }
+      } catch {}
+    }
+
+    if (!res.ok) {
+      const errText = await res.text();
+      let msg = errText;
+      try {
+        const json = JSON.parse(errText);
+        msg = json.error?.message || errText;
+      } catch {}
+      throw new Error(`Ошибка AI API (${res.status}): ${msg}`);
+    }
+
+    const data: any = await res.json();
+    const rawList: any[] = Array.isArray(data.data)
+      ? data.data
+      : Array.isArray(data.models)
+      ? data.models
+      : [];
+
+    const excludedKeywords = [
+      "embedding",
+      "tts-",
+      "whisper-",
+      "dall-e",
+      "moderation",
+      "babbage",
+      "davinci",
+      "canary",
+    ];
+
+    const filtered = rawList.filter((m) => {
+      const id = (m.id || m.name || "").toLowerCase();
+      return !excludedKeywords.some((kw) => id.includes(kw));
+    });
+
+    const result: AIModelOption[] = filtered.map((m) => ({
+      id: m.id || m.name,
+      name: m.name || m.id,
+      description: m.description,
+    }));
+
+    // Prioritize popular models (gpt-4o, claude, gemini, deepseek)
+    return result.sort((a, b) => {
+      const aMini = a.id.includes("4o-mini") || a.id.includes("flash");
+      const bMini = b.id.includes("4o-mini") || b.id.includes("flash");
+      if (aMini && !bMini) return -1;
+      if (!aMini && bMini) return 1;
+      return a.id.localeCompare(b.id);
+    });
+  }
+}

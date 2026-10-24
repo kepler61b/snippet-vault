@@ -26,6 +26,7 @@ import {
   LogOut,
   Plus,
   QrCode,
+  RefreshCw,
   Save,
   Settings as SettingsIcon,
   ShieldAlert,
@@ -227,6 +228,11 @@ export function SettingsModal({
   const [aiSuccess, setAiSuccess] = useState(false);
   const [aiTesting, setAiTesting] = useState(false);
   const [aiTestResult, setAiTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [availableModels, setAvailableModels] = useState<{ id: string; name: string; description?: string }[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [isManualModelInput, setIsManualModelInput] = useState(false);
+  const modelFetchTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // General App Preferences
   const [defaultViewMode, setDefaultViewMode] = useState<ViewMode>("grid");
@@ -277,6 +283,10 @@ export function SettingsModal({
         setBaseUrl(data.settings.baseUrl || "https://api.openai.com/v1");
         setModel(data.settings.model || "gpt-4o-mini");
         setProxyUrl(data.settings.proxyUrl || "");
+
+        if (data.settings.hasApiKey || data.settings.provider === "custom") {
+          loadAvailableModels("", data.settings.provider, data.settings.baseUrl, data.settings.proxyUrl);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -560,6 +570,56 @@ export function SettingsModal({
       await loadPasskeys();
     } catch (err: any) {
       setPasskeyError(err.message);
+    }
+  };
+
+  // Load Available AI Models
+  const loadAvailableModels = async (
+    keyOverride?: string,
+    providerOverride?: "openai" | "gemini" | "custom",
+    baseUrlOverride?: string,
+    proxyOverride?: string
+  ) => {
+    const curKey = keyOverride !== undefined ? keyOverride : apiKey;
+    const curProv = providerOverride || provider;
+    const curBase = baseUrlOverride !== undefined ? baseUrlOverride : baseUrl;
+    const curProxy = proxyOverride !== undefined ? proxyOverride : proxyUrl;
+
+    if (!curKey && !hasApiKey && curProv !== "custom") {
+      return;
+    }
+
+    setModelsLoading(true);
+    setModelsError(null);
+    try {
+      const res = await fetch("/api/settings/models", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider: curProv,
+          apiKey: curKey.trim(),
+          baseUrl: curBase.trim(),
+          proxyUrl: curProxy.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Не удалось загрузить список моделей");
+      }
+      if (Array.isArray(data.models) && data.models.length > 0) {
+        setAvailableModels(data.models);
+        // If current model is empty, default to the first model
+        if (!model) {
+          setModel(data.models[0].id);
+        }
+      } else {
+        setAvailableModels([]);
+      }
+    } catch (err: any) {
+      console.warn("Failed to load models:", err);
+      setModelsError(err.message || "Не удалось загрузить модели");
+    } finally {
+      setModelsLoading(false);
     }
   };
 
@@ -1636,6 +1696,8 @@ export function SettingsModal({
                       setProvider("openai");
                       setBaseUrl("https://api.openai.com/v1");
                       setModel("gpt-4o-mini");
+                      setAvailableModels([]);
+                      loadAvailableModels(apiKey, "openai", "https://api.openai.com/v1");
                     }}
                     className={`p-2.5 rounded-xl border text-center transition-all ${
                       provider === "openai"
@@ -1651,6 +1713,8 @@ export function SettingsModal({
                       setProvider("gemini");
                       setBaseUrl("https://generativelanguage.googleapis.com");
                       setModel("gemini-3.5-flash");
+                      setAvailableModels([]);
+                      loadAvailableModels(apiKey, "gemini", "https://generativelanguage.googleapis.com");
                     }}
                     className={`p-2.5 rounded-xl border text-center transition-all ${
                       provider === "gemini"
@@ -1666,6 +1730,8 @@ export function SettingsModal({
                       setProvider("custom");
                       setBaseUrl("http://localhost:11434/v1");
                       setModel("llama3");
+                      setAvailableModels([]);
+                      loadAvailableModels(apiKey, "custom", "http://localhost:11434/v1");
                     }}
                     className={`p-2.5 rounded-xl border text-center transition-all ${
                       provider === "custom"
@@ -1704,12 +1770,27 @@ export function SettingsModal({
                     onChange={(e) => {
                       const val = e.target.value;
                       setApiKey(val);
+                      let newProv = provider;
+                      let newBase = baseUrl;
                       if (val.trim().startsWith("AIzaSy") && provider === "openai") {
+                        newProv = "gemini";
                         setProvider("gemini");
-                        setBaseUrl("https://generativelanguage.googleapis.com");
+                        newBase = "https://generativelanguage.googleapis.com";
+                        setBaseUrl(newBase);
                         if (!model || model === "gpt-4o-mini") {
                           setModel("gemini-3.5-flash");
                         }
+                      }
+                      if (modelFetchTimerRef.current) clearTimeout(modelFetchTimerRef.current);
+                      if (val.trim().length >= 15 || newProv === "custom") {
+                        modelFetchTimerRef.current = setTimeout(() => {
+                          loadAvailableModels(val, newProv, newBase);
+                        }, 700);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (apiKey.trim().length >= 10) {
+                        loadAvailableModels(apiKey);
                       }
                     }}
                     className="w-full px-3 py-2 pr-10 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500"
@@ -1739,94 +1820,156 @@ export function SettingsModal({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px]">
-                    {t("settings.ai.modelLabel")}
-                  </label>
-                  <input
-                    type="text"
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500"
-                  />
-                  {/* Model Preset Pills */}
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {provider === "gemini" && (
+                  <div className="flex items-center justify-between">
+                    <label className="font-semibold text-zinc-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <span>{t("settings.ai.modelLabel")}</span>
+                      {availableModels.length > 0 && !modelsLoading && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-violet-600/20 text-violet-300 border border-violet-500/30 normal-case font-normal">
+                          {t("settings.ai.modelsCount", { count: availableModels.length })}
+                        </span>
+                      )}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {availableModels.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setIsManualModelInput(!isManualModelInput)}
+                          className="text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors"
+                        >
+                          {isManualModelInput ? t("settings.ai.selectModelToggle") : t("settings.ai.manualModelToggle")}
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => setModel("gemini-3.5-flash")}
-                        className={`text-[10px] px-2.5 py-0.5 rounded-md border font-medium transition-colors ${
-                          model === "gemini-3.5-flash"
-                            ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                            : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                        }`}
+                        onClick={() => loadAvailableModels()}
+                        disabled={modelsLoading || (!apiKey && !hasApiKey && provider !== "custom")}
+                        title={t("settings.ai.refreshModelsBtn")}
+                        className="flex items-center gap-1 text-[10px] text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/80 px-1.5 py-0.5 rounded transition-colors disabled:opacity-40"
                       >
-                        gemini-3.5-flash
+                        <RefreshCw className={`w-3 h-3 ${modelsLoading ? "animate-spin text-violet-400" : ""}`} />
+                        <span>{modelsLoading ? t("settings.ai.modelsLoading") : t("settings.ai.loadModelsBtn")}</span>
                       </button>
-                    )}
-                    {provider === "openai" && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setModel("gpt-4o-mini")}
-                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
-                            model === "gpt-4o-mini"
-                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                          }`}
-                        >
-                          gpt-4o-mini
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setModel("gpt-4o")}
-                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
-                            model === "gpt-4o"
-                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                          }`}
-                        >
-                          gpt-4o
-                        </button>
-                      </>
-                    )}
-                    {provider === "custom" && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => setModel("llama3")}
-                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
-                            model === "llama3"
-                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                          }`}
-                        >
-                          llama3
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setModel("deepseek-coder")}
-                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
-                            model === "deepseek-coder"
-                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                          }`}
-                        >
-                          deepseek-coder
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setModel("qwen2.5-coder")}
-                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
-                            model === "qwen2.5-coder"
-                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                          }`}
-                        >
-                          qwen2.5-coder
-                        </button>
-                      </>
-                    )}
+                    </div>
                   </div>
+
+                  {availableModels.length > 0 && !isManualModelInput ? (
+                    <CustomSelect
+                      value={model}
+                      onChange={(val) => setModel(val)}
+                      options={(() => {
+                        const list = [...availableModels];
+                        if (model && !list.some((m) => m.id === model)) {
+                          list.unshift({ id: model, name: model });
+                        }
+                        return list.map((m) => ({
+                          value: m.id,
+                          label: m.name || m.id,
+                          description: m.description ? (m.description.length > 70 ? m.description.slice(0, 70) + "..." : m.description) : undefined,
+                          badge: m.id.includes("flash") ? "Flash" : m.id.includes("pro") ? "Pro" : undefined,
+                        }));
+                      })()}
+                      searchable={true}
+                      searchPlaceholder={t("settings.ai.searchModelPlaceholder")}
+                      className="w-full"
+                      triggerClassName="text-xs font-mono"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={model}
+                      onChange={(e) => setModel(e.target.value)}
+                      placeholder={provider === "gemini" ? "gemini-3.5-flash" : "gpt-4o-mini"}
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 text-xs font-mono"
+                    />
+                  )}
+
+                  {modelsError && (
+                    <p className="text-[11px] text-rose-400/90 leading-tight">
+                      {modelsError}
+                    </p>
+                  )}
+
+                  {/* Model Preset Pills */}
+                  {(!availableModels.length || isManualModelInput) && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {provider === "gemini" && (
+                        <button
+                          type="button"
+                          onClick={() => setModel("gemini-3.5-flash")}
+                          className={`text-[10px] px-2.5 py-0.5 rounded-md border font-medium transition-colors ${
+                            model === "gemini-3.5-flash"
+                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                          }`}
+                        >
+                          gemini-3.5-flash
+                        </button>
+                      )}
+                      {provider === "openai" && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setModel("gpt-4o-mini")}
+                            className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                              model === "gpt-4o-mini"
+                                ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                                : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                            }`}
+                          >
+                            gpt-4o-mini
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setModel("gpt-4o")}
+                            className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                              model === "gpt-4o"
+                                ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                                : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                            }`}
+                          >
+                            gpt-4o
+                          </button>
+                        </>
+                      )}
+                      {provider === "custom" && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => setModel("llama3")}
+                            className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                              model === "llama3"
+                                ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                                : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                            }`}
+                          >
+                            llama3
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setModel("deepseek-coder")}
+                            className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                              model === "deepseek-coder"
+                                ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                                : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                            }`}
+                          >
+                            deepseek-coder
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setModel("qwen2.5-coder")}
+                            className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
+                              model === "qwen2.5-coder"
+                                ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
+                                : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
+                            }`}
+                          >
+                            qwen2.5-coder
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

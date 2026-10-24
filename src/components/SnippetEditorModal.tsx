@@ -31,6 +31,7 @@ import { useI18n } from "@/lib/i18n";
 import { CodeEditor } from "@/components/CodeEditor";
 import { MarkdownPreview } from "@/components/MarkdownPreview";
 import { CodePlaygroundModal } from "@/components/CodePlaygroundModal";
+import { AICodeAssistantBlock } from "@/components/AICodeAssistantBlock";
 
 interface SnippetEditorModalProps {
   isOpen: boolean;
@@ -699,86 +700,8 @@ export function SnippetEditorModal({
                 </button>
               </div>
 
-              {/* AI Code Actions Bar */}
+              {/* File Actions Bar */}
               <div className="flex items-center gap-1 overflow-x-auto py-1 border-t sm:border-t-0 border-zinc-800/60 scrollbar-none">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      setAiLoading("explain");
-                      await onTriggerAI("explain", files, currentFile);
-                    } catch (e: any) {
-                      if (e?.code !== "AI_KEY_REQUIRED" && !e?.message?.includes("AI_KEY_REQUIRED") && !e?.message?.includes("AI API ключ не настроен")) {
-                        alert(e.message);
-                      }
-                    } finally {
-                      setAiLoading(null);
-                    }
-                  }}
-                  disabled={Boolean(aiLoading) || !currentFile.content.trim()}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 disabled:opacity-40 transition-colors flex-shrink-0"
-                  title={t("editor.aiExplainTooltip")}
-                >
-                  {aiLoading === "explain" ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
-                  )}
-                  <span>{t("editor.aiExplain")}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      setAiLoading("refactor");
-                      await onTriggerAI("refactor", files, currentFile);
-                    } catch (e: any) {
-                      if (e?.code !== "AI_KEY_REQUIRED" && !e?.message?.includes("AI_KEY_REQUIRED") && !e?.message?.includes("AI API ключ не настроен")) {
-                        alert(e.message);
-                      }
-                    } finally {
-                      setAiLoading(null);
-                    }
-                  }}
-                  disabled={Boolean(aiLoading) || !currentFile.content.trim()}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-40 transition-colors flex-shrink-0"
-                  title={t("editor.aiRefactorTooltip")}
-                >
-                  {aiLoading === "refactor" ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Wand2 className="w-3.5 h-3.5" />
-                  )}
-                  <span>{t("editor.aiRefactor")}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      setAiLoading("document");
-                      await onTriggerAI("document", files, currentFile);
-                    } catch (e: any) {
-                      if (e?.code !== "AI_KEY_REQUIRED" && !e?.message?.includes("AI_KEY_REQUIRED") && !e?.message?.includes("AI API ключ не настроен")) {
-                        alert(e.message);
-                      }
-                    } finally {
-                      setAiLoading(null);
-                    }
-                  }}
-                  disabled={Boolean(aiLoading) || !currentFile.content.trim()}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-amber-400 hover:bg-amber-500/10 disabled:opacity-40 transition-colors flex-shrink-0"
-                  title={t("editor.aiDocumentTooltip")}
-                >
-                  {aiLoading === "document" ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Code className="w-3.5 h-3.5" />
-                  )}
-                  <span>{t("editor.aiDocument")}</span>
-                </button>
-
                 <button
                   type="button"
                   onClick={() => setIsPlaygroundOpen(true)}
@@ -858,6 +781,17 @@ export function SnippetEditorModal({
               minHeight="220px"
               maxHeight="48vh"
             />
+
+            {/* AI Code Assistant Block */}
+            <div className="mt-3">
+              <AICodeAssistantBlock
+                code={currentFile.content}
+                language={currentFile.language}
+                onApplyCode={(newCode) => {
+                  handleCodeChange(newCode);
+                }}
+              />
+            </div>
           </div>
         </div>
 
