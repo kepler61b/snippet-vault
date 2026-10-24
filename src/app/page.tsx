@@ -16,7 +16,6 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
-  Terminal,
   X,
 } from "lucide-react";
 import {
@@ -44,7 +43,7 @@ import { AdminModal } from "@/components/AdminModal";
 import { APP_CONFIG } from "@/lib/version";
 
 export default function HomePage() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const sortOptions = useMemo(() => getLocalizedSortOptions(t), [t]);
 
   const [snippets, setSnippets] = useState<SnippetItem[]>([]);
@@ -851,36 +850,23 @@ export default function HomePage() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-900 bg-zinc-950 py-5 sm:py-6 text-center text-xs text-zinc-500 safe-bottom">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className="border-t border-zinc-900 bg-zinc-950 pt-5 pb-8 sm:pt-6 sm:pb-9 text-center text-xs text-zinc-500">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <Terminal className="w-3.5 h-3.5 text-violet-500" />
+            <img src="/logo.png" alt="SnippetVault" className="w-4 h-4 object-contain select-none" />
             <span className="font-semibold text-zinc-400">SnippetVault</span>
             <span>— {t("sidebar.footerDesc")}</span>
           </div>
-          <div className="flex items-center gap-3 text-[11px] text-zinc-500 flex-wrap justify-center">
-            <div>
-              {locale === "ru" ? (
-                <>
-                  Нажмите <kbd className="px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 font-mono text-[10px]">Ctrl+K</kbd> для командной строки
-                </>
-              ) : (
-                <>
-                  Press <kbd className="px-1.5 py-0.5 bg-zinc-900 rounded border border-zinc-800 font-mono text-[10px]">Ctrl+K</kbd> for command palette
-                </>
-              )}
-            </div>
-            <span className="text-zinc-700 hidden sm:inline">•</span>
-            <a
-              href="https://github.com/scfmcdck"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-zinc-400 hover:text-violet-400 transition-colors font-medium hover:underline underline-offset-4 flex items-center gap-1 group"
-            >
-              <span>{t("sidebar.madeBy")}</span>
-              <span className="font-semibold text-zinc-300 group-hover:text-violet-300">scfmcdck</span>
-            </a>
-          </div>
+          <span className="text-zinc-700 hidden sm:inline">•</span>
+          <a
+            href="https://github.com/scfmcdck"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-zinc-400 hover:text-violet-400 transition-colors font-medium hover:underline underline-offset-4 flex items-center gap-1 group text-[11px] sm:text-xs"
+          >
+            <span>{t("sidebar.madeBy")}</span>
+            <span className="font-semibold text-zinc-300 group-hover:text-violet-300">scfmcdck</span>
+          </a>
         </div>
       </footer>
 

@@ -12,7 +12,6 @@ import {
   Lock,
   Mail,
   ShieldCheck,
-  Terminal,
 } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { APP_CONFIG } from "@/lib/version";
@@ -192,8 +191,12 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative z-10 space-y-5 sm:space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-sky-500 text-white shadow-xl shadow-indigo-500/25 mb-1">
-            <Terminal className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <div className="inline-block mb-1">
+            <img
+              src="/logo.png"
+              alt="SnippetVault"
+              className="w-14 h-14 sm:w-16 sm:h-16 object-contain mx-auto select-none drop-shadow-[0_4px_16px_rgba(56,189,248,0.3)]"
+            />
           </div>
           <div className="flex items-center justify-center gap-1.5 sm:gap-2">
             <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">

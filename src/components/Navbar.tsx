@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Plus, Search, ShieldCheck, Terminal } from "lucide-react";
+import { Plus, Search, ShieldCheck } from "lucide-react";
 import { APP_CONFIG } from "@/lib/version";
 import { useI18n } from "@/lib/i18n";
 
@@ -38,9 +38,11 @@ export function Navbar({
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-sky-500 shadow-md sm:shadow-lg shadow-indigo-500/20 text-white font-mono font-bold text-sm sm:text-lg shrink-0">
-            <Terminal className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="SnippetVault"
+            className="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0 select-none drop-shadow-[0_2px_8px_rgba(56,189,248,0.2)]"
+          />
           <div className="min-w-0">
             <div className="flex items-center gap-1 sm:gap-2">
               <span className="font-bold text-sm sm:text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent truncate">

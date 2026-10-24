@@ -11,7 +11,11 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/snippets/share") ||
     pathname.startsWith("/s/") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.ico" ||
+    pathname === "/logo.png" ||
+    pathname === "/icon.png" ||
+    pathname === "/apple-icon.png" ||
+    /\.(?:png|jpg|jpeg|gif|webp|svg|ico)$/i.test(pathname)
   ) {
     return NextResponse.next();
   }
@@ -51,5 +55,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

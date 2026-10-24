@@ -1,6 +1,6 @@
 export const APP_CONFIG = {
   name: "SnippetVault",
-  version: process.env.NEXT_PUBLIC_APP_VERSION || "0.6.2",
+  version: process.env.NEXT_PUBLIC_APP_VERSION || "0.6.3",
   env: (process.env.NEXT_PUBLIC_APP_ENV === "prod" ? "prod" : "dev") as "dev" | "prod",
   description: "Локальное хранилище сниппетов кода",
   author: "scfmcdck",

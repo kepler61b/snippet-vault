@@ -10,7 +10,6 @@ import {
   Download,
   FileCode,
   Share2,
-  Terminal,
   Play,
 } from "lucide-react";
 import { SnippetItem } from "@/types/snippet";
@@ -84,9 +83,11 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
       <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md sticky top-0 z-30 safe-top">
         <div className="max-w-5xl mx-auto px-3.5 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
           <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group min-w-0">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-500/20 shrink-0">
-              <Terminal className="w-4 h-4" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="SnippetVault"
+              className="w-8 h-8 object-contain shrink-0 select-none drop-shadow-[0_2px_8px_rgba(56,189,248,0.2)]"
+            />
             <span className="font-bold text-sm sm:text-base tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent group-hover:from-white group-hover:to-zinc-200 transition-all truncate">
               SnippetVault
             </span>

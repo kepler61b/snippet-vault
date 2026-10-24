@@ -25,6 +25,13 @@ export const metadata: Metadata = {
   title: "SnippetVault — Локальное хранилище сниппетов кода",
   description:
     "Современный веб-сервис для хранения, поиска, экспорта и анализа фрагментов кода с поддержкой мульти-файлов, синтаксической подсветки и AI.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({

@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.6.2-blue.svg" alt="Version 0.6.2" />
+  <img src="https://img.shields.io/badge/version-0.6.3-blue.svg" alt="Version 0.6.3" />
   <img src="https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white" alt="Docker Ready" />
   <img src="https://img.shields.io/badge/database-SQLite-003B57.svg?logo=sqlite&logoColor=white" alt="SQLite" />
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License MIT" />
