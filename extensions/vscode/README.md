@@ -15,7 +15,7 @@ Official Visual Studio Code extension for [SnippetVault](https://github.com/kepl
 ## Getting Started
 
 1. Open SnippetVault in your browser.
-2. Go to **Settings > Profile > Personal Access Tokens (PAT)**.
+2. Go to **Settings > Integrations > Personal Access Tokens (PAT)**.
 3. Click **Generate New Token** and copy the generated token (`sv_pat_...`).
 4. In VS Code, open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) and run:
    ```text
