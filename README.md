@@ -66,7 +66,7 @@
 
 ```bash
 # 1. Клонируйте репозиторий
-git clone https://github.com/scfmcdck/snippet-vault.git
+git clone https://github.com/kepler61b/snippet-vault.git
 cd snippet-vault
 
 # 2. Установите зависимости
@@ -93,7 +93,7 @@ docker run -d \
   --restart unless-stopped \
   -p 3000:3000 \
   -v $(pwd)/data:/app/data \
-  scfmcdck/snippet-vault:latest
+  kepler61b/snippet-vault:latest
 ```
 
 #### Запуск через `docker-compose.yml`:
@@ -101,7 +101,7 @@ docker run -d \
 ```yaml
 services:
   snippetvault:
-    image: scfmcdck/snippet-vault:latest
+    image: kepler61b/snippet-vault:latest
     container_name: snippetvault
     restart: unless-stopped
     ports:
@@ -141,7 +141,7 @@ docker compose up -d
 ```yaml
 services:
   snippetvault:
-    image: scfmcdck/snippet-vault:latest
+    image: kepler61b/snippet-vault:latest
     container_name: snippetvault
     restart: unless-stopped
     ports:

@@ -1,7 +1,7 @@
 # Инструкция по развертыванию SnippetVault на Synology NAS
 
 Официальный Docker-образ SnippetVault опубликован в Docker Hub:
-- **`scfmcdck/snippet-vault:latest`** (или `scfmcdck/snippetvault:latest`)
+- **`kepler61b/snippet-vault:latest`** (или `kepler61b/snippetvault:latest`)
 
 ---
 
@@ -29,7 +29,7 @@
 ```yaml
 services:
   snippetvault:
-    image: scfmcdck/snippet-vault:latest
+    image: kepler61b/snippet-vault:latest
     container_name: snippetvault
     restart: unless-stopped
     ports:
@@ -78,7 +78,7 @@ services:
    cat << 'EOF' > docker-compose.yml
    services:
      snippetvault:
-       image: scfmcdck/snippet-vault:latest
+       image: kepler61b/snippet-vault:latest
        container_name: snippetvault
        restart: unless-stopped
        ports:

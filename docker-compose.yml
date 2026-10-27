@@ -1,6 +1,6 @@
 services:
   snippetvault:
-    image: scfmcdck/snippet-vault:latest
+    image: kepler61b/snippet-vault:latest
     container_name: snippetvault
     restart: unless-stopped
     ports:
