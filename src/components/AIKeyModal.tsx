@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { Bot, Settings, Sparkles, X } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 
 interface AIKeyModalProps {
   isOpen: boolean;
@@ -12,6 +13,9 @@ interface AIKeyModalProps {
 
 export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
   const { t, locale } = useI18n();
+
+  // Prevent background scrolling while modal is open
+  useLockBodyScroll(isOpen);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -27,12 +31,12 @@ export function AIKeyModal({ isOpen, onClose, onConfigure }: AIKeyModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6 shadow-2xl shadow-violet-950/20 animate-modal-content space-y-5">
+      <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6 shadow-2xl shadow-violet-950/20 animate-modal-content space-y-5 touch-auto">
         {/* Close Button */}
         <button
           type="button"

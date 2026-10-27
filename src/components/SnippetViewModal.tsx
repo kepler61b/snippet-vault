@@ -28,6 +28,7 @@ import { MarkdownPreview } from "./MarkdownPreview";
 import { SnippetRevisionsModal } from "./SnippetRevisionsModal";
 import { CodePlaygroundModal } from "./CodePlaygroundModal";
 import { AICodeAssistantBlock } from "./AICodeAssistantBlock";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 
 interface SnippetViewModalProps {
   isOpen: boolean;
@@ -55,6 +56,9 @@ export function SnippetViewModal({
   onSnippetUpdated,
 }: SnippetViewModalProps) {
   const { t, locale, tFilesCount } = useI18n();
+
+  // Prevent background scrolling while modal is open
+  useLockBodyScroll(isOpen);
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
@@ -205,7 +209,7 @@ export function SnippetViewModal({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
       <div
         ref={dialogRef}
         style={{
@@ -214,7 +218,7 @@ export function SnippetViewModal({
             ? "height 0.32s cubic-bezier(0.16, 1, 0.3, 1)"
             : undefined,
         }}
-        className="relative w-full max-w-5xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content will-change-[height] safe-top"
+        className="relative w-full max-w-5xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content will-change-[height] safe-top touch-auto"
       >
         {/* Header */}
         <div
@@ -347,7 +351,7 @@ export function SnippetViewModal({
         {/* Content Body */}
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto min-h-0"
+          className="flex-1 overflow-y-auto min-h-0 overscroll-contain"
         >
           <div
             ref={innerContentRef}

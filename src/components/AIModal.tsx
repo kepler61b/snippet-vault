@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Check, Copy, Sparkles, X } from "lucide-react";
 import { CodeBlock } from "./CodeBlock";
 import { useI18n } from "@/lib/i18n";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 
 interface AIModalProps {
   isOpen: boolean;
@@ -27,6 +28,9 @@ export function AIModal({
   const { t, locale } = useI18n();
   const [copied, setCopied] = useState(false);
 
+  // Prevent background scrolling while modal is open
+  useLockBodyScroll(isOpen);
+
   if (!isOpen) return null;
 
   const handleCopy = async () => {
@@ -49,8 +53,8 @@ export function AIModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative w-full max-w-3xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[85vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
+      <div className="relative w-full max-w-3xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[85vh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top touch-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -74,7 +78,7 @@ export function AIModal({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3 sm:space-y-4 text-xs sm:text-sm text-zinc-200">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6 space-y-3 sm:space-y-4 text-xs sm:text-sm text-zinc-200">
           {extractedCode && (type === "refactor" || type === "document") ? (
             <div className="space-y-3 sm:space-y-4">
               <div className="space-y-1">

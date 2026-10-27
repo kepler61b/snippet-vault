@@ -25,6 +25,7 @@ import {
 import { SUPPORTED_LANGUAGES } from "@/lib/languages";
 import { CustomSelect, CustomSelectOption } from "./ui/CustomSelect";
 import { useI18n } from "@/lib/i18n";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 
 interface CollectionModalProps {
   isOpen: boolean;
@@ -58,6 +59,9 @@ export function CollectionModal({
 }: CollectionModalProps) {
   const { t } = useI18n();
   const isEditing = Boolean(collection);
+
+  // Prevent background scrolling while modal is open
+  useLockBodyScroll(isOpen);
 
   // Basic Info
   const [name, setName] = useState(collection?.name || "");
@@ -112,12 +116,20 @@ export function CollectionModal({
     );
     if (contentH === 0) return;
 
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+    const viewportH = isMobile ? window.innerHeight : (window.visualViewport?.height || window.innerHeight);
+    const maxH = isMobile ? viewportH * 0.96 : viewportH * 0.90;
+
+    if (isMobile) {
+      // On mobile smartphones, default to full comfortable modal height (maxH)
+      // to keep "Regular folder" at proper size and prevent awkward dynamic shrinking
+      setModalHeight(Math.round(maxH));
+      return;
+    }
+
     // Add +2px safety buffer to avoid subpixel clipping
     const targetH = headerH + contentH + footerH + 2;
-    const viewportH = window.visualViewport?.height || window.innerHeight;
-    const isMobile = window.innerWidth < 640;
-    const maxH = isMobile ? viewportH * 0.96 : viewportH * 0.90;
-    const minH = isMobile ? 300 : 340;
+    const minH = 340;
     const finalH = Math.min(maxH, Math.max(minH, targetH));
     setModalHeight(Math.round(finalH));
   }, []);
@@ -428,16 +440,17 @@ export function CollectionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
       <div
         ref={dialogRef}
         style={{
           height: modalHeight ? `${modalHeight}px` : undefined,
-          transition: hasTransition
-            ? "height 0.32s cubic-bezier(0.16, 1, 0.3, 1)"
-            : undefined,
+          transition:
+            hasTransition && (typeof window === "undefined" || window.innerWidth >= 640)
+              ? "height 0.32s cubic-bezier(0.16, 1, 0.3, 1)"
+              : undefined,
         }}
-        className="relative w-full max-w-xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90vh] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height] safe-top"
+        className="relative w-full max-w-xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90vh] rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height] safe-top touch-auto"
       >
         {/* Header */}
         <div
@@ -591,7 +604,7 @@ export function CollectionModal({
               <input
                 type="text"
                 required
-                autoFocus
+                autoFocus={typeof window !== "undefined" && window.innerWidth >= 640}
                 placeholder={t("collection.namePlaceholder")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}

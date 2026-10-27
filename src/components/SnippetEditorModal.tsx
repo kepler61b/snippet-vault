@@ -32,6 +32,7 @@ import { CodeEditor } from "@/components/CodeEditor";
 import { MarkdownPreview } from "@/components/MarkdownPreview";
 import { CodePlaygroundModal } from "@/components/CodePlaygroundModal";
 import { AICodeAssistantBlock } from "@/components/AICodeAssistantBlock";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 
 interface SnippetEditorModalProps {
   isOpen: boolean;
@@ -62,6 +63,9 @@ export function SnippetEditorModal({
 }: SnippetEditorModalProps) {
   const { t, tFilesCount, locale } = useI18n();
   const isEditing = Boolean(snippet);
+
+  // Prevent background scrolling while modal is open
+  useLockBodyScroll(isOpen);
 
   const [localCollections, setLocalCollections] = useState<CollectionItem[]>(collections);
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
@@ -393,8 +397,8 @@ export function SnippetEditorModal({
   }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative w-full max-w-5xl h-[100dvh] sm:h-[92vh] max-h-[100dvh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
+      <div className="relative w-full max-w-5xl h-[100dvh] sm:h-[92vh] max-h-[100dvh] flex flex-col rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top touch-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-4 border-b border-zinc-800 bg-zinc-900/70">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -437,7 +441,7 @@ export function SnippetEditorModal({
         </div>
 
         {/* Form Body */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3.5 sm:space-y-5">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6 space-y-3.5 sm:space-y-5">
           {/* Metadata Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
             <div className="md:col-span-2 space-y-1.5">

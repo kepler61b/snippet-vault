@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { SnippetItem, SnippetFileItem } from "@/types/snippet";
 import { DiffViewer } from "./DiffViewer";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 import { useI18n } from "@/lib/i18n";
 
 interface RevisionItem {
@@ -41,6 +42,9 @@ export function SnippetRevisionsModal({
   onSnippetRestored,
 }: SnippetRevisionsModalProps) {
   const { t, locale } = useI18n();
+
+  // Prevent background scrolling while modal is open
+  useLockBodyScroll(isOpen);
   const [revisions, setRevisions] = useState<RevisionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRevisionId, setSelectedRevisionId] = useState<string | null>(null);
@@ -134,8 +138,8 @@ export function SnippetRevisionsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative flex flex-col w-full max-w-5xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[88vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
+      <div className="relative flex flex-col w-full max-w-5xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[88vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top touch-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-zinc-800 bg-zinc-900/80">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -185,7 +189,7 @@ export function SnippetRevisionsModal({
         {/* Content Body */}
         <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-zinc-950">
           {/* Left Column: Revision list */}
-          <div className="w-full md:w-72 lg:w-80 border-b md:border-b-0 md:border-r border-zinc-800 bg-zinc-900/40 flex flex-col shrink-0 max-h-[200px] md:max-h-none overflow-y-auto">
+          <div className="w-full md:w-72 lg:w-80 border-b md:border-b-0 md:border-r border-zinc-800 bg-zinc-900/40 flex flex-col shrink-0 max-h-[200px] md:max-h-none overflow-y-auto overscroll-contain">
             <div className="px-3.5 py-2.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-b border-zinc-800/60 flex items-center justify-between">
               <span>{locale === "ru" ? "Сохраненные ревизии" : "Saved Revisions"}</span>
               <span className="text-zinc-500">{revisions.length}</span>
@@ -214,7 +218,7 @@ export function SnippetRevisionsModal({
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-zinc-800/40 overflow-y-auto">
+              <div className="divide-y divide-zinc-800/40 overflow-y-auto overscroll-contain">
                 {revisions.map((rev, idx) => {
                   const isSelected = rev.id === selectedRevisionId;
                   return (
@@ -290,7 +294,7 @@ export function SnippetRevisionsModal({
                 </div>
 
                 {/* Diff Viewer Component */}
-                <div className="flex-1 p-3 sm:p-4 overflow-y-auto">
+                <div className="flex-1 p-3 sm:p-4 overflow-y-auto overscroll-contain">
                   <DiffViewer
                     oldContent={currentOldFile?.content || ""}
                     newContent={currentNewFile?.content || ""}

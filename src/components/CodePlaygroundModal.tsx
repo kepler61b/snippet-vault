@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { SnippetFileItem } from "@/types/snippet";
 import { useI18n } from "@/lib/i18n";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 
 interface CodePlaygroundModalProps {
   isOpen: boolean;
@@ -38,6 +39,10 @@ export function CodePlaygroundModal({
   initialFileIndex = 0,
 }: CodePlaygroundModalProps) {
   const { t } = useI18n();
+
+  // Prevent background scrolling while modal is open
+  useLockBodyScroll(isOpen);
+
   const [activeFileIndex, setActiveFileIndex] = useState(initialFileIndex);
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<OutputLog[]>([]);
@@ -337,8 +342,8 @@ export function CodePlaygroundModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative flex flex-col w-full max-w-4xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[88vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
+      <div className="relative flex flex-col w-full max-w-4xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[88vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top touch-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-zinc-800 bg-zinc-900/80">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -457,7 +462,7 @@ export function CodePlaygroundModal({
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Terminal Logs */}
-              <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-1.5 font-mono text-xs select-text">
+              <div className="flex-1 p-3 sm:p-4 overflow-y-auto overscroll-contain space-y-1.5 font-mono text-xs select-text">
                 {logs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-zinc-500 py-12 text-center">
                     <Terminal className="w-8 h-8 mb-2 opacity-40 text-zinc-400" />

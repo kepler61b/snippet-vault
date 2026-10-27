@@ -21,6 +21,7 @@ import { getLanguageMeta } from "@/lib/languages";
 import { CollectionItem } from "@/types/snippet";
 import { CollectionIcon } from "@/lib/collection-icons";
 import { useI18n } from "@/lib/i18n";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 
 interface SidebarProps {
   totalCount: number;
@@ -68,6 +69,9 @@ export function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const { t } = useI18n();
+
+  // Prevent background scrolling while mobile sidebar drawer is open
+  useLockBodyScroll(Boolean(isMobileOpen));
 
   // Track expanded folder nodes in folder tree
   const [collapsedFolderIds, setCollapsedFolderIds] = useState<Set<string>>(new Set());
@@ -521,11 +525,11 @@ export function Sidebar({
       {isMobileOpen && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm lg:hidden flex justify-start animate-modal-backdrop"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm lg:hidden flex justify-start animate-modal-backdrop touch-none"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-[85vw] max-w-xs h-full bg-zinc-950 border-r border-zinc-800 p-4 sm:p-5 overflow-y-auto shadow-2xl animate-drawer safe-top safe-bottom"
+            className="w-[85vw] max-w-xs h-full bg-zinc-950 border-r border-zinc-800 p-4 sm:p-5 overflow-y-auto overscroll-contain shadow-2xl animate-drawer safe-top safe-bottom touch-auto"
           >
             {content}
           </div>

@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 
 interface UserItem {
   id: string;
@@ -63,6 +64,10 @@ export function AdminModal({
   onUserChanged,
 }: AdminModalProps) {
   const { t, locale, tSnippetsCount } = useI18n();
+
+  // Prevent background scrolling while modal is open
+  useLockBodyScroll(isOpen);
+
   const [activeTab, setActiveTab] = useState<"users" | "settings">("users");
 
   // Users state
@@ -310,8 +315,8 @@ export function AdminModal({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-      <div className="relative w-full max-w-4xl h-[100dvh] sm:h-[90vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content safe-top">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
+      <div className="relative w-full max-w-4xl h-[100dvh] sm:h-[90vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content safe-top touch-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-800 bg-zinc-900/60 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -410,7 +415,7 @@ export function AdminModal({
         )}
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-3.5 sm:p-6 space-y-4">
           {/* TAB 1: USERS */}
           {activeTab === "users" && (
             <div className="space-y-4">
@@ -735,8 +740,8 @@ export function AdminModal({
 
       {/* MODAL: CREATE USER */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-          <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6 shadow-2xl flex flex-col gap-4 animate-modal-content">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
+          <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6 shadow-2xl flex flex-col gap-4 animate-modal-content touch-auto">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-violet-600/20 text-violet-400 flex items-center justify-center">
@@ -859,8 +864,8 @@ export function AdminModal({
 
       {/* MODAL: RESET PASSWORD */}
       {resetTargetUser && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-          <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6 shadow-2xl flex flex-col gap-4 animate-modal-content">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
+          <div className="relative w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-6 shadow-2xl flex flex-col gap-4 animate-modal-content touch-auto">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center">
@@ -928,8 +933,8 @@ export function AdminModal({
 
       {/* MODAL: DELETE CONFIRMATION */}
       {deleteTargetUser && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
-          <div className="relative w-full max-w-md rounded-2xl border border-rose-500/30 bg-zinc-950 p-5 sm:p-6 shadow-2xl flex flex-col gap-4 animate-modal-content">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
+          <div className="relative w-full max-w-md rounded-2xl border border-rose-500/30 bg-zinc-950 p-5 sm:p-6 shadow-2xl flex flex-col gap-4 animate-modal-content touch-auto">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 text-rose-400">
                 <Trash2 className="w-5 h-5" />

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { SnippetItem } from "@/types/snippet";
 import { useI18n } from "@/lib/i18n";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -42,6 +43,10 @@ export function CommandPalette({
   currentUser,
 }: CommandPaletteProps) {
   const { t } = useI18n();
+
+  // Prevent background scrolling while modal is open
+  useLockBodyScroll(isOpen);
+
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -172,11 +177,11 @@ export function CommandPalette({
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-1.5 sm:pt-20 p-1.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop safe-top"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-1.5 sm:pt-20 p-1.5 sm:p-4 bg-black/80 backdrop-blur-sm animate-modal-backdrop safe-top touch-none"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-2xl max-h-[96dvh] sm:max-h-[88vh] rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content"
+        className="w-full max-w-2xl max-h-[96dvh] sm:max-h-[88vh] rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content touch-auto"
       >
         {/* Search Input Bar */}
         <div className="flex items-center px-3 sm:px-4 border-b border-zinc-800 bg-zinc-900/60">
@@ -204,7 +209,7 @@ export function CommandPalette({
         </div>
 
         {/* List of results */}
-        <div className="max-h-[75vh] sm:max-h-96 overflow-y-auto p-2 space-y-1">
+        <div className="max-h-[75vh] sm:max-h-96 overflow-y-auto overscroll-contain p-2 space-y-1">
           {/* Actions section */}
           {!query && (
             <div className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">

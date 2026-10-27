@@ -21,6 +21,13 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Prevent background scrolling when modal is open */
+html.modal-open,
+body.modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
 /* Touch targets and interactions */
 button, a, input, select, textarea {
   touch-action: manipulation;

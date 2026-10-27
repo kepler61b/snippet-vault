@@ -43,6 +43,7 @@ import { ViewMode, SortOption, SORT_OPTIONS, CollectionItem } from "@/types/snip
 import { CollectionIcon } from "@/lib/collection-icons";
 import { CustomSelect, CustomSelectOption } from "@/components/ui/CustomSelect";
 import { useI18n, Locale, getLocalizedSortOptions } from "@/lib/i18n";
+import { useLockBodyScroll } from "@/lib/useLockBodyScroll";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -70,6 +71,9 @@ export function SettingsModal({
 }: SettingsModalProps) {
   const router = useRouter();
   const { t, locale, setLocale } = useI18n();
+
+  // Prevent background scrolling while modal is open
+  useLockBodyScroll(isOpen);
 
   // Active Tab: "general" | "profile" | "security" | "ai" | "data"
   const [activeTab, setActiveTab] = useState<"general" | "profile" | "security" | "ai" | "data">(
@@ -897,7 +901,7 @@ export function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop touch-none">
       <div
         ref={dialogRef}
         style={{
@@ -906,7 +910,7 @@ export function SettingsModal({
             ? "height 0.32s cubic-bezier(0.16, 1, 0.3, 1)"
             : undefined,
         }}
-        className="relative w-full max-w-2xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height] safe-top"
+        className="relative w-full max-w-2xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height] safe-top touch-auto"
       >
         {/* Header */}
         <div
@@ -1009,7 +1013,7 @@ export function SettingsModal({
         {/* Tab Contents */}
         <div
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0"
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 overscroll-contain"
         >
           <div
             ref={innerContentRef}
@@ -2196,13 +2200,13 @@ export function SettingsModal({
       {/* Confirmation Modal for Clearing Database */}
       {showClearConfirm && (
         <div
-          className={`fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm ${
+          className={`fixed inset-0 z-[70] flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm touch-none ${
             isClosingClearConfirm ? "animate-modal-backdrop-out" : "animate-modal-backdrop"
           }`}
           onClick={handleCloseClearConfirm}
         >
           <div
-            className={`relative w-full max-w-md rounded-xl sm:rounded-2xl border border-rose-500/30 bg-zinc-950 p-4 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 ${
+            className={`relative w-full max-w-md rounded-xl sm:rounded-2xl border border-rose-500/30 bg-zinc-950 p-4 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 touch-auto ${
               isClosingClearConfirm ? "animate-modal-content-out" : "animate-modal-content"
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -2254,13 +2258,13 @@ export function SettingsModal({
       {/* Confirmation Modal for Logout */}
       {showLogoutConfirm && (
         <div
-          className={`fixed inset-0 z-[75] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm ${
+          className={`fixed inset-0 z-[75] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm touch-none ${
             isClosingLogoutConfirm ? "animate-modal-backdrop-out" : "animate-modal-backdrop"
           }`}
           onClick={handleCloseLogoutConfirm}
         >
           <div
-            className={`relative w-full max-w-md rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-4 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 ${
+            className={`relative w-full max-w-md rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-950 p-4 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 touch-auto ${
               isClosingLogoutConfirm ? "animate-modal-content-out" : "animate-modal-content"
             }`}
             onClick={(e) => e.stopPropagation()}
