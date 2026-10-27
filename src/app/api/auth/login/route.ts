@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { verifyPassword, signToken, setSessionCookie, hashPassword } from "@/lib/auth";
 import { ensureSeedSnippets } from "@/lib/seed";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,9 +31,14 @@ export async function POST(request: NextRequest) {
               name: "Администратор",
               role: "ADMIN",
               passwordHash: hashPassword(password),
+              tokenVersion: 0,
             },
           });
-          const token = await signToken({ userId: newAdmin.id, email: newAdmin.email });
+          const token = await signToken({
+            userId: newAdmin.id,
+            email: newAdmin.email,
+            tokenVersion: newAdmin.tokenVersion ?? 0,
+          });
           await setSessionCookie(token, request);
           return NextResponse.json({
             success: true,
@@ -54,6 +60,15 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
+      logAuditEvent({
+        event: "AUTH_LOGIN_FAIL",
+        category: "AUTH",
+        status: "FAILURE",
+        actorEmail: cleanEmail,
+        details: "Пользователь не найден",
+        request,
+      }).catch(() => {});
+
       return NextResponse.json(
         { success: false, error: "Неверный email или пароль" },
         { status: 401 }
@@ -61,6 +76,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (user.isBanned) {
+      logAuditEvent({
+        event: "AUTH_LOGIN_FAIL",
+        category: "AUTH",
+        status: "FAILURE",
+        actorId: user.id,
+        actorEmail: user.email,
+        details: "Попытка входа в заблокированный аккаунт",
+        request,
+      }).catch(() => {});
+
       return NextResponse.json(
         { success: false, error: "Ваш аккаунт заблокирован администратором" },
         { status: 403 }
@@ -69,6 +94,16 @@ export async function POST(request: NextRequest) {
 
     const isMatch = verifyPassword(password, user.passwordHash);
     if (!isMatch) {
+      logAuditEvent({
+        event: "AUTH_LOGIN_FAIL",
+        category: "AUTH",
+        status: "FAILURE",
+        actorId: user.id,
+        actorEmail: user.email,
+        details: "Неверный пароль",
+        request,
+      }).catch(() => {});
+
       return NextResponse.json(
         { success: false, error: "Неверный email или пароль" },
         { status: 401 }
@@ -90,8 +125,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Direct login
-    const token = await signToken({ userId: user.id, email: user.email });
+    const token = await signToken({
+      userId: user.id,
+      email: user.email,
+      tokenVersion: user.tokenVersion ?? 0,
+    });
     await setSessionCookie(token, request);
+
+    logAuditEvent({
+      event: "AUTH_LOGIN_SUCCESS",
+      category: "AUTH",
+      status: "SUCCESS",
+      actorId: user.id,
+      actorEmail: user.email,
+      details: "Успешная авторизация по паролю",
+      request,
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,

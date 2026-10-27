@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { rebuildFtsIndex } from "@/lib/fts";
+import { notifyDataChange } from "@/lib/sync-events";
+import { getCollectionBreadcrumbPath } from "@/lib/collections";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +29,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize snippets and collections arrays
+    // 1. Normalize snippets and collections arrays
     let incomingCollections: any[] = [];
     let incomingSnippets: any[] = [];
 
@@ -45,56 +47,177 @@ export async function POST(request: NextRequest) {
       if (payload.collections && Array.isArray(payload.collections)) {
         incomingCollections = payload.collections;
       }
+    } else if (payload.collections && Array.isArray(payload.collections) && !payload.snippets) {
+      // Pure collections backup
+      incomingCollections = payload.collections;
     } else {
       return NextResponse.json(
         {
           success: false,
-          error: "Формат файла не распознан. Ожидается экспорт SnippetVault с массивом сниппетов.",
+          error: "Формат файла не распознан. Ожидается экспорт SnippetVault с массивом сниппетов или коллекций.",
         },
         { status: 400 }
       );
     }
 
-    // 1. Fetch user's existing collections
+    // 2. Fetch existing collections of this user
     const existingCollections = await prisma.collection.findMany({
       where: { userId: user.id },
     });
 
-    const collectionMap = new Map<string, string>();
-    existingCollections.forEach((c) => {
-      collectionMap.set(c.name.trim().toLowerCase(), c.id);
-    });
+    const existingColMap = new Map(
+      existingCollections.map((c) => [c.id, { id: c.id, name: c.name, parentId: c.parentId }])
+    );
+
+    // Build lookup maps for existing collections
+    const existingByPath = new Map<string, string>();
+    const existingByName = new Map<string, string>();
+    const existingSmartByName = new Map<string, string>();
+
+    for (const c of existingCollections) {
+      const path = getCollectionBreadcrumbPath(c.id, existingColMap).toLowerCase();
+      existingByPath.set(path, c.id);
+      existingByName.set(c.name.trim().toLowerCase(), c.id);
+      if (c.isSmart) {
+        existingSmartByName.set(c.name.trim().toLowerCase(), c.id);
+      }
+    }
+
+    // Mappings for incoming collections to DB IDs:
+    const idMap = new Map<string, string>();
+    const pathMap = new Map<string, string>(existingByPath);
+    const nameMap = new Map<string, string>(existingByName);
 
     let importedCollectionsCount = 0;
 
-    // 2. Import / merge collections
-    for (const col of incomingCollections) {
-      if (!col || typeof col.name !== "string" || !col.name.trim()) continue;
+    // 3. Process incoming collections with hierarchy depth resolution
+    const validIncomingCollections = incomingCollections.filter(
+      (c) => c && typeof c === "object" && typeof c.name === "string" && c.name.trim()
+    );
 
-      const normName = col.name.trim().toLowerCase();
-      if (!collectionMap.has(normName)) {
+    // Compute depth for topological sorting (roots first, then children, etc.)
+    const incomingColMap = new Map<string, any>();
+    validIncomingCollections.forEach((c) => {
+      if (c.id) incomingColMap.set(c.id, c);
+    });
+
+    const getDepth = (col: any, visited = new Set<string>()): number => {
+      if (!col.parentId || !incomingColMap.has(col.parentId)) return 0;
+      if (visited.has(col.id)) return 0; // prevent cycle
+      visited.add(col.id);
+      return 1 + getDepth(incomingColMap.get(col.parentId), visited);
+    };
+
+    const sortedCollections = [...validIncomingCollections].sort((a, b) => {
+      const depthA = a.isSmart ? 0 : getDepth(a);
+      const depthB = b.isSmart ? 0 : getDepth(b);
+      return depthA - depthB;
+    });
+
+    // Create / Merge collections level-by-level
+    for (const col of sortedCollections) {
+      const cleanName = col.name.trim();
+      const isSmart = Boolean(col.isSmart);
+
+      // Determine parent DB ID
+      let targetDbParentId: string | null = null;
+      if (!isSmart) {
+        if (col.parentId && idMap.has(col.parentId)) {
+          targetDbParentId = idMap.get(col.parentId)!;
+        } else if (col.parentPath && pathMap.has(col.parentPath.toLowerCase())) {
+          targetDbParentId = pathMap.get(col.parentPath.toLowerCase())!;
+        } else if (col.parentName && nameMap.has(col.parentName.toLowerCase())) {
+          targetDbParentId = nameMap.get(col.parentName.toLowerCase())!;
+        } else if (col.parent?.name && nameMap.has(col.parent.name.toLowerCase())) {
+          targetDbParentId = nameMap.get(col.parent.name.toLowerCase())!;
+        }
+      }
+
+      // Compute intended full path
+      let intendedPath = cleanName;
+      if (col.path && typeof col.path === "string") {
+        intendedPath = col.path.trim();
+      } else if (targetDbParentId) {
+        const parentCol = existingColMap.get(targetDbParentId);
+        if (parentCol) {
+          intendedPath = `${getCollectionBreadcrumbPath(targetDbParentId, existingColMap)} / ${cleanName}`;
+        }
+      }
+
+      const intendedPathKey = intendedPath.toLowerCase();
+
+      // Check if this collection already exists in DB
+      let matchedExistingId: string | null = null;
+      if (isSmart) {
+        matchedExistingId = existingSmartByName.get(cleanName.toLowerCase()) || null;
+      } else {
+        matchedExistingId = pathMap.get(intendedPathKey) || null;
+      }
+
+      if (matchedExistingId) {
+        // Collection already exists -> reuse it and update smart rule / metadata if needed
+        if (col.id) idMap.set(col.id, matchedExistingId);
+        pathMap.set(intendedPathKey, matchedExistingId);
+        nameMap.set(cleanName.toLowerCase(), matchedExistingId);
+
+        try {
+          await prisma.collection.update({
+            where: { id: matchedExistingId },
+            data: {
+              description: col.description?.trim() || undefined,
+              iconType: col.iconType || undefined,
+              iconValue: col.iconValue || undefined,
+              color: col.color || undefined,
+              isSmart,
+              filterRule: col.filterRule
+                ? (typeof col.filterRule === "string" ? col.filterRule : JSON.stringify(col.filterRule))
+                : undefined,
+            },
+          });
+        } catch (e) {
+          console.warn("Could not update existing collection during import:", e);
+        }
+      } else {
+        // Collection does not exist -> create it in the database
         try {
           const created = await prisma.collection.create({
             data: {
               userId: user.id,
-              name: col.name.trim(),
+              name: cleanName,
               description: col.description?.trim() || null,
-              iconType: col.iconType || "lucide",
-              iconValue: col.iconValue || "Folder",
-              color: col.color || "#8b5cf6",
-              isSmart: Boolean(col.isSmart),
-              filterRule: col.filterRule ? (typeof col.filterRule === "string" ? col.filterRule : JSON.stringify(col.filterRule)) : null,
+              iconType: col.iconType || (isSmart ? "lucide" : "lucide"),
+              iconValue: col.iconValue || (isSmart ? "Sparkles" : "Folder"),
+              color: col.color || (isSmart ? "#ec4899" : "#8b5cf6"),
+              parentId: isSmart ? null : targetDbParentId,
+              isSmart,
+              filterRule: col.filterRule
+                ? (typeof col.filterRule === "string" ? col.filterRule : JSON.stringify(col.filterRule))
+                : null,
             },
           });
-          collectionMap.set(normName, created.id);
+
+          // Register created collection into lookup structures
+          existingColMap.set(created.id, {
+            id: created.id,
+            name: created.name,
+            parentId: created.parentId,
+          });
+
+          if (col.id) idMap.set(col.id, created.id);
+          pathMap.set(intendedPathKey, created.id);
+          nameMap.set(cleanName.toLowerCase(), created.id);
+          if (isSmart) {
+            existingSmartByName.set(cleanName.toLowerCase(), created.id);
+          }
+
           importedCollectionsCount++;
-        } catch (e) {
-          console.warn("Error creating collection during import:", e);
+        } catch (err) {
+          console.warn("Error creating collection during import:", err);
         }
       }
     }
 
-    // 3. Import snippets
+    // 4. Import snippets
     let importedSnippetsCount = 0;
 
     for (const snip of incomingSnippets) {
@@ -102,7 +225,9 @@ export async function POST(request: NextRequest) {
 
       const title = (snip.title && String(snip.title).trim()) || "Импортированный сниппет";
       const description = snip.description ? String(snip.description).trim() : null;
-      const visibility = "UNLISTED";
+      const visibility = (snip.visibility && ["PUBLIC", "UNLISTED", "PRIVATE"].includes(snip.visibility))
+        ? snip.visibility
+        : "PUBLIC";
       const isFavorite = Boolean(snip.isFavorite);
       const tags =
         typeof snip.tags === "string"
@@ -111,12 +236,17 @@ export async function POST(request: NextRequest) {
           ? snip.tags.join(", ")
           : "";
 
-      // Determine collection ID
+      // Determine target collection ID
       let targetCollectionId: string | null = null;
-      if (snip.collectionName && typeof snip.collectionName === "string" && snip.collectionName.trim()) {
+
+      if (snip.collectionId && idMap.has(snip.collectionId)) {
+        targetCollectionId = idMap.get(snip.collectionId)!;
+      } else if (snip.collectionPath && pathMap.has(snip.collectionPath.toLowerCase())) {
+        targetCollectionId = pathMap.get(snip.collectionPath.toLowerCase())!;
+      } else if (snip.collectionName && typeof snip.collectionName === "string" && snip.collectionName.trim()) {
         const normColName = snip.collectionName.trim().toLowerCase();
-        if (collectionMap.has(normColName)) {
-          targetCollectionId = collectionMap.get(normColName)!;
+        if (nameMap.has(normColName)) {
+          targetCollectionId = nameMap.get(normColName)!;
         } else {
           // Auto-create collection if not yet created
           try {
@@ -129,7 +259,9 @@ export async function POST(request: NextRequest) {
                 color: "#8b5cf6",
               },
             });
-            collectionMap.set(normColName, created.id);
+            existingColMap.set(created.id, { id: created.id, name: created.name, parentId: null });
+            nameMap.set(normColName, created.id);
+            pathMap.set(normColName, created.id);
             targetCollectionId = created.id;
             importedCollectionsCount++;
           } catch (e) {
@@ -189,13 +321,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 5. Rebuild search index & trigger real-time live sync
     if (importedSnippetsCount > 0) {
       await rebuildFtsIndex();
     }
 
+    notifyDataChange("collections", { userId: user.id });
+    notifyDataChange("snippets", { userId: user.id });
+    notifyDataChange("tags", { userId: user.id });
+
     return NextResponse.json({
       success: true,
-      message: `Импорт завершен: восстановлено ${importedSnippetsCount} ${
+      message: `Импорт завершен: успешно восстановлено ${importedSnippetsCount} ${
         importedSnippetsCount === 1 ? "сниппет" : importedSnippetsCount < 5 ? "сниппета" : "сниппетов"
       }${
         importedCollectionsCount > 0
@@ -203,7 +340,7 @@ export async function POST(request: NextRequest) {
               importedCollectionsCount === 1 ? "коллекция" : "коллекций"
             }`
           : ""
-      }.`,
+      }. Вся вложенность папок и умные коллекции сохранены.`,
       importedSnippets: importedSnippetsCount,
       importedCollections: importedCollectionsCount,
     });

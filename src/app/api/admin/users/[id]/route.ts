@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin, hashPassword } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export async function DELETE(
   request: NextRequest,
@@ -54,6 +55,18 @@ export async function DELETE(
     await prisma.user.delete({
       where: { id: targetId },
     });
+
+    logAuditEvent({
+      event: "ADMIN_USER_DELETE",
+      category: "ADMIN",
+      status: "WARNING",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      targetId: targetUser.id,
+      targetEmail: targetUser.email,
+      details: `Пользователь ${targetUser.email} удален администратором ${admin.email}`,
+      request,
+    }).catch(() => {});
 
     return NextResponse.json({ success: true, message: "Пользователь успешно удален" });
   } catch (error: any) {
@@ -156,6 +169,34 @@ export async function PATCH(
         },
       },
     });
+
+    if (role !== undefined) {
+      logAuditEvent({
+        event: "ADMIN_ROLE_CHANGE",
+        category: "ADMIN",
+        status: "WARNING",
+        actorId: admin.id,
+        actorEmail: admin.email,
+        targetId: updated.id,
+        targetEmail: updated.email,
+        details: `Роль пользователя ${updated.email} изменена на ${role}`,
+        request,
+      }).catch(() => {});
+    }
+
+    if (password) {
+      logAuditEvent({
+        event: "ADMIN_PASSWORD_RESET",
+        category: "SECURITY",
+        status: "WARNING",
+        actorId: admin.id,
+        actorEmail: admin.email,
+        targetId: updated.id,
+        targetEmail: updated.email,
+        details: `Пароль пользователя ${updated.email} сброшен администратором ${admin.email}`,
+        request,
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ success: true, user: updated });
   } catch (error: any) {

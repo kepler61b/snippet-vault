@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for SnippetVault
 ARG NEXT_PUBLIC_APP_ENV=prod
-ARG NEXT_PUBLIC_APP_VERSION=0.7.1
+ARG NEXT_PUBLIC_APP_VERSION=0.8.0
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps

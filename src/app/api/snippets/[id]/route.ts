@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notifyDataChange } from "@/lib/sync-events";
 import { prisma } from "@/lib/db";
 import { detectLanguageFromFilename } from "@/lib/languages";
 import { indexSnippet, deleteSnippetFromFts } from "@/lib/fts";
+import { getCurrentUser } from "@/lib/auth";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const snippet = await prisma.snippet.findUnique({
       where: { id },
@@ -26,6 +33,10 @@ export async function GET(
       );
     }
 
+    if (snippet.userId && snippet.userId !== currentUser.id && snippet.visibility === "PRIVATE") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
     return NextResponse.json({ success: true, snippet });
   } catch (error: any) {
     console.error("Error fetching snippet:", error);
@@ -41,6 +52,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const { title, description, isFavorite, tags, files, collectionId } = body;
@@ -143,6 +159,8 @@ export async function PUT(
     // Update FTS index
     await indexSnippet(id, updated);
 
+    notifyDataChange("snippets", { userId: currentUser.id, action: "updated" });
+
     return NextResponse.json({ success: true, snippet: updated });
   } catch (error: any) {
     console.error("Error updating snippet:", error);
@@ -158,6 +176,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
 
     // Delete child files first to avoid foreign key constraint issues in SQLite
@@ -178,6 +201,8 @@ export async function DELETE(
       update: { value: "true" },
       create: { key: "seed_completed", value: "true" },
     });
+
+    notifyDataChange("snippets", { userId: currentUser.id, action: "deleted" });
 
     return NextResponse.json({ success: true, message: "Snippet deleted" });
   } catch (error: any) {

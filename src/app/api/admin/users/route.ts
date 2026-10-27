@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin, hashPassword } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export async function GET() {
   try {
@@ -25,6 +26,7 @@ export async function GET() {
             snippets: true,
             collections: true,
             passkeys: true,
+            personalAccessTokens: true,
           },
         },
       },
@@ -101,10 +103,23 @@ export async function POST(request: NextRequest) {
             snippets: true,
             collections: true,
             passkeys: true,
+            personalAccessTokens: true,
           },
         },
       },
     });
+
+    logAuditEvent({
+      event: "ADMIN_USER_CREATE",
+      category: "ADMIN",
+      status: "SUCCESS",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      targetId: newUser.id,
+      targetEmail: newUser.email,
+      details: `Создан пользователь ${newUser.email} (роль: ${newUser.role})`,
+      request,
+    }).catch(() => {});
 
     return NextResponse.json({ success: true, user: newUser });
   } catch (error: any) {

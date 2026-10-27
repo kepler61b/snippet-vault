@@ -21,9 +21,14 @@ model User {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
+  tokenVersion     Int          @default(0)
+
   snippets         Snippet[]
   collections      Collection[]
   passkeys         Passkey[]
+  personalAccessTokens PersonalAccessToken[]
+  integrationLogs  IntegrationLog[]
+  auditLogs        AuditLog[]
 
   @@index([email])
   @@index([role])
@@ -135,3 +140,63 @@ model SnippetRevision {
   @@index([snippetId])
   @@index([createdAt])
 }
+
+model PersonalAccessToken {
+  id          String    @id @default(uuid())
+  name        String
+  tokenHash   String    @unique
+  tokenPrefix String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+}
+
+model IntegrationLog {
+  id          String   @id @default(uuid())
+  client      String
+  action      String
+  method      String
+  path        String
+  status      Int
+  details     String?
+  tokenPrefix String?
+  ip          String?
+  userAgent   String?
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  event       String   // e.g. "AUTH_LOGIN", "AUTH_FAILED", "USER_BANNED", "ROLE_CHANGED", "PASSWORD_RESET", "TOKEN_CREATED", "TOKEN_REVOKED", "SESSION_REVOKED", "TRANSFER_OWNERSHIP", etc.
+  category    String   // "AUTH", "SECURITY", "ADMIN", "API"
+  status      String   @default("SUCCESS") // "SUCCESS", "FAILURE", "WARNING", "INFO"
+  actorId     String?
+  actorEmail  String?
+  targetId    String?
+  targetEmail String?
+  ip          String?
+  userAgent   String?
+  details     String?
+  createdAt   DateTime @default(now())
+
+  actor       User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([category])
+  @@index([event])
+  @@index([status])
+  @@index([createdAt])
+  @@index([actorId])
+}
+
+

@@ -7,6 +7,7 @@ export const COOKIE_NAME = "snippetvault_session";
 export interface SessionPayload {
   userId: string;
   email: string;
+  tokenVersion?: number;
   exp: number;
 }
 

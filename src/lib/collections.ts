@@ -1,5 +1,6 @@
 import prisma from "./db";
 import { SmartFilterRule } from "../types/snippet";
+export { getCollectionBreadcrumbPath, type CollectionPathItem } from "./collection-utils";
 
 /**
  * Returns all descendant collection IDs (including rootId).

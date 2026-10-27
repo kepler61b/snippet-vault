@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notifyDataChange } from "@/lib/sync-events";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import {
@@ -83,6 +84,8 @@ export async function PUT(
       updated._count = { snippets: smartCount };
     }
 
+    notifyDataChange("collections", { action: "updated" });
+
     return NextResponse.json({ success: true, collection: updated });
   } catch (error: any) {
     console.error("Error updating collection:", error);
@@ -113,6 +116,9 @@ export async function DELETE(
     await prisma.collection.deleteMany({
       where: { id: { in: allCollectionIds } },
     });
+
+    notifyDataChange("collections", { action: "deleted" });
+    notifyDataChange("snippets", { action: "updated" });
 
     return NextResponse.json({
       success: true,

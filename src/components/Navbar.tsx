@@ -4,14 +4,18 @@ import React from "react";
 import { Plus, Search, ShieldCheck } from "lucide-react";
 import { APP_CONFIG } from "@/lib/version";
 import { useI18n } from "@/lib/i18n";
+import { SyncStatus } from "@/lib/useRealtimeSync";
 
 interface NavbarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onResetToHome?: () => void;
   onOpenCreateModal: () => void;
   onOpenSettingsModal: () => void;
   onOpenCommandPalette: () => void;
   onOpenAdminModal?: () => void;
+  isLiveConnected?: boolean;
+  syncStatus?: SyncStatus;
   currentUser?: {
     id: string;
     email: string;
@@ -23,39 +27,82 @@ interface NavbarProps {
 export function Navbar({
   searchQuery,
   onSearchChange,
+  onResetToHome,
   onOpenCreateModal,
   onOpenSettingsModal,
   onOpenCommandPalette,
   onOpenAdminModal,
+  isLiveConnected,
+  syncStatus,
   currentUser,
 }: NavbarProps) {
   const { t } = useI18n();
   const initial = (currentUser?.name || currentUser?.email || "U")[0].toUpperCase();
   const isAdmin = currentUser?.role === "ADMIN";
 
+  const effectiveSyncStatus: SyncStatus =
+    syncStatus || (isLiveConnected ? "connected" : "reconnecting");
+
+  // Dot color & glow matching real-time connection status:
+  // - Соединение работает: мигает зеленым
+  // - Соединение проблемное: мигает желтым (как сейчас)
+  // - Соединение не установлено: мигает красным
+  const dotColorClass =
+    effectiveSyncStatus === "connected"
+      ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]"
+      : effectiveSyncStatus === "reconnecting"
+      ? "bg-yellow-400 shadow-[0_0_6px_rgba(250,204,21,0.8)]"
+      : "bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.8)]";
+
+  const syncTooltip =
+    effectiveSyncStatus === "connected"
+      ? t("nav.syncConnected")
+      : effectiveSyncStatus === "reconnecting"
+      ? t("nav.syncReconnecting")
+      : t("nav.syncDisconnected");
+
   return (
     <header className="sticky top-0 z-30 w-full border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md safe-top">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
         {/* Brand */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <img
-            src="/logo.png"
-            alt="SnippetVault"
-            className="w-8 h-8 sm:w-9 sm:h-9 object-contain shrink-0 select-none drop-shadow-[0_2px_8px_rgba(56,189,248,0.2)]"
-          />
+          <button
+            type="button"
+            onClick={onResetToHome ? onResetToHome : () => { if (typeof window !== "undefined") window.location.href = "/"; }}
+            className="shrink-0 p-0.5 rounded-xl hover:opacity-90 active:scale-95 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 cursor-pointer"
+            title="SnippetVault — На главную (Все сниппеты)"
+            aria-label="SnippetVault — На главную (Все сниппеты)"
+          >
+            <img
+              src="/logo.png"
+              alt="SnippetVault"
+              className="w-8 h-8 sm:w-9 sm:h-9 object-contain select-none drop-shadow-[0_2px_8px_rgba(56,189,248,0.2)] hover:scale-105 transition-transform"
+            />
+          </button>
           <div className="min-w-0">
             <div className="flex items-center gap-1 sm:gap-2">
-              <span className="font-bold text-sm sm:text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent truncate">
+              <button
+                type="button"
+                onClick={onResetToHome ? onResetToHome : () => { if (typeof window !== "undefined") window.location.href = "/"; }}
+                className="font-bold text-sm sm:text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent hover:from-white hover:to-violet-300 transition-colors truncate text-left focus:outline-none cursor-pointer"
+                title="SnippetVault — На главную (Все сниппеты)"
+              >
                 SnippetVault
-              </span>
+              </button>
               {APP_CONFIG.env === "prod" ? (
-                <span className="inline-flex items-center gap-1 text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span
+                  className="inline-flex items-center gap-1.5 text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0 cursor-help transition-all"
+                  title={`Production ${APP_CONFIG.version} • ${syncTooltip}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse transition-colors ${dotColorClass}`} />
                   <span>Prod {APP_CONFIG.version}</span>
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" />
+                <span
+                  className="inline-flex items-center gap-1.5 text-[9px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-md bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 shrink-0 cursor-help transition-all"
+                  title={`Development ${APP_CONFIG.version} • ${syncTooltip}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse transition-colors ${dotColorClass}`} />
                   <span>Dev {APP_CONFIG.version}</span>
                 </span>
               )}

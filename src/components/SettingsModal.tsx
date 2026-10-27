@@ -1,18 +1,25 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import { getCollectionBreadcrumbPath } from "@/lib/collection-utils";
 import { useRouter } from "next/navigation";
 import {
+  Activity,
   AlertCircle,
   ArrowUpDown,
+  Blocks,
+  Calendar,
   Check,
+  Clock,
   Copy,
   Database,
   Download,
   Edit2,
+  ExternalLink,
   Eye,
   EyeOff,
   FileUp,
+  Filter,
   Fingerprint,
   FolderGit2,
   Globe,
@@ -33,6 +40,7 @@ import {
   ShieldCheck,
   Smartphone,
   Sparkles,
+  Terminal,
   Trash2,
   Upload,
   User as UserIcon,
@@ -58,7 +66,7 @@ interface SettingsModalProps {
   } | null;
   onUserUpdated?: () => void;
   onSettingsChanged?: () => void;
-  initialTab?: "general" | "profile" | "security" | "ai" | "data";
+  initialTab?: "general" | "profile" | "security" | "integrations" | "ai" | "data";
 }
 
 export function SettingsModal({
@@ -75,10 +83,10 @@ export function SettingsModal({
   // Prevent background scrolling while modal is open
   useLockBodyScroll(isOpen);
 
-  // Active Tab: "general" | "profile" | "security" | "ai" | "data"
-  const [activeTab, setActiveTab] = useState<"general" | "profile" | "security" | "ai" | "data">(
-    initialTab || "general"
-  );
+  // Active Tab: "general" | "profile" | "security" | "integrations" | "ai" | "data"
+  const [activeTab, setActiveTab] = useState<
+    "general" | "profile" | "security" | "integrations" | "ai" | "data"
+  >(initialTab || "general");
 
   // Modal Smooth Height Animation State & Refs
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -115,6 +123,10 @@ export function SettingsModal({
     }
 
     setActiveTab(initialTab || "general");
+    if ((initialTab || activeTab) === "integrations") {
+      loadTokensList();
+      loadIntegrationLogs();
+    }
 
     // Initial measurement
     updateModalHeight();
@@ -146,11 +158,21 @@ export function SettingsModal({
     };
   }, [isOpen]);
 
-  const handleTabChange = (tab: "general" | "profile" | "security" | "ai" | "data") => {
+  const handleTabChange = (
+    tab: "general" | "profile" | "security" | "integrations" | "ai" | "data",
+    e?: React.MouseEvent<HTMLButtonElement>
+  ) => {
     if (tab === activeTab) return;
     setActiveTab(tab);
     if (tab === "data") {
       loadCollectionsList();
+    }
+    if (tab === "integrations") {
+      loadTokensList();
+      loadIntegrationLogs();
+    }
+    if (e?.currentTarget) {
+      e.currentTarget.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
     }
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: "instant" });
     requestAnimationFrame(() => {
@@ -342,6 +364,199 @@ export function SettingsModal({
       setProfileError(err.message);
     } finally {
       setProfileSaving(false);
+    }
+  };
+
+  // Personal Access Tokens (PAT) State
+  const [tokens, setTokens] = useState<
+    Array<{
+      id: string;
+      name: string;
+      tokenPrefix: string;
+      lastUsedAt: string | null;
+      expiresAt: string | null;
+      createdAt: string;
+    }>
+  >([]);
+  const [tokensLoading, setTokensLoading] = useState(false);
+  const [newTokenName, setNewTokenName] = useState("");
+  const [newTokenExpiresIn, setNewTokenExpiresIn] = useState<number | null>(30);
+  const [isCreatingToken, setIsCreatingToken] = useState(false);
+  const [isTokenFormOpen, setIsTokenFormOpen] = useState(false);
+  const [justGeneratedToken, setJustGeneratedToken] = useState<string | null>(null);
+  const [copiedToken, setCopiedToken] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [tokenSuccess, setTokenSuccess] = useState<string | null>(null);
+  const [deletingTokenId, setDeletingTokenId] = useState<string | null>(null);
+
+  const loadTokensList = async () => {
+    try {
+      setTokensLoading(true);
+      const res = await fetch("/api/tokens");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.tokens)) {
+          setTokens(data.tokens);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load tokens:", err);
+    } finally {
+      setTokensLoading(false);
+      requestAnimationFrame(() => updateModalHeight());
+    }
+  };
+
+  const handleCreateToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTokenName.trim()) {
+      setTokenError(t("settings.tokens.nameRequired"));
+      return;
+    }
+    try {
+      setIsCreatingToken(true);
+      setTokenError(null);
+      setTokenSuccess(null);
+      const res = await fetch("/api/tokens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newTokenName.trim(),
+          expiresInDays: newTokenExpiresIn,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to create token");
+      }
+      setJustGeneratedToken(data.token);
+      setNewTokenName("");
+      setIsTokenFormOpen(false);
+      if (data.pat) {
+        setTokens((prev) => [data.pat, ...prev]);
+      }
+      setTokenSuccess(t("settings.tokens.createdSuccess"));
+    } catch (err: any) {
+      setTokenError(err.message || "Failed to create token");
+    } finally {
+      setIsCreatingToken(false);
+      requestAnimationFrame(() => updateModalHeight());
+    }
+  };
+
+  const handleRevokeToken = async (tokenId: string) => {
+    if (!confirm(t("settings.tokens.revokeConfirm"))) return;
+    try {
+      setDeletingTokenId(tokenId);
+      const res = await fetch(`/api/tokens/${tokenId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to revoke token");
+      }
+      setTokens((prev) => prev.filter((t) => t.id !== tokenId));
+    } catch (err: any) {
+      alert(err.message || "Failed to revoke token");
+    } finally {
+      setDeletingTokenId(null);
+      requestAnimationFrame(() => updateModalHeight());
+    }
+  };
+
+  const handleCopyGeneratedToken = async () => {
+    if (!justGeneratedToken) return;
+    try {
+      await navigator.clipboard.writeText(justGeneratedToken);
+      setCopiedToken(true);
+      setTimeout(() => setCopiedToken(false), 2000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Integration Logs & Stats State
+  const [integrationLogs, setIntegrationLogs] = useState<
+    Array<{
+      id: string;
+      client: string;
+      action: string;
+      method: string;
+      path: string;
+      status: number;
+      details: string | null;
+      tokenPrefix: string | null;
+      ip: string | null;
+      userAgent: string | null;
+      createdAt: string;
+    }>
+  >([]);
+  const [integrationLogsLoading, setIntegrationLogsLoading] = useState(false);
+  const [logsFilter, setLogsFilter] = useState<"all" | "success" | "error">("all");
+  const [integrationStats, setIntegrationStats] = useState<{
+    total: number;
+    vsCodeCount: number;
+    curlCount: number;
+    errorsCount: number;
+    lastActive: string | null;
+  } | null>(null);
+
+  const loadIntegrationLogs = async (silent = false) => {
+    try {
+      if (!silent) setIntegrationLogsLoading(true);
+      const res = await fetch("/api/integrations/logs");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setIntegrationLogs(data.logs || []);
+          setIntegrationStats(data.stats || null);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load integration logs:", err);
+    } finally {
+      if (!silent) setIntegrationLogsLoading(false);
+      requestAnimationFrame(() => updateModalHeight());
+    }
+  };
+
+  // Auto-refresh integration logs and activity stats while Integrations tab is active
+  useEffect(() => {
+    if (!isOpen || activeTab !== "integrations") return;
+
+    loadIntegrationLogs(false);
+
+    const interval = setInterval(() => {
+      loadIntegrationLogs(true);
+    }, 3000);
+
+    const handleFocus = () => {
+      loadIntegrationLogs(true);
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [isOpen, activeTab]);
+
+  const handleClearIntegrationLogs = async () => {
+    if (!confirm(t("settings.integrations.confirmClearLogs"))) return;
+    try {
+      const res = await fetch("/api/integrations/logs", { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIntegrationLogs([]);
+        setIntegrationStats((prev) =>
+          prev
+            ? { ...prev, total: 0, vsCodeCount: 0, curlCount: 0, errorsCount: 0, lastActive: null }
+            : null
+        );
+      }
+    } catch (err) {
+      console.error("Failed to clear logs:", err);
+    } finally {
+      requestAnimationFrame(() => updateModalHeight());
     }
   };
 
@@ -883,20 +1098,29 @@ export function SettingsModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showLogoutConfirm, loggingOut]);
 
-  const exportCollectionOptions: CustomSelectOption[] = userCollections.map((col) => ({
-    value: col.id,
-    label: col.name,
-    icon: (
-      <CollectionIcon
-        iconType={col.iconType}
-        iconValue={col.iconValue}
-        color={col.color}
-        className="w-4 h-4"
-      />
-    ),
-    badge: col._count?.snippets !== undefined ? `${col._count.snippets}` : undefined,
-    description: col.description || undefined,
-  }));
+  const userColMap = useMemo(() => {
+    return new Map(userCollections.map((c) => [c.id, c]));
+  }, [userCollections]);
+
+  const exportCollectionOptions: CustomSelectOption[] = useMemo(() => {
+    return userCollections.map((col) => {
+      const fullPath = getCollectionBreadcrumbPath(col.id, userColMap);
+      return {
+        value: col.id,
+        label: fullPath,
+        icon: (
+          <CollectionIcon
+            iconType={col.iconType}
+            iconValue={col.iconValue}
+            color={col.color}
+            className="w-4 h-4"
+          />
+        ),
+        badge: col._count?.snippets !== undefined ? `${col._count.snippets}` : undefined,
+        description: col.description || (col.parentId ? fullPath : undefined),
+      };
+    });
+  }, [userCollections, userColMap]);
 
   if (!isOpen) return null;
 
@@ -910,7 +1134,7 @@ export function SettingsModal({
             ? "height 0.32s cubic-bezier(0.16, 1, 0.3, 1)"
             : undefined,
         }}
-        className="relative w-full max-w-2xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height] safe-top touch-auto"
+        className="relative w-full max-w-3xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[92vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden flex flex-col animate-modal-content will-change-[height] safe-top touch-auto"
       >
         {/* Header */}
         <div
@@ -942,12 +1166,13 @@ export function SettingsModal({
         {/* Tab Navigation */}
         <div
           ref={tabsRef}
-          className="flex items-center px-2 sm:px-6 border-b border-zinc-800 bg-zinc-950/90 text-xs font-semibold gap-0.5 sm:gap-1 overflow-x-auto scrollbar-none shrink-0"
+          className="flex items-center px-2 sm:px-6 border-b border-zinc-800 bg-zinc-950/90 text-xs font-semibold gap-0.5 sm:gap-1 overflow-x-auto scrollbar-thin scrollbar-thumb-zinc-800 shrink-0"
         >
           <button
             type="button"
-            onClick={() => handleTabChange("general")}
-            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3.5 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap ${
+            data-active={activeTab === "general" ? "true" : undefined}
+            onClick={(e) => handleTabChange("general", e)}
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
               activeTab === "general"
                 ? "border-violet-500 text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -959,8 +1184,9 @@ export function SettingsModal({
 
           <button
             type="button"
-            onClick={() => handleTabChange("profile")}
-            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3.5 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap ${
+            data-active={activeTab === "profile" ? "true" : undefined}
+            onClick={(e) => handleTabChange("profile", e)}
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
               activeTab === "profile"
                 ? "border-violet-500 text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -972,8 +1198,9 @@ export function SettingsModal({
 
           <button
             type="button"
-            onClick={() => handleTabChange("security")}
-            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3.5 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap ${
+            data-active={activeTab === "security" ? "true" : undefined}
+            onClick={(e) => handleTabChange("security", e)}
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
               activeTab === "security"
                 ? "border-violet-500 text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -985,8 +1212,23 @@ export function SettingsModal({
 
           <button
             type="button"
-            onClick={() => handleTabChange("ai")}
-            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3.5 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap ${
+            data-active={activeTab === "integrations" ? "true" : undefined}
+            onClick={(e) => handleTabChange("integrations", e)}
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === "integrations"
+                ? "border-violet-500 text-white"
+                : "border-transparent text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            <Blocks className="w-3.5 h-3.5" />
+            <span>{t("settings.tabs.integrations")}</span>
+          </button>
+
+          <button
+            type="button"
+            data-active={activeTab === "ai" ? "true" : undefined}
+            onClick={(e) => handleTabChange("ai", e)}
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
               activeTab === "ai"
                 ? "border-violet-500 text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -998,8 +1240,9 @@ export function SettingsModal({
 
           <button
             type="button"
-            onClick={() => handleTabChange("data")}
-            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3.5 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap ${
+            data-active={activeTab === "data" ? "true" : undefined}
+            onClick={(e) => handleTabChange("data", e)}
+            className={`flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-2 sm:px-3 border-b-2 text-[11px] sm:text-xs transition-all whitespace-nowrap cursor-pointer ${
               activeTab === "data"
                 ? "border-violet-500 text-white"
                 : "border-transparent text-zinc-400 hover:text-zinc-200"
@@ -1686,6 +1929,541 @@ export function SettingsModal({
             </div>
           )}
 
+          {/* TAB: INTEGRATIONS */}
+          {activeTab === "integrations" && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              {/* 1. Header & Connected Apps Cards */}
+              <div className="border border-zinc-800/80 rounded-2xl p-5 bg-zinc-900/40 space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                    <Blocks className="w-4 h-4 text-violet-400" />
+                    <span>{t("settings.integrations.title")}</span>
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    {t("settings.integrations.subtitle")}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  {/* VS Code Card */}
+                  <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-950/70 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 shrink-0">
+                          <Laptop className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span>{t("settings.integrations.vscodeTitle")}</span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">v0.1.0</span>
+                          </div>
+                          <div className="text-[10px] text-zinc-400 font-mono">vscode-snippetvault</div>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`inline-flex items-center justify-center text-center text-[10px] px-2.5 py-1 rounded-full border font-semibold leading-none shrink-0 ${
+                          integrationStats && integrationStats.vsCodeCount > 0
+                            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                            : "bg-sky-500/15 text-sky-300 border-sky-500/30"
+                        }`}
+                      >
+                        {integrationStats && integrationStats.vsCodeCount > 0
+                          ? t("settings.integrations.vscodeActiveBadge")
+                          : t("settings.integrations.vscodeReadyBadge")}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      {t("settings.integrations.vscodeDesc")}
+                    </p>
+
+                    <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800/80 text-[11px] font-mono text-zinc-300">
+                      {t("settings.integrations.vscodeHotkeys")}
+                    </div>
+                  </div>
+
+                  {/* cURL & CLI Card */}
+                  <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-950/70 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                          <Terminal className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white">
+                            {t("settings.integrations.cliTitle")}
+                          </div>
+                          <div className="text-[10px] text-zinc-400 font-mono">cURL • Bash • Wget • Scripts</div>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`inline-flex items-center justify-center text-center text-[10px] px-2.5 py-1 rounded-full border font-semibold leading-none shrink-0 ${
+                          integrationStats && integrationStats.curlCount > 0
+                            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                            : "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                        }`}
+                      >
+                        {integrationStats && integrationStats.curlCount > 0
+                          ? t("settings.integrations.vscodeActiveBadge")
+                          : t("settings.integrations.vscodeReadyBadge")}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      {t("settings.integrations.cliDesc")}
+                    </p>
+
+                    <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800/80 text-[11px] font-mono text-zinc-300 overflow-x-auto select-all">
+                      curl -sL {typeof window !== "undefined" ? window.location.origin : ""}/s/TOKEN/raw | bash
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Personal Access Tokens (PAT) Block */}
+              <div className="border border-zinc-800/80 rounded-2xl p-5 bg-zinc-900/40 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                      <KeyRound className="w-4 h-4 text-violet-400" />
+                      <span>{t("settings.tokens.title")}</span>
+                    </h3>
+                    <p className="text-[11px] text-zinc-400">
+                      {t("settings.tokens.subtitle")}
+                    </p>
+                  </div>
+
+                  {!isTokenFormOpen && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsTokenFormOpen(true);
+                        setTokenError(null);
+                        setTokenSuccess(null);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-medium text-xs bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 transition-all shrink-0 self-start sm:self-auto cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>{t("settings.tokens.createBtn")}</span>
+                    </button>
+                  )}
+                </div>
+
+                {tokenError && (
+                  <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{tokenError}</span>
+                  </div>
+                )}
+
+                {/* Just generated token banner */}
+                {justGeneratedToken && (
+                  <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 space-y-3 animate-in fade-in">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-emerald-300 text-xs font-semibold">
+                        <Check className="w-4 h-4 shrink-0" />
+                        <span>{t("settings.tokens.createdSuccess")}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setJustGeneratedToken(null)}
+                        className="text-zinc-400 hover:text-white p-1 text-xs cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <p className="text-[11px] text-emerald-400/90 leading-relaxed font-medium">
+                      {t("settings.tokens.justGeneratedWarning")}
+                    </p>
+
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <input
+                        type="text"
+                        readOnly
+                        value={justGeneratedToken}
+                        onClick={(e) => (e.target as HTMLInputElement).select()}
+                        className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-emerald-500/40 text-emerald-200 font-mono text-xs select-all outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCopyGeneratedToken}
+                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shrink-0 transition-all shadow-sm shadow-emerald-600/30 cursor-pointer"
+                      >
+                        {copiedToken ? (
+                          <>
+                            <Check className="w-3.5 h-3.5" />
+                            <span>{t("common.copied")}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>{t("common.copy")}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Quick Usage snippet */}
+                    <div className="pt-2 border-t border-emerald-500/20 text-[11px] text-zinc-400 space-y-1">
+                      <span className="font-semibold text-zinc-300">
+                        {t("settings.tokens.usageExampleTitle")}
+                      </span>
+                      <div className="p-2 rounded-lg bg-zinc-950 font-mono text-[10px] text-zinc-300 overflow-x-auto select-all">
+                        curl -sL -H &quot;Authorization: Bearer {justGeneratedToken}&quot; {typeof window !== "undefined" ? window.location.origin : ""}/api/snippets
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Create Token Inline Form */}
+                {isTokenFormOpen && (
+                  <form
+                    onSubmit={handleCreateToken}
+                    className="p-4 rounded-xl border border-zinc-800 bg-zinc-950/60 space-y-3.5 animate-in fade-in"
+                  >
+                    <div className="space-y-1">
+                      <label className="text-zinc-400 text-[11px] font-medium">
+                        {t("settings.tokens.nameLabel")}
+                      </label>
+                      <input
+                        type="text"
+                        autoFocus
+                        value={newTokenName}
+                        onChange={(e) => setNewTokenName(e.target.value)}
+                        placeholder={t("settings.tokens.namePlaceholder")}
+                        className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-zinc-400 text-[11px] font-medium">
+                        {t("settings.tokens.expiresLabel")}
+                      </label>
+                      <select
+                        value={newTokenExpiresIn === null ? "never" : String(newTokenExpiresIn)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewTokenExpiresIn(val === "never" ? null : Number(val));
+                        }}
+                        className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-200 outline-none focus:border-violet-500 text-xs"
+                      >
+                        <option value="30">{t("settings.tokens.expires30")}</option>
+                        <option value="60">{t("settings.tokens.expires60")}</option>
+                        <option value="90">{t("settings.tokens.expires90")}</option>
+                        <option value="365">{t("settings.tokens.expires365")}</option>
+                        <option value="never">{t("settings.tokens.expiresNever")}</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/80">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsTokenFormOpen(false);
+                          setNewTokenName("");
+                        }}
+                        className="px-3 py-1.5 rounded-xl text-xs font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all cursor-pointer"
+                      >
+                        {t("common.cancel")}
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isCreatingToken || !newTokenName.trim()}
+                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl font-semibold text-white bg-violet-600 hover:bg-violet-500 active:scale-[0.98] transition-all disabled:opacity-50 text-xs shadow-sm shadow-violet-600/20 cursor-pointer"
+                      >
+                        {isCreatingToken ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="w-3.5 h-3.5" />
+                        )}
+                        <span>{t("settings.tokens.submitCreate")}</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Active Tokens List */}
+                <div className="space-y-2">
+                  {tokensLoading && tokens.length === 0 ? (
+                    <div className="py-6 flex items-center justify-center text-zinc-500 text-xs gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
+                      <span>{t("common.loading")}</span>
+                    </div>
+                  ) : tokens.length === 0 ? (
+                    <div className="py-6 text-center border border-dashed border-zinc-800/80 rounded-xl">
+                      <p className="text-zinc-500 text-xs">
+                        {t("settings.tokens.emptyList")}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-zinc-800/60 border border-zinc-800/80 rounded-xl overflow-hidden bg-zinc-950/40">
+                      {tokens.map((token) => {
+                        const isExpired =
+                          token.expiresAt &&
+                          new Date(token.expiresAt).getTime() < Date.now();
+                        const createdFormatted = new Date(token.createdAt).toLocaleDateString(
+                          locale === "ru" ? "ru-RU" : "en-US",
+                          { year: "numeric", month: "short", day: "numeric" }
+                        );
+                        const lastUsedFormatted = token.lastUsedAt
+                          ? new Date(token.lastUsedAt).toLocaleDateString(
+                              locale === "ru" ? "ru-RU" : "en-US",
+                              { year: "numeric", month: "short", day: "numeric" }
+                            )
+                          : t("settings.tokens.neverUsed");
+                        const expiresFormatted = token.expiresAt
+                          ? new Date(token.expiresAt).toLocaleDateString(
+                              locale === "ru" ? "ru-RU" : "en-US",
+                              { year: "numeric", month: "short", day: "numeric" }
+                            )
+                          : t("settings.tokens.noExpiration");
+
+                        return (
+                          <div
+                            key={token.id}
+                            className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-zinc-900/40 transition-colors"
+                          >
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-semibold text-xs text-white">
+                                  {token.name}
+                                </span>
+                                <code className="text-[11px] px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 font-mono text-zinc-400">
+                                  {token.tokenPrefix}
+                                </code>
+                                {isExpired && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                                    {locale === "ru" ? "Истёк" : "Expired"}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3 text-[11px] text-zinc-500 flex-wrap">
+                                <span>
+                                  {t("settings.tokens.tableCreated")}: {createdFormatted}
+                                </span>
+                                <span>•</span>
+                                <span>
+                                  {t("settings.tokens.tableLastUsed")}: {lastUsedFormatted}
+                                </span>
+                                <span>•</span>
+                                <span>
+                                  {t("settings.tokens.tableExpires")}: {expiresFormatted}
+                                </span>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              disabled={deletingTokenId === token.id}
+                              onClick={() => handleRevokeToken(token.id)}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-zinc-800 hover:border-rose-500/30 bg-zinc-900 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 text-xs font-medium transition-all self-end sm:self-auto shrink-0 disabled:opacity-50 cursor-pointer"
+                              title={t("settings.tokens.revokeBtn")}
+                            >
+                              {deletingTokenId === token.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-3.5 h-3.5" />
+                              )}
+                              <span>{t("settings.tokens.revokeBtn")}</span>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Integration Activity & Error Logs */}
+              <div className="border border-zinc-800/80 rounded-2xl p-5 bg-zinc-900/40 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-emerald-400" />
+                      <span>{t("settings.integrations.logsTitle")}</span>
+                      {integrationLogs.length > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-mono">
+                          {integrationLogs.length}
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-[11px] text-zinc-400">
+                      {t("settings.integrations.logsSubtitle")}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      disabled={integrationLogsLoading}
+                      onClick={() => loadIntegrationLogs()}
+                      className="p-1.5 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-900 text-zinc-400 hover:text-white transition-all cursor-pointer min-w-[32px] min-h-[32px] flex items-center justify-center"
+                      title={t("settings.integrations.refreshLogsBtn")}
+                    >
+                      <RefreshCw
+                        className={`w-3.5 h-3.5 ${
+                          integrationLogsLoading ? "animate-spin text-violet-400" : ""
+                        }`}
+                      />
+                    </button>
+                    {integrationLogs.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleClearIntegrationLogs}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-800 hover:border-rose-500/30 bg-zinc-900 text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 text-xs font-medium transition-all cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{t("settings.integrations.clearLogsBtn")}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Filter buttons */}
+                <div className="flex items-center gap-1.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setLogsFilter("all")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                      logsFilter === "all"
+                        ? "bg-violet-600/30 border border-violet-500/40 text-violet-200"
+                        : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    {t("settings.integrations.filterAll")} ({integrationLogs.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLogsFilter("success")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                      logsFilter === "success"
+                        ? "bg-emerald-600/30 border border-emerald-500/40 text-emerald-200"
+                        : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    {t("settings.integrations.filterSuccess")} (
+                    {integrationLogs.filter((l) => l.status < 400).length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLogsFilter("error")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                      logsFilter === "error"
+                        ? "bg-rose-600/30 border border-rose-500/40 text-rose-200"
+                        : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                    }`}
+                  >
+                    {t("settings.integrations.filterErrors")} (
+                    {integrationLogs.filter((l) => l.status >= 400).length})
+                  </button>
+                </div>
+
+                {/* Logs Feed */}
+                <div className="space-y-2">
+                  {integrationLogsLoading && integrationLogs.length === 0 ? (
+                    <div className="py-8 flex items-center justify-center text-zinc-500 text-xs gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
+                      <span>{t("common.loading")}</span>
+                    </div>
+                  ) : integrationLogs.length === 0 ? (
+                    <div className="py-8 text-center border border-dashed border-zinc-800/80 rounded-xl space-y-1">
+                      <p className="text-zinc-400 text-xs font-medium">
+                        {t("settings.integrations.emptyLogs")}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-zinc-800/60 border border-zinc-800/80 rounded-xl overflow-hidden bg-zinc-950/60 max-h-96 overflow-y-auto">
+                      {integrationLogs
+                        .filter((log) => {
+                          if (logsFilter === "success") return log.status < 400;
+                          if (logsFilter === "error") return log.status >= 400;
+                          return true;
+                        })
+                        .map((log) => {
+                          const dateObj = new Date(log.createdAt);
+                          const timeStr = dateObj.toLocaleTimeString(
+                            locale === "ru" ? "ru-RU" : "en-US",
+                            { hour: "2-digit", minute: "2-digit", second: "2-digit" }
+                          );
+                          const dateStr = dateObj.toLocaleDateString(
+                            locale === "ru" ? "ru-RU" : "en-US",
+                            { day: "numeric", month: "short" }
+                          );
+                          const isOk = log.status < 400;
+
+                          return (
+                            <div
+                              key={log.id}
+                              className="p-3 text-xs hover:bg-zinc-900/40 transition-colors space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between gap-2 flex-wrap">
+                                <div className="flex items-center gap-2">
+                                  {/* Status badge */}
+                                  <span
+                                    className={`inline-flex items-center justify-center text-center text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold border leading-none ${
+                                      isOk
+                                        ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                                        : "bg-rose-500/10 text-rose-300 border-rose-500/30"
+                                    }`}
+                                  >
+                                    {log.status} {log.status === 201 ? "Created" : isOk ? "OK" : "Error"}
+                                  </span>
+
+                                  {/* Client pill */}
+                                  {log.client.includes("VS Code") ? (
+                                    <span className="flex items-center gap-1 text-[10px] font-medium text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
+                                      <Laptop className="w-3 h-3" />
+                                      <span>{log.client}</span>
+                                    </span>
+                                  ) : log.client.includes("cURL") || log.client.includes("Terminal") ? (
+                                    <span className="flex items-center gap-1 text-[10px] font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                      <Terminal className="w-3 h-3" />
+                                      <span>{log.client}</span>
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1 text-[10px] font-medium text-zinc-300 bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700">
+                                      <Blocks className="w-3 h-3 text-zinc-400" />
+                                      <span>{log.client}</span>
+                                    </span>
+                                  )}
+
+                                  <span className="font-semibold text-white">
+                                    {log.action}
+                                  </span>
+                                </div>
+
+                                <div className="text-[11px] text-zinc-500 font-mono">
+                                  {dateStr}, {timeStr}
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[11px] text-zinc-400 gap-2 flex-wrap pl-1">
+                                <div className="flex items-center gap-2 font-mono">
+                                  <span className="text-zinc-500 uppercase">{log.method}</span>
+                                  <span className="text-zinc-300">{log.path}</span>
+                                  {log.tokenPrefix && (
+                                    <span className="text-violet-400">({log.tokenPrefix})</span>
+                                  )}
+                                </div>
+                                {log.details && (
+                                  <div className={`truncate max-w-sm ${isOk ? "text-zinc-400" : "text-rose-300"}`}>
+                                    {log.details}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* TAB 2: AI ASSISTANT */}
           {activeTab === "ai" && (
             <form onSubmit={handleSaveAI} className="space-y-4 animate-in fade-in duration-200">
@@ -2035,7 +2813,7 @@ export function SettingsModal({
                         <span>{locale === "ru" ? "Вся база сниппетов" : "Entire snippet database"}</span>
                       </div>
                       <p className="text-[11px] text-zinc-400">
-                        {locale === "ru" ? "Полная резервная копия всех сниппетов, коллекций и метаданных аккаунта в одном файле." : "Full backup of all snippets, collections, and account metadata in one file."}
+                        {locale === "ru" ? "Полная резервная копия всей базы: сохраняет структуру папок любой вложенности, умные коллекции и сниппеты." : "Full backup: preserves full folder hierarchy with all nested subcollections, smart collections, and snippets."}
                       </p>
                     </div>
 
@@ -2057,7 +2835,7 @@ export function SettingsModal({
                         <span>{locale === "ru" ? "Отдельная коллекция" : "Specific collection"}</span>
                       </div>
                       <p className="text-[11px] text-zinc-400">
-                        {locale === "ru" ? "Экспорт только выбранной коллекции со всеми входящими в неё сниппетами." : "Export only the selected collection with all its snippets."}
+                        {locale === "ru" ? "Экспорт выбранной коллекции со всеми вложенными подпапками, структурой и входящими сниппетами." : "Export the selected collection with all nested subcollections, folder structure, and snippets."}
                       </p>
                     </div>
 
@@ -2170,7 +2948,8 @@ export function SettingsModal({
               </div>
             </div>
           )}
-          </div>
+
+                    </div>
         </div>
 
         {/* Footer with Logout Button */}

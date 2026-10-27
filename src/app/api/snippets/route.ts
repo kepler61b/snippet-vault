@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notifyDataChange } from "@/lib/sync-events";
 import { prisma } from "@/lib/db";
 import { detectLanguageFromFilename } from "@/lib/languages";
 import { ensureSeedSnippets } from "@/lib/seed";
@@ -14,13 +15,26 @@ import {
   buildSmartCollectionWhere,
 } from "@/lib/collections";
 import { SmartFilterRule } from "@/types/snippet";
+import {
+  logIntegrationActivity,
+  detectIntegrationClient,
+  extractClientIp,
+  extractTokenPrefix,
+} from "@/lib/integration-log";
 
 export async function GET(request: NextRequest) {
   try {
     await ensureSeedSnippets();
     await ensureFtsInitialized();
 
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search")?.trim();
     const tag = searchParams.get("tag")?.trim().toLowerCase();
@@ -164,6 +178,24 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const hasAuthHeader = Boolean(
+      request.headers.get("authorization") || request.headers.get("x-api-key")
+    );
+    if (hasAuthHeader) {
+      logIntegrationActivity({
+        client: detectIntegrationClient(request),
+        action: search ? `Поиск ("${search}")` : "Список сниппетов",
+        method: "GET",
+        path: "/api/snippets",
+        status: 200,
+        details: `Найдено: ${enrichedSnippets.length}`,
+        userId: currentUser?.id,
+        tokenPrefix: extractTokenPrefix(request),
+        ip: extractClientIp(request),
+        userAgent: request.headers.get("user-agent"),
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ success: true, snippets: enrichedSnippets });
   } catch (error: any) {
     console.error("Error fetching snippets:", error);
@@ -199,7 +231,13 @@ export async function POST(request: NextRequest) {
       ? tags.trim()
       : "";
 
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
+    if (!currentUser) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
     const created = await prisma.snippet.create({
       data: {
@@ -234,6 +272,26 @@ export async function POST(request: NextRequest) {
 
     // Index into FTS5
     await indexSnippet(created.id, created);
+
+    const hasAuthHeader = Boolean(
+      request.headers.get("authorization") || request.headers.get("x-api-key")
+    );
+    if (hasAuthHeader) {
+      logIntegrationActivity({
+        client: detectIntegrationClient(request),
+        action: `Создание: "${created.title}"`,
+        method: "POST",
+        path: "/api/snippets",
+        status: 201,
+        details: `${created.files.length} файл(а/ов), теги: ${created.tags || "—"}`,
+        userId: currentUser?.id,
+        tokenPrefix: extractTokenPrefix(request),
+        ip: extractClientIp(request),
+        userAgent: request.headers.get("user-agent"),
+      }).catch(() => {});
+    }
+
+    notifyDataChange("snippets", { userId: currentUser?.id, action: "created" });
 
     return NextResponse.json({ success: true, snippet: created }, { status: 201 });
   } catch (error: any) {

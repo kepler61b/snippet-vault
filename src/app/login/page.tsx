@@ -443,13 +443,13 @@ export default function LoginPage() {
         {/* Footer author credit */}
         <div className="text-center">
           <a
-            href="https://github.com/scfmcdck"
+            href={APP_CONFIG.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-zinc-500 hover:text-violet-400 transition-colors inline-flex items-center gap-1 group"
           >
             <span>{t("sidebar.madeBy")}</span>
-            <span className="font-semibold text-zinc-400 group-hover:text-violet-300">scfmcdck</span>
+            <span className="font-semibold text-zinc-400 group-hover:text-violet-300">{APP_CONFIG.author}</span>
           </a>
         </div>
       </div>

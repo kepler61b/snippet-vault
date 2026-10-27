@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
     const token = await signToken({
       userId: passkey.user.id,
       email: passkey.user.email,
+      tokenVersion: passkey.user.tokenVersion ?? 0,
     });
 
     await setSessionCookie(token, request);

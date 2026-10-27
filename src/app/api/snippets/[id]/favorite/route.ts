@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notifyDataChange } from "@/lib/sync-events";
 import { prisma } from "@/lib/db";
 
 export async function POST(
@@ -24,6 +25,8 @@ export async function POST(
       data: { isFavorite: !snippet.isFavorite },
       select: { id: true, isFavorite: true },
     });
+
+    notifyDataChange("snippets", { action: "updated" });
 
     return NextResponse.json({ success: true, isFavorite: updated.isFavorite });
   } catch (error: any) {

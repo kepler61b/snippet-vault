@@ -43,7 +43,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Set full session cookie
-    const token = await signToken({ userId: user.id, email: user.email });
+    const token = await signToken({
+      userId: user.id,
+      email: user.email,
+      tokenVersion: user.tokenVersion ?? 0,
+    });
     await setSessionCookie(token, request);
 
     return NextResponse.json({
@@ -59,7 +63,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("2FA verify error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка проверки 2FA" },
+      { success: false, error: error.message || "Ошибка проверки двухфакторного кода" },
       { status: 500 }
     );
   }

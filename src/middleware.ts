@@ -20,6 +20,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow API requests with Authorization or API key headers to pass through
+  // to route handlers, where PAT / Bearer tokens are verified in Node.js runtime
+  const authHeader = request.headers.get("authorization") || request.headers.get("x-api-key");
+  if (pathname.startsWith("/api/") && authHeader) {
+    return NextResponse.next();
+  }
+
   const sessionCookie = request.cookies.get(COOKIE_NAME)?.value;
   const verified = sessionCookie ? await verifyToken(sessionCookie) : null;
   const isValidSession = Boolean(verified);

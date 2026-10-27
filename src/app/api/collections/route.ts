@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { notifyDataChange } from "@/lib/sync-events";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSmartCollectionSnippetCount } from "@/lib/collections";
@@ -98,6 +99,8 @@ export async function POST(request: NextRequest) {
       );
       collection._count = { snippets: smartCount };
     }
+
+    notifyDataChange("collections", { userId: currentUser?.id, action: "created" });
 
     return NextResponse.json({ success: true, collection }, { status: 201 });
   } catch (error: any) {

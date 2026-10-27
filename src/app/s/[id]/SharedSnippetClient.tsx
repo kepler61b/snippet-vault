@@ -8,9 +8,10 @@ import {
   Code2,
   Copy,
   Download,
-  FileCode,
+  ExternalLink,
   Share2,
   Play,
+  Terminal,
 } from "lucide-react";
 import { SnippetItem } from "@/types/snippet";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -28,6 +29,8 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const [copiedRawUrl, setCopiedRawUrl] = useState(false);
+  const [copiedCurl, setCopiedCurl] = useState(false);
   const [isPlaygroundOpen, setIsPlaygroundOpen] = useState(false);
 
   const currentFile = snippet.files[activeFileIndex] || snippet.files[0];
@@ -40,6 +43,42 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
       await navigator.clipboard.writeText(window.location.href);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const getRawFileUrl = () => {
+    if (!currentFile) return "";
+    const token = snippet.shareToken || snippet.id;
+    return `${window.location.origin}/s/${token}/raw/${encodeURIComponent(currentFile.filename)}`;
+  };
+
+  const handleCopyRawUrl = async () => {
+    const rawUrl = getRawFileUrl();
+    if (!rawUrl) return;
+    try {
+      await navigator.clipboard.writeText(rawUrl);
+      setCopiedRawUrl(true);
+      setTimeout(() => setCopiedRawUrl(false), 2000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCopyCurl = async () => {
+    const rawUrl = getRawFileUrl();
+    if (!rawUrl || !currentFile) return;
+    try {
+      const isShellScript =
+        ["sh", "bash", "zsh", "shell"].includes(currentFile.language.toLowerCase()) ||
+        currentFile.filename.endsWith(".sh");
+      const cmd = isShellScript
+        ? `curl -sL ${rawUrl} | bash`
+        : `curl -sL ${rawUrl} -o ${currentFile.filename}`;
+      await navigator.clipboard.writeText(cmd);
+      setCopiedCurl(true);
+      setTimeout(() => setCopiedCurl(false), 2000);
     } catch (err) {
       console.error(err);
     }
@@ -76,6 +115,10 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
       day: "numeric",
     }
   );
+
+  const rawPath = currentFile
+    ? `/s/${snippet.shareToken || snippet.id}/raw/${encodeURIComponent(currentFile.filename)}`
+    : `/s/${snippet.shareToken || snippet.id}/raw`;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
@@ -194,6 +237,38 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
             </div>
 
             <div className="flex items-center gap-1.5 py-1">
+              {/* Copy curl command */}
+              <button
+                onClick={handleCopyCurl}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-amber-400 hover:bg-amber-500/10 transition-colors"
+                title={t("view.copyCurlCmd")}
+              >
+                {copiedCurl ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400">{t("common.copied")}</span>
+                  </>
+                ) : (
+                  <>
+                    <Terminal className="w-3.5 h-3.5" />
+                    <span>curl</span>
+                  </>
+                )}
+              </button>
+
+              {/* Direct Raw view link */}
+              <a
+                href={rawPath}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 transition-colors"
+                title="Raw File"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Raw</span>
+              </a>
+
+              {/* Playground */}
               <button
                 onClick={() => setIsPlaygroundOpen(true)}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-teal-400 hover:bg-teal-500/10 transition-colors"
@@ -203,6 +278,7 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
                 <span>{locale === "ru" ? "Песочница" : "Playground"}</span>
               </button>
 
+              {/* Copy as Markdown */}
               <button
                 onClick={handleCopyAsMarkdown}
                 className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-zinc-300 hover:bg-zinc-800 transition-colors"
@@ -216,6 +292,7 @@ export function SharedSnippetClient({ snippet }: SharedSnippetClientProps) {
                 <span className="hidden sm:inline">Markdown</span>
               </button>
 
+              {/* Download */}
               <button
                 onClick={handleDownload}
                 className="p-1.5 rounded-md text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   ArrowUpDown,
   Check,
@@ -41,6 +41,7 @@ import { SettingsModal } from "@/components/SettingsModal";
 import { CommandPalette } from "@/components/CommandPalette";
 import { AdminModal } from "@/components/AdminModal";
 import { APP_CONFIG } from "@/lib/version";
+import { useRealtimeSync, broadcastLocalChange } from "@/lib/useRealtimeSync";
 
 export default function HomePage() {
   const { t } = useI18n();
@@ -98,15 +99,18 @@ export default function HomePage() {
     language: "plaintext",
   });
 
-  const fetchSnippets = async () => {
+  const fetchSnippets = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
       const res = await fetch("/api/snippets");
       if (res.status === 401) {
         window.location.href = "/login";
         return;
       }
+      broadcastLocalChange("snippets");
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Ошибка загрузки сниппетов");
@@ -114,13 +118,17 @@ export default function HomePage() {
       setSnippets(data.snippets || []);
     } catch (err: any) {
       console.warn("fetchSnippets warning:", err);
-      setError(err.message || "Не удалось загрузить сниппеты");
+      if (!silent) {
+        setError(err.message || "Не удалось загрузить сниппеты");
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
-  const fetchCurrentUser = async () => {
+  const fetchCurrentUser = useCallback(async () => {
     try {
       const res = await fetch("/api/auth/me");
       if (res.status === 401) {
@@ -134,9 +142,9 @@ export default function HomePage() {
     } catch (e) {
       console.warn("fetchCurrentUser warning:", e);
     }
-  };
+  }, []);
 
-  const fetchCollections = async () => {
+  const fetchCollections = useCallback(async () => {
     try {
       const res = await fetch("/api/collections");
       if (res.status === 401) {
@@ -156,7 +164,32 @@ export default function HomePage() {
     } catch (e) {
       console.warn("fetchCollections warning:", e);
     }
-  };
+  }, []);
+
+  const handleResetToHome = useCallback(() => {
+    setSelectedFilter("ALL");
+    setSelectedCollectionId(null);
+    setSelectedLanguage(null);
+    setSelectedTag(null);
+    setSearchQuery("");
+    setViewingSnippet(null);
+    setEditingSnippet(null);
+    setIsMobileFilterOpen(false);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, []);
+
+  // Real-time synchronization (SSE stream + window focus + BroadcastChannel)
+  const { isLiveConnected, syncStatus } = useRealtimeSync({
+    onSnippetsChange: useCallback(() => {
+      fetchSnippets(true);
+    }, [fetchSnippets]),
+    onCollectionsChange: useCallback(() => {
+      fetchCollections();
+    }, [fetchCollections]),
+    enabled: Boolean(currentUser),
+  });
 
   const loadPreferences = () => {
     try {
@@ -461,6 +494,7 @@ export default function HomePage() {
   const handleDeleteSnippet = async (id: string) => {
     // Optimistic update
     setSnippets((prev) => prev.filter((s) => s.id !== id));
+    broadcastLocalChange("snippets");
     if (viewingSnippet && viewingSnippet.id === id) {
       setViewingSnippet(null);
     }
@@ -497,6 +531,7 @@ export default function HomePage() {
         setViewingSnippet(result.snippet);
       }
       setEditingSnippet(null);
+      broadcastLocalChange("snippets");
     } else {
       const res = await fetch("/api/snippets", {
         method: "POST",
@@ -509,6 +544,7 @@ export default function HomePage() {
       }
       setSnippets((prev) => [result.snippet, ...prev]);
       setIsCreateOpen(false);
+      broadcastLocalChange("snippets");
     }
     fetchCollections();
   };
@@ -653,6 +689,7 @@ export default function HomePage() {
       <Navbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onResetToHome={handleResetToHome}
         onOpenCreateModal={() => setIsCreateOpen(true)}
         onOpenSettingsModal={() => {
           setSettingsInitialTab("general");
@@ -661,6 +698,8 @@ export default function HomePage() {
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenAdminModal={() => setIsAdminModalOpen(true)}
         currentUser={currentUser}
+        isLiveConnected={isLiveConnected}
+        syncStatus={syncStatus}
       />
 
       {/* Main Content Area */}
@@ -1025,13 +1064,13 @@ export default function HomePage() {
           </div>
           <span className="text-zinc-700 hidden sm:inline">•</span>
           <a
-            href="https://github.com/scfmcdck"
+            href={APP_CONFIG.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-zinc-400 hover:text-violet-400 transition-colors font-medium hover:underline underline-offset-4 flex items-center gap-1 group text-[11px] sm:text-xs"
+            className="text-xs text-zinc-500 hover:text-violet-400 transition-colors inline-flex items-center gap-1 group"
           >
             <span>{t("sidebar.madeBy")}</span>
-            <span className="font-semibold text-zinc-300 group-hover:text-violet-300">scfmcdck</span>
+            <span className="font-semibold text-zinc-400 group-hover:text-violet-300">{APP_CONFIG.author}</span>
           </a>
         </div>
       </footer>

@@ -1,0 +1,111 @@
+{
+  "name": "vscode-snippetvault",
+  "displayName": "SnippetVault - Snippet Manager",
+  "description": "Self-hosted code snippet manager for Visual Studio Code",
+  "version": "0.1.0",
+  "publisher": "Kepler61b",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kepler61b/snippet-vault.git"
+  },
+  "homepage": "https://github.com/kepler61b/snippet-vault#readme",
+  "bugs": {
+    "url": "https://github.com/kepler61b/snippet-vault/issues"
+  },
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Snippets"
+  ],
+  "keywords": [
+    "snippets",
+    "snippet",
+    "vault",
+    "code",
+    "developer"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "snippetvault.insertSnippet",
+        "title": "Insert Snippet...",
+        "category": "SnippetVault"
+      },
+      {
+        "command": "snippetvault.saveSnippet",
+        "title": "Save Selection to SnippetVault",
+        "category": "SnippetVault"
+      },
+      {
+        "command": "snippetvault.openVault",
+        "title": "Open SnippetVault in Browser",
+        "category": "SnippetVault"
+      },
+      {
+        "command": "snippetvault.configure",
+        "title": "Configure Server URL & Token",
+        "category": "SnippetVault"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "snippetvault.insertSnippet",
+        "key": "ctrl+alt+v",
+        "mac": "cmd+alt+v",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "snippetvault.saveSnippet",
+        "key": "ctrl+alt+s",
+        "mac": "cmd+alt+s",
+        "when": "editorHasSelection"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "snippetvault.saveSnippet",
+          "group": "1_modification@99",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "snippetvault.insertSnippet",
+          "group": "1_modification@100",
+          "when": "editorTextFocus"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SnippetVault",
+      "properties": {
+        "snippetvault.url": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "Base URL of your SnippetVault instance (e.g. http://localhost:3000 or https://vault.example.com)"
+        },
+        "snippetvault.token": {
+          "type": "string",
+          "default": "",
+          "description": "Your Personal Access Token (PAT). Can also be stored securely via the Configure command."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "build": "node esbuild.js --production",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/vscode": "^1.80.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0"
+  }
+}

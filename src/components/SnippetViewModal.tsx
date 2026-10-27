@@ -18,6 +18,7 @@ import {
   X,
   History,
   Play,
+  Terminal,
 } from "lucide-react";
 import { SnippetItem, SnippetFileItem } from "@/types/snippet";
 import { CodeBlock } from "./CodeBlock";
@@ -62,6 +63,7 @@ export function SnippetViewModal({
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const [copiedCurl, setCopiedCurl] = useState(false);
   const [internalSnippet, setInternalSnippet] = useState<SnippetItem | null>(snippet);
   const [isRevisionsOpen, setIsRevisionsOpen] = useState(false);
   const [isPlaygroundOpen, setIsPlaygroundOpen] = useState(false);
@@ -166,6 +168,25 @@ export function SnippetViewModal({
       await navigator.clipboard.writeText(md);
       setCopiedMarkdown(true);
       setTimeout(() => setCopiedMarkdown(false), 2000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCopyCurl = async () => {
+    if (!currentFile) return;
+    const token = currentSnippet.shareToken || currentSnippet.id;
+    const rawUrl = `${window.location.origin}/s/${token}/raw/${encodeURIComponent(currentFile.filename)}`;
+    const isShellScript =
+      ["sh", "bash", "zsh", "shell"].includes(currentFile.language.toLowerCase()) ||
+      currentFile.filename.endsWith(".sh");
+    const cmd = isShellScript
+      ? `curl -sL ${rawUrl} | bash`
+      : `curl -sL ${rawUrl} -o ${currentFile.filename}`;
+    try {
+      await navigator.clipboard.writeText(cmd);
+      setCopiedCurl(true);
+      setTimeout(() => setCopiedCurl(false), 2000);
     } catch (err) {
       console.error(err);
     }
@@ -403,6 +424,39 @@ export function SnippetViewModal({
 
                 {/* AI & Quick action buttons */}
                 <div className="flex items-center gap-1 overflow-x-auto py-1 border-t sm:border-t-0 border-zinc-800/60 scrollbar-none">
+                  {/* Copy curl command */}
+                  <button
+                    onClick={handleCopyCurl}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-amber-400 hover:bg-amber-500/10 transition-colors flex-shrink-0"
+                    title={t("view.copyCurlCmd")}
+                  >
+                    {copiedCurl ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">{t("common.copied")}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Terminal className="w-3.5 h-3.5" />
+                        <span>curl</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Direct Raw view link */}
+                  {currentFile && (
+                    <a
+                      href={`/s/${currentSnippet.shareToken || currentSnippet.id}/raw/${encodeURIComponent(currentFile.filename)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-sky-400 hover:bg-sky-500/10 transition-colors flex-shrink-0"
+                      title="Raw File"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Raw</span>
+                    </a>
+                  )}
+
                   <button
                     onClick={() => setIsPlaygroundOpen(true)}
                     className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-teal-400 hover:bg-teal-500/10 transition-colors flex-shrink-0"

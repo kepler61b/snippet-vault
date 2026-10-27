@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export async function POST(
   request: NextRequest,
@@ -56,6 +57,20 @@ export async function POST(
         isBanned: true,
       },
     });
+
+    logAuditEvent({
+      event: updated.isBanned ? "ADMIN_USER_BAN" : "ADMIN_USER_UNBAN",
+      category: "ADMIN",
+      status: updated.isBanned ? "WARNING" : "INFO",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      targetId: updated.id,
+      targetEmail: updated.email,
+      details: updated.isBanned
+        ? `Пользователь ${updated.email} заблокирован администратором ${admin.email}`
+        : `Пользователь ${updated.email} разблокирован администратором ${admin.email}`,
+      request,
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,
