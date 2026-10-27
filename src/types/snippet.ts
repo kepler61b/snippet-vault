@@ -7,6 +7,15 @@ export interface SnippetFileItem {
   order?: number;
 }
 
+export interface SmartFilterRule {
+  timeRange?: "all" | "today" | "7days" | "30days";
+  language?: string;
+  tag?: string;
+  untaggedOnly?: boolean;
+  favoritesOnly?: boolean;
+  query?: string;
+}
+
 export interface CollectionItem {
   id: string;
   name: string;
@@ -15,11 +24,25 @@ export interface CollectionItem {
   iconValue: string;
   color: string | null;
   userId: string | null;
+  parentId?: string | null;
+  parent?: CollectionItem | null;
+  children?: CollectionItem[];
+  isSmart?: boolean;
+  filterRule?: string | null;
   createdAt: string;
   updatedAt: string;
   _count?: {
     snippets: number;
   };
+}
+
+export interface SnippetSearchMatch {
+  fileId?: string;
+  filename: string;
+  fileIndex: number;
+  lineNumber: number;
+  lineContent: string;
+  highlightedLine: string;
 }
 
 export interface SnippetItem {
@@ -36,6 +59,8 @@ export interface SnippetItem {
   createdAt: string;
   updatedAt: string;
   files: SnippetFileItem[];
+  matches?: SnippetSearchMatch[];
+  highlightedSnippet?: string;
 }
 
 export type ViewMode = "grid" | "list";

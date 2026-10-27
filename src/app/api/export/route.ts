@@ -171,6 +171,9 @@ export async function GET(request: NextRequest) {
         iconType: true,
         iconValue: true,
         color: true,
+        isSmart: true,
+        filterRule: true,
+        parent: { select: { name: true } },
       },
       orderBy: { createdAt: "asc" },
     });

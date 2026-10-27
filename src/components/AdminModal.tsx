@@ -718,7 +718,7 @@ export function AdminModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-3.5 border-t border-zinc-800 bg-zinc-900/40 shrink-0 safe-bottom">
+        <div className="flex items-center justify-between px-4 sm:px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:py-3.5 border-t border-zinc-800 bg-zinc-900/80 shrink-0">
           <span className="text-[11px] text-zinc-500">
             SnippetVault Server Administration
           </span>

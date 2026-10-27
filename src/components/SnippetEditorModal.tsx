@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Code,
   FileCode,
@@ -337,27 +337,48 @@ export function SnippetEditorModal({
     }
   };
 
-  const collectionOptions: CustomSelectOption[] = [
-    {
-      value: "",
-      label: t("editor.noCollection"),
-      icon: <Folder className="w-4 h-4 text-zinc-500" />,
-    },
-    ...localCollections.map((col) => ({
-      value: col.id,
-      label: col.name,
-      icon: (
-        <CollectionIcon
-          iconType={col.iconType}
-          iconValue={col.iconValue}
-          color={col.color}
-          className="w-4 h-4"
-        />
-      ),
-      badge: col._count?.snippets ? `${col._count.snippets}` : undefined,
-      description: col.description || undefined,
-    })),
-  ];
+  const collectionOptions: CustomSelectOption[] = useMemo(() => {
+    const colMap = new Map<string, CollectionItem>();
+    localCollections.forEach((c) => colMap.set(c.id, c));
+
+    const getPath = (c: CollectionItem): string => {
+      const parts = [c.name];
+      let curr = c;
+      const seen = new Set<string>([curr.id]);
+      while (curr.parentId && colMap.has(curr.parentId) && !seen.has(curr.parentId)) {
+        curr = colMap.get(curr.parentId)!;
+        seen.add(curr.id);
+        parts.unshift(curr.name);
+      }
+      return parts.join(" / ");
+    };
+
+    // Filter out smart collections (only standard folders can hold snippets directly)
+    const standardCols = localCollections.filter((c) => !c.isSmart);
+    const sorted = [...standardCols].sort((a, b) => getPath(a).localeCompare(getPath(b)));
+
+    return [
+      {
+        value: "",
+        label: t("editor.noCollection"),
+        icon: <Folder className="w-4 h-4 text-zinc-500" />,
+      },
+      ...sorted.map((col) => ({
+        value: col.id,
+        label: getPath(col),
+        icon: (
+          <CollectionIcon
+            iconType={col.iconType}
+            iconValue={col.iconValue}
+            color={col.color}
+            className="w-4 h-4"
+          />
+        ),
+        badge: col._count?.snippets ? `${col._count.snippets}` : undefined,
+        description: col.description || undefined,
+      })),
+    ];
+  }, [localCollections, t]);
 
 
   const languageOptions: CustomSelectOption[] = SUPPORTED_LANGUAGES.map((lang) => ({
@@ -796,7 +817,7 @@ export function SnippetEditorModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-4 border-t border-zinc-800 bg-zinc-900/60 safe-bottom">
+        <div className="flex items-center justify-between px-4 sm:px-6 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:py-3.5 border-t border-zinc-800 bg-zinc-900/80 shrink-0">
           <span className="text-[11px] sm:text-xs text-zinc-500">
             {tFilesCount(files.length)}
           </span>

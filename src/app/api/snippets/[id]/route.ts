@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { detectLanguageFromFilename } from "@/lib/languages";
+import { indexSnippet, deleteSnippetFromFts } from "@/lib/fts";
 
 export async function GET(
   request: NextRequest,
@@ -139,6 +140,9 @@ export async function PUT(
       });
     });
 
+    // Update FTS index
+    await indexSnippet(id, updated);
+
     return NextResponse.json({ success: true, snippet: updated });
   } catch (error: any) {
     console.error("Error updating snippet:", error);
@@ -164,6 +168,9 @@ export async function DELETE(
     await prisma.snippet.delete({
       where: { id },
     });
+
+    // Delete from FTS index
+    await deleteSnippetFromFts(id);
 
     // Ensure seed does not recreate snippets if count drops to 0
     await prisma.setting.upsert({

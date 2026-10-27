@@ -250,6 +250,30 @@ export function CommandPalette({
             filteredSnippets.map((snippet, idx) => {
               const itemIndex = actions.length + idx;
               const isSelected = selectedIndex === itemIndex;
+
+              // Find matching code line if searching
+              let codeMatch: { filename: string; lineNumber: number; lineContent: string } | null = null;
+              if (snippet.matches && snippet.matches.length > 0) {
+                codeMatch = snippet.matches[0];
+              } else if (query.trim()) {
+                const qLower = query.trim().toLowerCase();
+                for (const f of snippet.files) {
+                  if (!f.content) continue;
+                  const lines = f.content.split("\n");
+                  for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+                    if (lines[lineNum].toLowerCase().includes(qLower)) {
+                      codeMatch = {
+                        filename: f.filename,
+                        lineNumber: lineNum + 1,
+                        lineContent: lines[lineNum].trim(),
+                      };
+                      break;
+                    }
+                  }
+                  if (codeMatch) break;
+                }
+              }
+
               return (
                 <button
                   key={snippet.id}
@@ -272,7 +296,17 @@ export function CommandPalette({
                     />
                     <div className="truncate flex-1 min-w-0">
                       <div className="font-semibold truncate">{snippet.title}</div>
-                      {snippet.description && (
+                      {codeMatch ? (
+                        <div
+                          className={`text-[11px] font-mono truncate flex items-center gap-1.5 ${
+                            isSelected ? "text-violet-100" : "text-violet-300/90"
+                          }`}
+                        >
+                          <span className="opacity-75">{codeMatch.filename}:{codeMatch.lineNumber}</span>
+                          <span className="opacity-50">›</span>
+                          <span className="truncate">{codeMatch.lineContent}</span>
+                        </div>
+                      ) : snippet.description ? (
                         <div
                           className={`text-[11px] truncate ${
                             isSelected ? "text-violet-200" : "text-zinc-500"
@@ -280,7 +314,7 @@ export function CommandPalette({
                         >
                           {snippet.description}
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 

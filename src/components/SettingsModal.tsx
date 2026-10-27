@@ -1888,88 +1888,6 @@ export function SettingsModal({
                       {modelsError}
                     </p>
                   )}
-
-                  {/* Model Preset Pills */}
-                  {(!availableModels.length || isManualModelInput) && (
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {provider === "gemini" && (
-                        <button
-                          type="button"
-                          onClick={() => setModel("gemini-3.5-flash")}
-                          className={`text-[10px] px-2.5 py-0.5 rounded-md border font-medium transition-colors ${
-                            model === "gemini-3.5-flash"
-                              ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                              : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                          }`}
-                        >
-                          gemini-3.5-flash
-                        </button>
-                      )}
-                      {provider === "openai" && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setModel("gpt-4o-mini")}
-                            className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
-                              model === "gpt-4o-mini"
-                                ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                                : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                            }`}
-                          >
-                            gpt-4o-mini
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setModel("gpt-4o")}
-                            className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
-                              model === "gpt-4o"
-                                ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                                : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                            }`}
-                          >
-                            gpt-4o
-                          </button>
-                        </>
-                      )}
-                      {provider === "custom" && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => setModel("llama3")}
-                            className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
-                              model === "llama3"
-                                ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                                : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                            }`}
-                          >
-                            llama3
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setModel("deepseek-coder")}
-                            className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
-                              model === "deepseek-coder"
-                                ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                                : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                            }`}
-                          >
-                            deepseek-coder
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setModel("qwen2.5-coder")}
-                            className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${
-                              model === "qwen2.5-coder"
-                                ? "bg-violet-600/20 text-violet-300 border-violet-500/40"
-                                : "bg-zinc-800 text-zinc-400 border-zinc-700/60 hover:text-white"
-                            }`}
-                          >
-                            qwen2.5-coder
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -1997,27 +1915,9 @@ export function SettingsModal({
                   onChange={(e) => setProxyUrl(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-100 placeholder-zinc-500 outline-none focus:border-violet-500 text-xs font-mono"
                 />
-                <div className="flex flex-wrap items-center justify-between gap-1.5 pt-0.5">
-                  <span className="text-[10px] text-zinc-500">
-                    {t("settings.ai.proxyHint")}
-                  </span>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setProxyUrl("socks5://127.0.0.1:10808")}
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 border border-zinc-700/60 hover:text-white transition-colors font-mono"
-                    >
-                      socks5://127.0.0.1:10808
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setProxyUrl("http://127.0.0.1:8080")}
-                      className="text-[10px] px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-400 border border-zinc-700/60 hover:text-white transition-colors font-mono"
-                    >
-                      http://127.0.0.1:8080
-                    </button>
-                  </div>
-                </div>
+                <p className="text-[10px] text-zinc-500 pt-0.5">
+                  {t("settings.ai.proxyHint")}
+                </p>
               </div>
 
               {/* Network Warning Note */}

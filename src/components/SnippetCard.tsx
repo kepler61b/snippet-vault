@@ -217,8 +217,24 @@ export function SnippetCard({
           </div>
         </div>
 
-        {/* Code Preview Box */}
-        {previewLines && (
+        {/* FTS Code Match Highlight Banner */}
+        {snippet.matches && snippet.matches.length > 0 ? (
+          <div className="my-2.5 sm:my-3 rounded-xl border border-violet-500/30 bg-violet-950/20 p-2.5 sm:p-3 font-mono text-[10.5px] sm:text-[11px] text-zinc-200">
+            <div className="flex items-center justify-between text-[10px] text-violet-300 pb-1.5 border-b border-violet-500/20 mb-1.5">
+              <span className="flex items-center gap-1 font-semibold truncate max-w-[150px] sm:max-w-none">
+                <FileCode className="w-3 h-3 shrink-0 text-violet-400" />
+                <span className="truncate">{snippet.matches[0].filename}</span>
+              </span>
+              <span className="shrink-0 text-violet-400 font-medium bg-violet-500/10 px-1.5 py-0.5 rounded">
+                {t("snippets.line")} {snippet.matches[0].lineNumber}
+              </span>
+            </div>
+            <div
+              className="overflow-hidden text-zinc-200 leading-relaxed font-mono truncate"
+              dangerouslySetInnerHTML={{ __html: snippet.matches[0].highlightedLine }}
+            />
+          </div>
+        ) : previewLines ? (
           <div className="my-2.5 sm:my-3 rounded-xl border border-zinc-800/80 bg-zinc-950/80 p-2.5 sm:p-3 font-mono text-[10.5px] sm:text-[11px] text-zinc-300 overflow-hidden relative">
             <div className="flex items-center justify-between text-[10px] text-zinc-400 mb-1.5 sm:mb-2 border-b border-zinc-800/60 pb-1">
               <span className="flex items-center gap-1 font-semibold text-zinc-400 truncate max-w-[140px] sm:max-w-none">
@@ -232,7 +248,7 @@ export function SnippetCard({
             </pre>
             <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-zinc-950 to-transparent pointer-events-none" />
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Footer Details */}

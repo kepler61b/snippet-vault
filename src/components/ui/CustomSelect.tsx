@@ -40,6 +40,7 @@ export function CustomSelect({
   footer,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -62,6 +63,19 @@ export function CustomSelect({
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
     };
+  }, [isOpen]);
+
+  // Check viewport space to decide whether to open upward or downward
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 260 && rect.top > 260) {
+        setOpenUpward(true);
+      } else {
+        setOpenUpward(false);
+      }
+    }
   }, [isOpen]);
 
   // Focus search input when opening
@@ -101,7 +115,7 @@ export function CustomSelect({
         onClick={() => {
           if (!disabled) setIsOpen((prev) => !prev);
         }}
-        className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 sm:py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-zinc-700/80 text-xs sm:text-sm text-zinc-100 outline-none transition-all cursor-pointer min-h-[42px] ${
+        className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-zinc-700/80 text-xs sm:text-sm text-zinc-100 outline-none transition-all cursor-pointer min-h-[42px] ${
           isOpen ? "border-violet-500 ring-1 ring-violet-500/50 bg-zinc-900" : ""
         } ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${triggerClassName}`}
       >
@@ -111,9 +125,9 @@ export function CustomSelect({
               {selectedOption.icon && (
                 <div className="shrink-0 flex items-center">{selectedOption.icon}</div>
               )}
-              <span className="truncate text-zinc-100">{selectedOption.label}</span>
+              <span className="truncate text-zinc-100 font-medium">{selectedOption.label}</span>
               {selectedOption.badge && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 shrink-0">
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 shrink-0 font-mono">
                   {selectedOption.badge}
                 </span>
               )}
@@ -133,12 +147,14 @@ export function CustomSelect({
       {/* Dropdown Menu Popover */}
       {isOpen && (
         <div
-          className={`absolute left-0 right-0 mt-1.5 rounded-2xl border border-zinc-800 bg-zinc-900/95 backdrop-blur-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col ${menuClassName}`}
+          className={`absolute left-0 right-0 ${
+            openUpward ? "bottom-full mb-1.5" : "top-full mt-1.5"
+          } rounded-2xl border border-zinc-800 bg-zinc-900/98 backdrop-blur-xl shadow-2xl p-1.5 z-[100] animate-in fade-in zoom-in-95 duration-100 flex flex-col ${menuClassName}`}
         >
           {/* Search box if searchable */}
           {searchable && (
             <div className="px-2 py-1.5 mb-1 border-b border-zinc-800/80">
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-zinc-950/60 border border-zinc-800 text-xs text-zinc-300">
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-zinc-950/70 border border-zinc-800 text-xs text-zinc-300">
                 <Search className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
                 <input
                   ref={searchInputRef}
@@ -162,7 +178,7 @@ export function CustomSelect({
           )}
 
           {/* Options list (scrollable) */}
-          <div className="max-h-60 overflow-y-auto space-y-0.5 overscroll-contain">
+          <div className="max-h-56 sm:max-h-60 overflow-y-auto space-y-0.5 overscroll-contain">
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-3 text-center text-xs text-zinc-500">
                 Ничего не найдено
@@ -179,7 +195,7 @@ export function CustomSelect({
                       setIsOpen(false);
                       setSearch("");
                     }}
-                    className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-left text-xs sm:text-sm transition-colors active:scale-[0.99] ${
+                    className={`w-full flex items-center justify-between gap-2.5 px-3 py-2.5 sm:py-2 rounded-xl text-left text-xs sm:text-sm transition-colors active:scale-[0.99] min-h-[38px] ${
                       isSelected
                         ? "bg-violet-600/20 text-violet-200 font-medium border border-violet-500/30"
                         : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white border border-transparent"
@@ -201,7 +217,7 @@ export function CustomSelect({
 
                     <div className="flex items-center gap-1.5 shrink-0">
                       {opt.badge && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">
                           {opt.badge}
                         </span>
                       )}

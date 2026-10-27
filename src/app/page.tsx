@@ -66,6 +66,7 @@ export default function HomePage() {
   const [collections, setCollections] = useState<CollectionItem[]>([]);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [createCollectionParentId, setCreateCollectionParentId] = useState<string | null>(null);
   const [editingCollection, setEditingCollection] = useState<CollectionItem | null>(null);
 
   // Modals
@@ -234,10 +235,51 @@ export default function HomePage() {
     return collections.find((c) => c.id === selectedCollectionId) || null;
   }, [collections, selectedCollectionId]);
 
+  // Target collection IDs for nested tree (including all descendants)
+  const targetCollectionIds = useMemo(() => {
+    if (!selectedCollectionId) return null;
+    const ids = new Set<string>([selectedCollectionId]);
+    let added = true;
+    while (added) {
+      added = false;
+      for (const c of collections) {
+        if (c.parentId && ids.has(c.parentId) && !ids.has(c.id)) {
+          ids.add(c.id);
+          added = true;
+        }
+      }
+    }
+    return ids;
+  }, [selectedCollectionId, collections]);
+
+  // Breadcrumbs for active nested collection
+  const collectionBreadcrumbs = useMemo(() => {
+    if (!selectedCollectionId) return [];
+    const colMap = new Map<string, CollectionItem>();
+    collections.forEach((c) => colMap.set(c.id, c));
+    const crumbs: CollectionItem[] = [];
+    let curr = colMap.get(selectedCollectionId);
+    const seen = new Set<string>();
+    while (curr && !seen.has(curr.id)) {
+      seen.add(curr.id);
+      crumbs.unshift(curr);
+      curr = curr.parentId ? colMap.get(curr.parentId) : undefined;
+    }
+    return crumbs;
+  }, [selectedCollectionId, collections]);
+
+
   // Filtered snippets
   const filteredSnippets = useMemo(() => {
-    return snippets.filter((s) => {
-      // Search query
+    let smartRule: any = null;
+    if (activeCollection?.isSmart && activeCollection.filterRule) {
+      try {
+        smartRule = JSON.parse(activeCollection.filterRule);
+      } catch {}
+    }
+
+    const filtered = snippets.filter((s) => {
+      // 1. Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const inTitle = s.title.toLowerCase().includes(q);
@@ -251,13 +293,56 @@ export default function HomePage() {
         if (!inTitle && !inDesc && !inTags && !inFiles) return false;
       }
 
-      // Filter by custom collection
-      if (selectedCollectionId && s.collectionId !== selectedCollectionId) return false;
+      // 2. Collection filter: smart rule or nested tree
+      if (selectedCollectionId) {
+        if (smartRule) {
+          if (smartRule.timeRange && smartRule.timeRange !== "all") {
+            const createdAtTime = new Date(s.createdAt).getTime();
+            const now = Date.now();
+            if (smartRule.timeRange === "today") {
+              const startOfDay = new Date();
+              startOfDay.setHours(0, 0, 0, 0);
+              if (createdAtTime < startOfDay.getTime()) return false;
+            } else if (smartRule.timeRange === "7days") {
+              if (createdAtTime < now - 7 * 86400000) return false;
+            } else if (smartRule.timeRange === "30days") {
+              if (createdAtTime < now - 30 * 86400000) return false;
+            }
+          }
 
-      // Filter category
+          if (smartRule.favoritesOnly && !s.isFavorite) return false;
+
+          if (smartRule.untaggedOnly) {
+            if (s.tags && s.tags.trim() !== "") return false;
+          } else if (smartRule.tag && smartRule.tag.trim()) {
+            const cleanTag = smartRule.tag.trim().toLowerCase().replace(/^#/, "");
+            if (!s.tags.toLowerCase().includes(cleanTag)) return false;
+          }
+
+          if (smartRule.language && smartRule.language.trim()) {
+            const lang = smartRule.language.trim().toLowerCase();
+            const hasLang = s.files.some((f) => f.language?.toLowerCase() === lang);
+            if (!hasLang) return false;
+          }
+
+          if (smartRule.query && smartRule.query.trim()) {
+            const sq = smartRule.query.trim().toLowerCase();
+            const matchQuery =
+              s.title.toLowerCase().includes(sq) ||
+              s.description?.toLowerCase().includes(sq) ||
+              s.tags.toLowerCase().includes(sq) ||
+              s.files.some((f) => f.filename.toLowerCase().includes(sq) || f.content.toLowerCase().includes(sq));
+            if (!matchQuery) return false;
+          }
+        } else if (targetCollectionIds) {
+          if (!s.collectionId || !targetCollectionIds.has(s.collectionId)) return false;
+        }
+      }
+
+      // 3. Category Filter
       if (selectedFilter === "FAVORITES" && !s.isFavorite) return false;
 
-      // Language filter
+      // 4. Language filter
       if (selectedLanguage) {
         const hasLang = s.files.some(
           (f) => f.language.toLowerCase() === selectedLanguage.toLowerCase()
@@ -265,7 +350,7 @@ export default function HomePage() {
         if (!hasLang) return false;
       }
 
-      // Tag filter
+      // 5. Tag filter
       if (selectedTag) {
         const tagList = s.tags
           .split(",")
@@ -275,7 +360,53 @@ export default function HomePage() {
 
       return true;
     });
-  }, [snippets, searchQuery, selectedCollectionId, selectedFilter, selectedLanguage, selectedTag]);
+
+    // If search is active, extract exact code line matches with highlights
+    if (searchQuery.trim()) {
+      const qWords = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+      return filtered.map((snippet) => {
+        const matches: any[] = [];
+        for (let fIdx = 0; fIdx < snippet.files.length; fIdx++) {
+          const file = snippet.files[fIdx];
+          if (!file.content) continue;
+          const lines = file.content.split("\r\n");
+          for (let lIdx = 0; lIdx < lines.length; lIdx++) {
+            const line = lines[lIdx];
+            const lineLower = line.toLowerCase();
+            if (qWords.some((w) => lineLower.includes(w))) {
+              let highlighted = line
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+              for (const w of qWords) {
+                const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                highlighted = highlighted.replace(
+                  new RegExp(`(${escaped})`, "gi"),
+                  "<mark class=\"bg-violet-500/30 text-violet-200 font-semibold px-0.5 rounded\">$1</mark>"
+                );
+              }
+              matches.push({
+                fileId: file.id,
+                filename: file.filename,
+                fileIndex: fIdx,
+                lineNumber: lIdx + 1,
+                lineContent: line.trim(),
+                highlightedLine: highlighted.trim(),
+              });
+              if (matches.length >= 2) break;
+            }
+          }
+          if (matches.length >= 2) break;
+        }
+        return {
+          ...snippet,
+          matches: matches.length > 0 ? matches : snippet.matches,
+        };
+      });
+    }
+
+    return filtered;
+  }, [snippets, searchQuery, selectedCollectionId, selectedFilter, selectedLanguage, selectedTag, activeCollection, targetCollectionIds]);
 
   // Sorted snippets
   const sortedSnippets = useMemo(() => {
@@ -544,7 +675,8 @@ export default function HomePage() {
             setSelectedCollectionId(id);
             if (id) setSelectedFilter("ALL");
           }}
-          onOpenCreateCollection={() => {
+          onOpenCreateCollection={(parentId = null, isSmart = false) => {
+            setCreateCollectionParentId(parentId);
             setEditingCollection(null);
             setIsCollectionModalOpen(true);
           }}
@@ -632,9 +764,43 @@ export default function HomePage() {
                 </div>
               )}
               <div>
-                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                {collectionBreadcrumbs.length > 1 && (
+                  <nav className="flex items-center gap-1.5 text-xs text-zinc-400 mb-1 flex-wrap">
+                    <button
+                      onClick={() => setSelectedCollectionId(null)}
+                      className="hover:text-white transition-colors"
+                    >
+                      {t("sidebar.allSnippets")}
+                    </button>
+                    {collectionBreadcrumbs.map((crumb, idx) => {
+                      const isLast = idx === collectionBreadcrumbs.length - 1;
+                      return (
+                        <React.Fragment key={crumb.id}>
+                          <span className="text-zinc-600">/</span>
+                          {isLast ? (
+                            <span className="text-zinc-200 font-medium">{crumb.name}</span>
+                          ) : (
+                            <button
+                              onClick={() => setSelectedCollectionId(crumb.id)}
+                              className="hover:text-white transition-colors"
+                            >
+                              {crumb.name}
+                            </button>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </nav>
+                )}
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2 flex-wrap">
                   <span>{activeCollection ? activeCollection.name : t("snippets.title")}</span>
-                  <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400">
+                  {activeCollection?.isSmart && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-pink-500/10 text-pink-300 border border-pink-500/30">
+                      <Sparkles className="w-3 h-3 text-pink-400" />
+                      {t("snippets.smartCollectionActive")}
+                    </span>
+                  )}
+                  <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-mono">
                     {filteredSnippets.length}
                   </span>
                 </h1>
@@ -711,7 +877,7 @@ export default function HomePage() {
                       className="fixed inset-0 z-20"
                       onClick={() => setSortMenuOpen(false)}
                     />
-                    <div className="absolute right-0 mt-1.5 w-52 rounded-xl border border-zinc-800 bg-zinc-900 shadow-xl z-30 p-1 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="absolute right-0 mt-1.5 w-52 max-w-[calc(100vw-24px)] rounded-2xl border border-zinc-800 bg-zinc-900/98 backdrop-blur-xl shadow-2xl z-30 p-1.5 animate-in fade-in zoom-in-95 duration-100">
                       <div className="px-2.5 py-1.5 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider border-b border-zinc-800/60 mb-1">
                         {t("snippets.sortBy")}
                       </div>
@@ -720,10 +886,10 @@ export default function HomePage() {
                           key={option.id}
                           type="button"
                           onClick={() => handleSortChange(option.id)}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+                          className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-colors min-h-[36px] active:scale-[0.99] ${
                             sortBy === option.id
-                              ? "bg-violet-600/20 text-violet-300 font-medium"
-                              : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                              ? "bg-violet-600/20 text-violet-300 font-medium border border-violet-500/30"
+                              : "text-zinc-300 hover:bg-zinc-800/80 hover:text-white border border-transparent"
                           }`}
                         >
                           <span>{option.label}</span>
@@ -904,9 +1070,12 @@ export default function HomePage() {
         <CollectionModal
           isOpen={isCollectionModalOpen || Boolean(editingCollection)}
           collection={editingCollection}
+          allCollections={collections}
+          initialParentId={createCollectionParentId}
           onClose={() => {
             setIsCollectionModalOpen(false);
             setEditingCollection(null);
+            setCreateCollectionParentId(null);
           }}
           onSave={handleSaveCollection}
           onDelete={handleDeleteCollection}

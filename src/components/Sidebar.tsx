@@ -1,13 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import {
+  ChevronDown,
+  ChevronRight,
   Code2,
   Download,
   Edit2,
   FolderGit2,
+  FolderPlus,
+  FolderTree,
   Plus,
   SlidersHorizontal,
+  Sparkles,
   Star,
   Tag,
   X,
@@ -23,7 +28,7 @@ interface SidebarProps {
   collections: CollectionItem[];
   selectedCollectionId: string | null;
   onSelectCollection: (id: string | null) => void;
-  onOpenCreateCollection: () => void;
+  onOpenCreateCollection: (parentId?: string | null, isSmart?: boolean) => void;
   onEditCollection: (col: CollectionItem) => void;
   selectedFilter: "ALL" | "FAVORITES";
   onSelectFilter: (filter: "ALL" | "FAVORITES") => void;
@@ -37,6 +42,10 @@ interface SidebarProps {
   onCloseMobile?: () => void;
   currentUser?: { role?: string } | null;
   onOpenAdminModal?: () => void;
+}
+
+interface CollectionTreeNode extends CollectionItem {
+  childrenNodes: CollectionTreeNode[];
 }
 
 export function Sidebar({
@@ -60,6 +69,22 @@ export function Sidebar({
 }: SidebarProps) {
   const { t } = useI18n();
 
+  // Track expanded folder nodes in folder tree
+  const [collapsedFolderIds, setCollapsedFolderIds] = useState<Set<string>>(new Set());
+
+  const toggleFolderCollapse = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCollapsedFolderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const hasActiveFilters =
     selectedFilter !== "ALL" ||
     selectedLanguage !== null ||
@@ -69,6 +94,155 @@ export function Sidebar({
     onSelectFilter("ALL");
     onSelectLanguage(null);
     onSelectTag(null);
+  };
+
+  // Separate smart collections and standard folder collections
+  const { smartCollections, standardCollectionsTree } = useMemo(() => {
+    const smart: CollectionItem[] = [];
+    const standard: CollectionItem[] = [];
+
+    collections.forEach((c) => {
+      if (c.isSmart) {
+        smart.push(c);
+      } else {
+        standard.push(c);
+      }
+    });
+
+    // Build tree for standard collections
+    const nodeMap = new Map<string, CollectionTreeNode>();
+    standard.forEach((c) => {
+      nodeMap.set(c.id, { ...c, childrenNodes: [] });
+    });
+
+    const roots: CollectionTreeNode[] = [];
+    standard.forEach((c) => {
+      const node = nodeMap.get(c.id)!;
+      if (c.parentId && nodeMap.has(c.parentId)) {
+        nodeMap.get(c.parentId)!.childrenNodes.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+
+    return {
+      smartCollections: smart,
+      standardCollectionsTree: roots,
+    };
+  }, [collections]);
+
+  // Recursive tree renderer for standard collections
+  const renderCollectionTreeNode = (node: CollectionTreeNode, depth = 0) => {
+    const isSelected = selectedCollectionId === node.id;
+    const hasChildren = node.childrenNodes.length > 0;
+    const isCollapsed = collapsedFolderIds.has(node.id);
+    const count = node._count?.snippets || 0;
+
+    return (
+      <div key={node.id} className="space-y-0.5">
+        <div
+          className={`group/col flex items-center justify-between w-full rounded-xl transition-all ${
+            isSelected
+              ? "bg-zinc-800 text-white font-medium shadow-sm ring-1 ring-violet-500/30"
+              : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60"
+          }`}
+          style={{ paddingLeft: `${depth * 14 + 6}px` }}
+        >
+          {/* Left: Expand/Collapse chevron + Collection Info */}
+          <div className="flex items-center gap-1.5 flex-1 min-w-0 py-1.5 sm:py-1">
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={(e) => toggleFolderCollapse(node.id, e)}
+                className="p-1 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/80 transition-colors shrink-0 min-w-[28px] min-h-[28px] flex items-center justify-center active:scale-90"
+                title={isCollapsed ? "Развернуть папку" : "Свернуть папку"}
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
+              </button>
+            ) : (
+              <div className="w-7 shrink-0" />
+            )}
+
+            <button
+              onClick={() => {
+                onSelectCollection(node.id);
+                onCloseMobile?.();
+              }}
+              className="flex items-center gap-2 flex-1 min-w-0 text-left text-xs sm:text-sm py-1"
+            >
+              <CollectionIcon
+                iconType={node.iconType}
+                iconValue={node.iconValue}
+                color={node.color}
+                className="w-4 h-4 shrink-0"
+              />
+              <span className="truncate">{node.name}</span>
+            </button>
+          </div>
+
+          {/* Right Action buttons */}
+          <div className="flex items-center gap-0.5 pr-1.5 shrink-0">
+            <span className="text-[11px] opacity-60 px-1 font-mono">{count}</span>
+
+            {/* Quick add subcollection */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenCreateCollection(node.id, false);
+                onCloseMobile?.();
+              }}
+              className="opacity-80 lg:opacity-0 lg:group-hover/col:opacity-100 p-1.5 text-zinc-400 hover:text-violet-300 rounded-lg hover:bg-zinc-800 transition-opacity min-w-[28px] min-h-[28px] flex items-center justify-center active:scale-90"
+              title={t("sidebar.createSubfolder")}
+            >
+              <FolderPlus className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Export JSON */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const a = document.createElement("a");
+                a.href = `/api/export?type=collection&id=${node.id}`;
+                a.download = `${node.name}.collection.snippetvault.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+              }}
+              className="opacity-80 lg:opacity-0 lg:group-hover/col:opacity-100 p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-opacity min-w-[28px] min-h-[28px] flex items-center justify-center active:scale-90"
+              title={t("snippets.exportCollectionJson")}
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Edit */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditCollection(node);
+              }}
+              className="opacity-80 lg:opacity-0 lg:group-hover/col:opacity-100 p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-opacity min-w-[28px] min-h-[28px] flex items-center justify-center active:scale-90"
+              title={t("view.editSnippet")}
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Render child folders */}
+        {hasChildren && !isCollapsed && (
+          <div className="space-y-0.5">
+            {node.childrenNodes.map((child) => renderCollectionTreeNode(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const content = (
@@ -88,23 +262,24 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* БЛОК 1: КОЛЛЕКЦИИ (Все сниппеты + кастомные коллекции + кнопка создать) */}
+      {/* БЛОК 1: КОЛЛЕКЦИИ (Все сниппеты + Дерево папок) */}
       <div className="space-y-1">
         <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
-          <span>{t("sidebar.collections")}</span>
-          {collections.length > 0 && (
-            <button
-              onClick={() => {
-                onOpenCreateCollection();
-                onCloseMobile?.();
-              }}
-              className="flex items-center gap-1 text-[11px] font-medium text-violet-400 hover:text-violet-300 transition-colors py-1 px-1.5 rounded"
-              title={t("sidebar.createCollectionTitle")}
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>{t("sidebar.newCollection")}</span>
-            </button>
-          )}
+          <span className="flex items-center gap-1.5">
+            <FolderTree className="w-3.5 h-3.5 text-zinc-400" />
+            {t("sidebar.collections")}
+          </span>
+          <button
+            onClick={() => {
+              onOpenCreateCollection(null, false);
+              onCloseMobile?.();
+            }}
+            className="flex items-center gap-1 text-[11px] font-medium text-violet-400 hover:text-violet-300 transition-colors py-1 px-1.5 rounded hover:bg-zinc-900"
+            title={t("sidebar.createCollectionTitle")}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>{t("sidebar.newCollection")}</span>
+          </button>
         </div>
 
         {/* Все сниппеты */}
@@ -124,73 +299,15 @@ export function Sidebar({
             <FolderGit2 className="w-4 h-4" />
             <span>{t("sidebar.allSnippets")}</span>
           </div>
-          <span className="text-xs opacity-75">{totalCount}</span>
+          <span className="text-xs opacity-75 font-mono">{totalCount}</span>
         </button>
 
-        {/* Список кастомных коллекций */}
-        {collections.map((col) => {
-          const isSelected = selectedCollectionId === col.id;
-          const count = col._count?.snippets || 0;
-          return (
-            <div
-              key={col.id}
-              className={`group/col flex items-center justify-between w-full rounded-xl transition-all ${
-                isSelected
-                  ? "bg-zinc-800 text-white font-medium shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60"
-              }`}
-            >
-              <button
-                onClick={() => {
-                  onSelectCollection(col.id);
-                  onCloseMobile?.();
-                }}
-                className="flex items-center gap-2.5 px-3 py-2.5 sm:py-2 flex-1 min-w-0 text-left text-sm"
-              >
-                <CollectionIcon
-                  iconType={col.iconType}
-                  iconValue={col.iconValue}
-                  color={col.color}
-                  className="w-4 h-4 shrink-0"
-                />
-                <span className="truncate">{col.name}</span>
-              </button>
+        {/* Дерево стандартных коллекций */}
+        <div className="space-y-0.5 pt-1">
+          {standardCollectionsTree.map((rootNode) => renderCollectionTreeNode(rootNode, 0))}
+        </div>
 
-              <div className="flex items-center gap-1 pr-2 shrink-0">
-                <span className="text-xs opacity-60 px-1">{count}</span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const a = document.createElement("a");
-                    a.href = `/api/export?type=collection&id=${col.id}`;
-                    a.download = `${col.name}.collection.snippetvault.json`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                  }}
-                  className="opacity-80 lg:opacity-0 lg:group-hover/col:opacity-100 p-1.5 text-zinc-400 hover:text-white rounded-lg transition-opacity flex items-center justify-center min-w-[28px] min-h-[28px]"
-                  title={t("snippets.exportCollectionJson")}
-                >
-                  <Download className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEditCollection(col);
-                  }}
-                  className="opacity-80 lg:opacity-0 lg:group-hover/col:opacity-100 p-1.5 text-zinc-400 hover:text-white rounded-lg transition-opacity flex items-center justify-center min-w-[28px] min-h-[28px]"
-                  title={t("view.editSnippet")}
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          );
-        })}
-
-        {collections.length === 0 && (
+        {standardCollectionsTree.length === 0 && smartCollections.length === 0 && (
           <div className="px-3 py-2">
             <button
               onClick={() => {
@@ -206,7 +323,79 @@ export function Sidebar({
         )}
       </div>
 
-      {/* БЛОК 2: ФИЛЬТРЫ (Избранное) */}
+      {/* БЛОК 2: УМНЫЕ КОЛЛЕКЦИИ (Smart Collections) */}
+      {smartCollections.length > 0 && (
+        <div className="space-y-1 pt-1">
+          <div className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-pink-400 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+              {t("sidebar.smartCollections")}
+            </span>
+            <button
+              onClick={() => {
+                onOpenCreateCollection(null, true);
+                onCloseMobile?.();
+              }}
+              className="flex items-center gap-1 text-[11px] font-medium text-pink-400 hover:text-pink-300 transition-colors py-0.5 px-1 rounded hover:bg-zinc-900"
+              title="Создать умную коллекцию"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="space-y-0.5">
+            {smartCollections.map((col) => {
+              const isSelected = selectedCollectionId === col.id;
+              const count = col._count?.snippets || 0;
+              return (
+                <div
+                  key={col.id}
+                  className={`group/smart flex items-center justify-between w-full rounded-xl transition-all ${
+                    isSelected
+                      ? "bg-gradient-to-r from-pink-950/70 to-rose-950/70 text-white font-medium border border-pink-500/40 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60"
+                  }`}
+                >
+                  <button
+                    onClick={() => {
+                      onSelectCollection(col.id);
+                      onCloseMobile?.();
+                    }}
+                    className="flex items-center gap-2.5 px-3 py-2 flex-1 min-w-0 text-left text-xs sm:text-sm"
+                  >
+                    <CollectionIcon
+                      iconType={col.iconType}
+                      iconValue={col.iconValue}
+                      color={col.color || "#ec4899"}
+                      className="w-4 h-4 shrink-0"
+                    />
+                    <span className="truncate">{col.name}</span>
+                  </button>
+
+                  <div className="flex items-center gap-1 pr-2 shrink-0">
+                    <span className="text-[11px] opacity-75 px-1 font-mono text-pink-300 font-semibold">
+                      {count}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditCollection(col);
+                      }}
+                      className="opacity-80 lg:opacity-0 lg:group-hover/smart:opacity-100 p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-opacity min-w-[28px] min-h-[28px] flex items-center justify-center active:scale-90"
+                      title={t("view.editSnippet")}
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* БЛОК 3: ФИЛЬТРЫ (Избранное) */}
       <div className="space-y-1">
         <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
           <span>{t("snippets.filters")}</span>
@@ -244,11 +433,11 @@ export function Sidebar({
             />
             <span>{t("sidebar.favorites")}</span>
           </div>
-          <span className="text-xs opacity-75">{favoriteCount}</span>
+          <span className="text-xs opacity-75 font-mono">{favoriteCount}</span>
         </button>
       </div>
 
-      {/* БЛОК 3: ЯЗЫКИ */}
+      {/* БЛОК 4: ЯЗЫКИ */}
       {languages.length > 0 && (
         <div className="space-y-1">
           <div className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
@@ -279,7 +468,7 @@ export function Sidebar({
                     />
                     <span className="truncate">{meta.name}</span>
                   </div>
-                  <span className="text-[11px] text-zinc-400 ml-2">{lang.count}</span>
+                  <span className="text-[11px] text-zinc-400 ml-2 font-mono">{lang.count}</span>
                 </button>
               );
             })}
@@ -287,7 +476,7 @@ export function Sidebar({
         </div>
       )}
 
-      {/* БЛОК 4: ТЕГИ */}
+      {/* БЛОК 5: ТЕГИ */}
       {tags.length > 0 && (
         <div className="space-y-2">
           <div className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
@@ -311,7 +500,7 @@ export function Sidebar({
                   }`}
                 >
                   <span>#{t.name}</span>
-                  <span className="text-[10px] opacity-60">({t.count})</span>
+                  <span className="text-[10px] opacity-60 font-mono">({t.count})</span>
                 </button>
               );
             })}

@@ -125,12 +125,22 @@ export function SnippetListItem({
             </h3>
           </div>
 
-          {/* Description (one line) */}
-          {snippet.description && (
+          {/* Description or FTS Code Match line */}
+          {snippet.matches && snippet.matches.length > 0 ? (
+            <div className="flex items-center gap-2 text-[11px] font-mono text-violet-300 bg-violet-950/40 px-2 py-0.5 rounded-lg border border-violet-500/30 max-w-xl truncate">
+              <span className="text-[10px] text-violet-400 font-semibold shrink-0">
+                {snippet.matches[0].filename}:{snippet.matches[0].lineNumber}
+              </span>
+              <span
+                className="truncate text-zinc-200"
+                dangerouslySetInnerHTML={{ __html: snippet.matches[0].highlightedLine }}
+              />
+            </div>
+          ) : snippet.description ? (
             <p className="text-xs text-zinc-400 truncate max-w-xl">
               {snippet.description}
             </p>
-          )}
+          ) : null}
         </div>
       </div>
 

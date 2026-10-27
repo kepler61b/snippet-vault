@@ -8,6 +8,7 @@ import {
   EyeOff,
   Fingerprint,
   KeyRound,
+  Languages,
   Loader2,
   Lock,
   Mail,
@@ -19,7 +20,7 @@ import { useI18n } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { t, locale } = useI18n();
+  const { t, locale, setLocale } = useI18n();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -184,6 +185,38 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-[100dvh] bg-zinc-950 flex flex-col justify-center items-center p-3 sm:p-6 relative overflow-hidden selection:bg-violet-500/30 selection:text-white safe-top safe-bottom">
+      {/* Language Switcher */}
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex items-center gap-1.5 p-1 rounded-xl border border-zinc-800/80 bg-zinc-900/70 backdrop-blur-md shadow-lg shadow-black/20">
+        <Languages className="w-3.5 h-3.5 text-zinc-400 ml-1.5" />
+        <div className="flex items-center p-0.5 rounded-lg bg-zinc-950/60 border border-zinc-800/50">
+          <button
+            type="button"
+            onClick={() => setLocale("ru")}
+            className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all ${
+              locale === "ru"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+            aria-label="Русский язык"
+            title="Русский"
+          >
+            RU
+          </button>
+          <button
+            type="button"
+            onClick={() => setLocale("en")}
+            className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all ${
+              locale === "en"
+                ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+            aria-label="English language"
+            title="English"
+          >
+            EN
+          </button>
+        </div>
+      </div>
       {/* Background glowing decorations */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -329,10 +362,10 @@ export default function LoginPage() {
                 <div className="mt-5 p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 text-xs space-y-2 animate-in fade-in duration-200">
                   <div className="flex items-center gap-2 font-semibold text-amber-300">
                     <ShieldCheck className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>Первый вход в систему</span>
+                    <span>{t("login.firstLoginTitle")}</span>
                   </div>
                   <p className="text-[11px] text-amber-200/80 leading-relaxed">
-                    В системе еще нет зарегистрированных пользователей. Войдите под локальным администратором, чтобы создать учетные записи и управлять системой.
+                    {t("login.firstLoginDesc")}
                   </p>
                   <button
                     type="button"
@@ -340,7 +373,7 @@ export default function LoginPage() {
                     className="w-full py-2.5 px-3 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-medium transition-colors flex items-center justify-center gap-1.5 min-h-[40px] active:scale-[0.98]"
                   >
                     <KeyRound className="w-3.5 h-3.5" />
-                    <span>Заполнить: admin@snippetvault.local / admin12345</span>
+                    <span>{t("login.fillAdminBtn")}</span>
                   </button>
                 </div>
               )}
@@ -415,7 +448,7 @@ export default function LoginPage() {
             rel="noopener noreferrer"
             className="text-xs text-zinc-500 hover:text-violet-400 transition-colors inline-flex items-center gap-1 group"
           >
-            <span>made by</span>
+            <span>{t("sidebar.madeBy")}</span>
             <span className="font-semibold text-zinc-400 group-hover:text-violet-300">scfmcdck</span>
           </a>
         </div>

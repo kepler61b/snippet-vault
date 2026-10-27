@@ -134,8 +134,8 @@ export function SnippetRevisionsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="flex flex-col w-full max-w-5xl max-h-[92vh] sm:max-h-[85vh] bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 lg:p-6 bg-black/80 backdrop-blur-sm animate-modal-backdrop">
+      <div className="relative flex flex-col w-full max-w-5xl h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[88vh] rounded-none sm:rounded-2xl border-0 sm:border border-zinc-800 bg-zinc-950 shadow-2xl overflow-hidden animate-modal-content safe-top">
         {/* Header */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-zinc-800 bg-zinc-900/80">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -231,14 +231,17 @@ export function SnippetRevisionsModal({
                       }`}
                     >
                       <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-semibold text-zinc-200">
-                          {idx === 0
-                            ? locale === "ru"
-                              ? "Предыдущая версия"
-                              : "Previous version"
-                            : `${locale === "ru" ? "Ревизия" : "Revision"} #${revisions.length - idx}`}
-                        </span>
-                        <span className="text-[10px] text-zinc-500">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-semibold text-zinc-200 truncate">
+                            {locale === "ru" ? "Ревизия" : "Revision"} #{revisions.length - idx}
+                          </span>
+                          {idx === 0 && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-violet-500/20 text-violet-300 border border-violet-500/40 shrink-0">
+                              {locale === "ru" ? "Последняя" : "Latest"}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-zinc-500 shrink-0 ml-2">
                           {rev.filesCount} {locale === "ru" ? "файл(ов)" : "files"}
                         </span>
                       </div>

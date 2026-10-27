@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { rebuildFtsIndex } from "@/lib/fts";
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,6 +82,8 @@ export async function POST(request: NextRequest) {
               iconType: col.iconType || "lucide",
               iconValue: col.iconValue || "Folder",
               color: col.color || "#8b5cf6",
+              isSmart: Boolean(col.isSmart),
+              filterRule: col.filterRule ? (typeof col.filterRule === "string" ? col.filterRule : JSON.stringify(col.filterRule)) : null,
             },
           });
           collectionMap.set(normName, created.id);
@@ -184,6 +187,10 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         console.warn("Error creating snippet during import:", err);
       }
+    }
+
+    if (importedSnippetsCount > 0) {
+      await rebuildFtsIndex();
     }
 
     return NextResponse.json({

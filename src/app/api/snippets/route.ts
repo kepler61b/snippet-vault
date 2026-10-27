@@ -3,13 +3,26 @@ import { prisma } from "@/lib/db";
 import { detectLanguageFromFilename } from "@/lib/languages";
 import { ensureSeedSnippets } from "@/lib/seed";
 import { getCurrentUser } from "@/lib/auth";
+import {
+  ensureFtsInitialized,
+  searchFts,
+  extractLineMatches,
+  indexSnippet,
+} from "@/lib/fts";
+import {
+  getAllDescendantCollectionIds,
+  buildSmartCollectionWhere,
+} from "@/lib/collections";
+import { SmartFilterRule } from "@/types/snippet";
 
 export async function GET(request: NextRequest) {
   try {
     await ensureSeedSnippets();
+    await ensureFtsInitialized();
+
     const currentUser = await getCurrentUser();
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search")?.trim().toLowerCase();
+    const search = searchParams.get("search")?.trim();
     const tag = searchParams.get("tag")?.trim().toLowerCase();
     const language = searchParams.get("language")?.trim().toLowerCase();
     const favorite = searchParams.get("favorite") === "true";
@@ -18,7 +31,7 @@ export async function GET(request: NextRequest) {
     const where: any = {};
     const andConditions: any[] = [];
 
-    // All snippets remain accessible within the single account
+    // User access filter
     if (currentUser) {
       andConditions.push({
         OR: [{ userId: currentUser.id }, { userId: null }],
@@ -29,8 +42,30 @@ export async function GET(request: NextRequest) {
       where.isFavorite = true;
     }
 
+    // Collection filter (nested folder or smart collection)
     if (collectionId) {
-      where.collectionId = collectionId;
+      const targetCol = await prisma.collection.findUnique({
+        where: { id: collectionId },
+      });
+
+      if (targetCol?.isSmart && targetCol.filterRule) {
+        try {
+          const rule: SmartFilterRule = JSON.parse(targetCol.filterRule);
+          const smartConditions = buildSmartCollectionWhere(rule);
+          if (smartConditions.length > 0) {
+            andConditions.push(...smartConditions);
+          }
+        } catch (e) {
+          console.warn("Error parsing smart collection rule:", e);
+        }
+      } else {
+        // Nested collection: include this folder and all its descendants
+        const allDescendantIds = await getAllDescendantCollectionIds(
+          collectionId,
+          currentUser?.id
+        );
+        where.collectionId = { in: allDescendantIds };
+      }
     }
 
     if (tag) {
@@ -47,24 +82,42 @@ export async function GET(request: NextRequest) {
       };
     }
 
+    let ftsResultMap = new Map<string, { rank: number; snippetText?: string }>();
+
+    // Full-Text Search
     if (search) {
-      andConditions.push({
+      ftsResultMap = await searchFts(search);
+      const ftsSnippetIds = Array.from(ftsResultMap.keys());
+
+      const searchTermsLower = search.toLowerCase();
+      const standardSearchCondition = {
         OR: [
-          { title: { contains: search } },
-          { description: { contains: search } },
-          { tags: { contains: search } },
+          { title: { contains: searchTermsLower } },
+          { description: { contains: searchTermsLower } },
+          { tags: { contains: searchTermsLower } },
           {
             files: {
               some: {
                 OR: [
-                  { filename: { contains: search } },
-                  { content: { contains: search } },
+                  { filename: { contains: searchTermsLower } },
+                  { content: { contains: searchTermsLower } },
                 ],
               },
             },
           },
         ],
-      });
+      };
+
+      if (ftsSnippetIds.length > 0) {
+        andConditions.push({
+          OR: [
+            { id: { in: ftsSnippetIds } },
+            standardSearchCondition,
+          ],
+        });
+      } else {
+        andConditions.push(standardSearchCondition);
+      }
     }
 
     if (andConditions.length > 0) {
@@ -82,7 +135,36 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, snippets });
+    // Attach FTS line matches and highlights
+    const enrichedSnippets = snippets.map((s) => {
+      let matches = undefined;
+      let highlightedSnippet = undefined;
+
+      if (search) {
+        matches = extractLineMatches(s.files, search, 3);
+        const ftsData = ftsResultMap.get(s.id);
+        if (ftsData?.snippetText) {
+          highlightedSnippet = ftsData.snippetText;
+        }
+      }
+
+      return {
+        ...s,
+        matches,
+        highlightedSnippet,
+      };
+    });
+
+    // If search was performed, sort by FTS rank
+    if (search && ftsResultMap.size > 0) {
+      enrichedSnippets.sort((a, b) => {
+        const rankA = ftsResultMap.get(a.id)?.rank ?? 999;
+        const rankB = ftsResultMap.get(b.id)?.rank ?? 999;
+        return rankA - rankB;
+      });
+    }
+
+    return NextResponse.json({ success: true, snippets: enrichedSnippets });
   } catch (error: any) {
     console.error("Error fetching snippets:", error);
     return NextResponse.json(
@@ -150,6 +232,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Index into FTS5
+    await indexSnippet(created.id, created);
+
     return NextResponse.json({ success: true, snippet: created }, { status: 201 });
   } catch (error: any) {
     console.error("Error creating snippet:", error);
@@ -184,6 +269,9 @@ export async function DELETE(request: NextRequest) {
       await prisma.snippet.deleteMany({
         where: { id: { in: ids } },
       });
+
+      // Clear FTS index
+      await prisma.$executeRawUnsafe(`DELETE FROM snippet_fts;`).catch(() => {});
     }
 
     // Delete all custom collections of this user (or unassigned/demo collections)
