@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for SnippetVault
-ARG NEXT_PUBLIC_APP_ENV=prod
+ARG NEXT_PUBLIC_APP_ENV=dev
 ARG NEXT_PUBLIC_APP_VERSION=0.8.1
 
 # Stage 1: Dependencies
