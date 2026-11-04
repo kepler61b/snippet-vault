@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.8.1-blue.svg" alt="Version 0.8.1" />
+  <img src="https://img.shields.io/badge/version-0.8.2-blue.svg" alt="Version 0.8.2" />
   <img src="https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white" alt="Docker Ready" />
   <img src="https://img.shields.io/badge/database-SQLite%20WAL-003B57.svg?logo=sqlite&logoColor=white" alt="SQLite" />
   <img src="https://img.shields.io/badge/next.js-16%20Turbopack-black.svg?logo=next.js&logoColor=white" alt="Next.js" />
@@ -122,7 +122,7 @@ docker run -d \
   kepler61b/snippet-vault:latest
 ```
 
-> **Совет**: Для использования версии `0.8.1` в ветке разработки укажите тег `kepler61b/snippet-vault:0.8.1` или `kepler61b/snippet-vault:dev`.
+> **Совет**: Для использования версии `0.8.2` в ветке разработки укажите тег `kepler61b/snippet-vault:0.8.2` или `kepler61b/snippet-vault:dev`.
 
 ---
 
@@ -283,7 +283,7 @@ npm run dev
 | `DATABASE_URL` | `file:/app/data/snippetvault.db` | Путь к файлу базы данных SQLite |
 | `JWT_SECRET` | *(auto-generated)* | Секретный ключ для подписи сессионных JWT токенов |
 | `NEXT_PUBLIC_APP_ENV` | `prod` | Режим работы (`prod` или `dev`) |
-| `NEXT_PUBLIC_APP_VERSION` | `0.8.1` | Отображаемая версия приложения |
+| `NEXT_PUBLIC_APP_VERSION` | `0.8.2` | Отображаемая версия приложения |
 | `NODE_TLS_REJECT_UNAUTHORIZED` | `1` | Проверка TLS сертификатов при вызове AI API (`0` для самоподписанных) |
 | `AI_PROVIDER` | `openai` | Провайдер AI по умолчанию (`openai`, `gemini`, `custom`) |
 | `AI_API_KEY` | — | Ключ доступа к AI API |
