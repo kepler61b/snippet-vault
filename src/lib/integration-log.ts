@@ -82,6 +82,25 @@ export function isValidPluginVersion(client: string, version?: string | null): b
   return true;
 }
 
+export function isValidAppVersion(client: string, version?: string | null): boolean {
+  if (!version) return false;
+  const clean = version.trim().replace(/^v/i, "");
+  // Must match semver-like format (e.g. 1.0.238 or 1.96.2)
+  if (!/^[0-9]+(\.[0-9]+)+(?:-[a-zA-Z0-9.-]+)?$/.test(clean)) {
+    return false;
+  }
+  const lower = client.toLowerCase();
+  // Tabby terminal application is 1.x / 1.0.x (plugin is 0.x)
+  if (lower.includes("tabby") && clean.startsWith("0.")) {
+    return false;
+  }
+  // VS Code application is 1.x (plugin is 0.x)
+  if ((lower.includes("vscode") || lower.includes("vs code")) && clean.startsWith("0.")) {
+    return false;
+  }
+  return true;
+}
+
 export function extractIntegrationVersion(
   request?: Request | NextRequest | null,
   uaString?: string | null
@@ -131,6 +150,62 @@ export function extractIntegrationVersion(
   return null;
 }
 
+export function extractIntegrationAppVersion(
+  request?: Request | NextRequest | null,
+  uaString?: string | null
+): string | null {
+  if (request) {
+    const appHeader =
+      request.headers.get("x-app-version") ||
+      request.headers.get("x-snippetvault-app-version") ||
+      request.headers.get("x-host-version") ||
+      request.headers.get("x-vscode-version") ||
+      request.headers.get("x-tabby-version");
+    if (appHeader && appHeader.trim()) {
+      const v = appHeader.trim().replace(/^v/i, "");
+      if (isValidAppVersion("", v)) {
+        return v;
+      }
+    }
+
+    try {
+      if (request.url) {
+        const url = new URL(request.url);
+        const qv =
+          url.searchParams.get("appVersion") ||
+          url.searchParams.get("app_version") ||
+          url.searchParams.get("hostVersion") ||
+          url.searchParams.get("host_version");
+        if (qv && qv.trim()) {
+          const v = qv.trim().replace(/^v/i, "");
+          if (isValidAppVersion("", v)) {
+            return v;
+          }
+        }
+      }
+    } catch {}
+  }
+
+  const userAgent =
+    uaString ||
+    (request ? request.headers.get("user-agent") || "" : "");
+  if (!userAgent) return null;
+
+  // Check Tabby application version in User-Agent: Tabby/1.0.238 or Tabby 1.0.238
+  const tabbyMatch = userAgent.match(/Tabby[/:\s]v?([0-9]+\.[0-9]+(?:\.[0-9]+)?(?:-[a-zA-Z0-9.-]+)?)/i);
+  if (tabbyMatch && isValidAppVersion("tabby", tabbyMatch[1])) {
+    return tabbyMatch[1];
+  }
+
+  // Check VS Code application version in User-Agent: VSCode/1.96.2 or Code/1.96.2
+  const vscodeMatch = userAgent.match(/(?:VSCode|Code)[/:\s]v?([0-9]+\.[0-9]+(?:\.[0-9]+)?(?:-[a-zA-Z0-9.-]+)?)/i);
+  if (vscodeMatch && isValidAppVersion("vscode", vscodeMatch[1])) {
+    return vscodeMatch[1];
+  }
+
+  return null;
+}
+
 export async function recordIntegrationVersion(
   client: string,
   version: string,
@@ -175,15 +250,62 @@ export async function recordIntegrationVersion(
   }
 }
 
+export async function recordIntegrationAppVersion(
+  client: string,
+  version: string,
+  userId?: string | null
+) {
+  try {
+    const cleanVer = version.trim().replace(/^v/i, "");
+    if (!cleanVer) return;
+
+    if (!isValidAppVersion(client, cleanVer)) {
+      return;
+    }
+
+    const lowerClient = client.toLowerCase();
+    const key = lowerClient.includes("vscode") || lowerClient.includes("vs code")
+      ? "integration_app_version_vscode"
+      : lowerClient.includes("tabby")
+      ? "integration_app_version_tabby"
+      : null;
+
+    if (!key) return;
+
+    // Update global setting
+    await prisma.setting.upsert({
+      where: { key },
+      update: { value: cleanVer },
+      create: { key, value: cleanVer },
+    });
+
+    // Update per-user setting if userId is provided
+    if (userId) {
+      const userKey = `${key}_${userId}`;
+      await prisma.setting.upsert({
+        where: { key: userKey },
+        update: { value: cleanVer },
+        create: { key: userKey, value: cleanVer },
+      });
+    }
+  } catch (err) {
+    console.error("Failed to record integration app version:", err);
+  }
+}
+
 export async function recordClientVersionFromRequest(
   request: Request | NextRequest,
   userId?: string | null
 ) {
   try {
     const client = detectIntegrationClient(request);
-    const version = extractIntegrationVersion(request);
-    if (version) {
-      await recordIntegrationVersion(client, version, userId);
+    const pluginVersion = extractIntegrationVersion(request);
+    if (pluginVersion) {
+      await recordIntegrationVersion(client, pluginVersion, userId);
+    }
+    const appVersion = extractIntegrationAppVersion(request);
+    if (appVersion) {
+      await recordIntegrationAppVersion(client, appVersion, userId);
     }
   } catch (err) {
     console.error("Failed to record client version from request:", err);
@@ -242,6 +364,10 @@ export async function logIntegrationActivity({
     const ver = clientVersion || extractIntegrationVersion(request, userAgent);
     if (ver) {
       recordIntegrationVersion(client, ver, userId).catch(() => {});
+    }
+    const appVer = extractIntegrationAppVersion(request, userAgent);
+    if (appVer) {
+      recordIntegrationAppVersion(client, appVer, userId).catch(() => {});
     }
 
     await prisma.integrationLog.create({

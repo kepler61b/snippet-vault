@@ -25,6 +25,27 @@ interface SnippetQuickPickItem extends vscode.QuickPickItem {
 }
 
 const SECRET_KEY_PAT = "snippetvault_pat";
+const PLUGIN_VERSION = "0.1.0";
+
+function getRequestHeaders(token: string, extraHeaders?: Record<string, string>): Record<string, string> {
+  const appVer = vscode.version || "1.96.2";
+  return {
+    Authorization: `Bearer ${token}`,
+    "User-Agent": `SnippetVault-VSCode/${PLUGIN_VERSION} VSCode/${appVer}`,
+    "X-Client-Version": PLUGIN_VERSION,
+    "X-Plugin-Version": PLUGIN_VERSION,
+    "X-SnippetVault-Plugin-Version": PLUGIN_VERSION,
+    "X-App-Version": appVer,
+    "X-SnippetVault-App-Version": appVer,
+    "X-SnippetVault-Client": "vscode",
+    ...(extraHeaders || {}),
+  };
+}
+
+function getRequestQuery(): string {
+  const appVer = encodeURIComponent(vscode.version || "1.96.2");
+  return `client=vscode&pluginVersion=${PLUGIN_VERSION}&appVersion=${appVer}`;
+}
 
 /**
  * Retrieves the configured base URL (stripped of trailing slashes).
@@ -103,15 +124,8 @@ async function configureVault(context: vscode.ExtensionContext): Promise<boolean
 
   // Test connection
   try {
-    const testRes = await fetch(`${cleanUrl}/api/snippets?client=vscode&pluginVersion=0.1.0`, {
-      headers: {
-        Authorization: `Bearer ${inputToken.trim()}`,
-        "User-Agent": "SnippetVault-VSCode/0.1.0",
-        "X-Client-Version": "0.1.0",
-        "X-Plugin-Version": "0.1.0",
-        "X-SnippetVault-Plugin-Version": "0.1.0",
-        "X-SnippetVault-Client": "vscode",
-      },
+    const testRes = await fetch(`${cleanUrl}/api/snippets?${getRequestQuery()}`, {
+      headers: getRequestHeaders(inputToken.trim()),
     });
 
     if (testRes.status === 401) {
@@ -162,15 +176,8 @@ async function insertSnippetCommand(context: vscode.ExtensionContext) {
         cancellable: false,
       },
       async () => {
-        const res = await fetch(`${baseUrl}/api/snippets?client=vscode&pluginVersion=0.1.0`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "User-Agent": "SnippetVault-VSCode/0.1.0",
-            "X-Client-Version": "0.1.0",
-            "X-Plugin-Version": "0.1.0",
-            "X-SnippetVault-Plugin-Version": "0.1.0",
-            "X-SnippetVault-Client": "vscode",
-          },
+        const res = await fetch(`${baseUrl}/api/snippets?${getRequestQuery()}`, {
+          headers: getRequestHeaders(token),
         });
 
         if (res.status === 401) {
@@ -335,17 +342,9 @@ async function saveSnippetCommand(context: vscode.ExtensionContext) {
         cancellable: false,
       },
       async () => {
-        const res = await fetch(`${baseUrl}/api/snippets?client=vscode&pluginVersion=0.1.0`, {
+        const res = await fetch(`${baseUrl}/api/snippets?${getRequestQuery()}`, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "User-Agent": "SnippetVault-VSCode/0.1.0",
-            "X-Client-Version": "0.1.0",
-            "X-Plugin-Version": "0.1.0",
-            "X-SnippetVault-Plugin-Version": "0.1.0",
-            "X-SnippetVault-Client": "vscode",
-          },
+          headers: getRequestHeaders(token, { "Content-Type": "application/json" }),
           body: JSON.stringify({
             title: title.trim(),
             description: description?.trim() || null,

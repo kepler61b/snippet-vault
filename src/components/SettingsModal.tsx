@@ -500,6 +500,8 @@ export function SettingsModal({
     lastActive: string | null;
     vsCodeVersion?: string | null;
     tabbyVersion?: string | null;
+    vsCodeAppVersion?: string | null;
+    tabbyAppVersion?: string | null;
   } | null>(null);
 
   const loadIntegrationLogs = async (silent = false) => {
@@ -1956,13 +1958,24 @@ export function SettingsModal({
                           <Laptop className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <div className="text-xs font-bold text-white flex items-center gap-1.5 flex-wrap">
                             <span>{t("settings.integrations.vscodeTitle")}</span>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">
-                              {integrationStats?.vsCodeVersion || "v0.1.0"}
+                            <span
+                              className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-zinc-800/80 border border-zinc-700/50 text-zinc-300 font-mono"
+                              title={`${t("settings.integrations.appLabel")}: ${integrationStats?.vsCodeAppVersion?.replace(/^v/i, "") || "1.96.2"}`}
+                            >
+                              {t("settings.integrations.appLabel")} {integrationStats?.vsCodeAppVersion?.replace(/^v/i, "") || "1.96.2"}
                             </span>
                           </div>
-                          <div className="text-[10px] text-zinc-400 font-mono">vscode-snippetvault</div>
+                          <div className="text-[10px] text-zinc-400 font-mono flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span>vscode-snippetvault</span>
+                            <span
+                              className="text-[10px] font-normal px-1.5 py-0.2 rounded bg-zinc-800/60 border border-zinc-700/40 text-zinc-300 font-mono"
+                              title={`${t("settings.integrations.pluginLabel")}: ${integrationStats?.vsCodeVersion?.replace(/^v/i, "") || "0.1.0"}`}
+                            >
+                              {t("settings.integrations.pluginLabel")} {integrationStats?.vsCodeVersion?.replace(/^v/i, "") || "0.1.0"}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -1996,13 +2009,24 @@ export function SettingsModal({
                           <Terminal className="w-4 h-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <div className="text-xs font-bold text-white flex items-center gap-1.5 flex-wrap">
                             <span>{t("settings.integrations.tabbyTitle")}</span>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">
-                              {integrationStats?.tabbyVersion || "v0.1.2"}
+                            <span
+                              className="text-[10px] font-normal px-1.5 py-0.5 rounded bg-zinc-800/80 border border-zinc-700/50 text-zinc-300 font-mono"
+                              title={`${t("settings.integrations.appLabel")}: ${integrationStats?.tabbyAppVersion?.replace(/^v/i, "") || "1.0.238"}`}
+                            >
+                              {t("settings.integrations.appLabel")} {integrationStats?.tabbyAppVersion?.replace(/^v/i, "") || "1.0.238"}
                             </span>
                           </div>
-                          <div className="text-[10px] text-zinc-400 font-mono">tabby-snippetvault</div>
+                          <div className="text-[10px] text-zinc-400 font-mono flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span>tabby-snippetvault</span>
+                            <span
+                              className="text-[10px] font-normal px-1.5 py-0.2 rounded bg-zinc-800/60 border border-zinc-700/40 text-zinc-300 font-mono"
+                              title={`${t("settings.integrations.pluginLabel")}: ${integrationStats?.tabbyVersion?.replace(/^v/i, "") || "0.1.2"}`}
+                            >
+                              {t("settings.integrations.pluginLabel")} {integrationStats?.tabbyVersion?.replace(/^v/i, "") || "0.1.2"}
+                            </span>
+                          </div>
                         </div>
                       </div>
 

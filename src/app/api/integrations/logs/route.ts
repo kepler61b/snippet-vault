@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { extractIntegrationVersion, isValidPluginVersion } from "@/lib/integration-log";
+import {
+  extractIntegrationVersion,
+  isValidPluginVersion,
+  extractIntegrationAppVersion,
+  isValidAppVersion,
+} from "@/lib/integration-log";
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,22 +45,48 @@ export async function GET(request: NextRequest) {
     const lastActive = logs[0]?.createdAt?.toISOString() || null;
 
     // Detect versions from persisted settings or recent logs
-    const [vscodeGlobalSetting, tabbyGlobalSetting, vscodeUserSetting, tabbyUserSetting] =
-      await Promise.all([
-        prisma.setting.findUnique({ where: { key: "integration_version_vscode" } }),
-        prisma.setting.findUnique({ where: { key: "integration_version_tabby" } }),
-        currentUser.id
-          ? prisma.setting.findUnique({ where: { key: `integration_version_vscode_${currentUser.id}` } })
-          : null,
-        currentUser.id
-          ? prisma.setting.findUnique({ where: { key: `integration_version_tabby_${currentUser.id}` } })
-          : null,
-      ]);
+    const [
+      vscodeGlobalSetting,
+      tabbyGlobalSetting,
+      vscodeUserSetting,
+      tabbyUserSetting,
+      vscodeAppGlobalSetting,
+      tabbyAppGlobalSetting,
+      vscodeAppUserSetting,
+      tabbyAppUserSetting,
+    ] = await Promise.all([
+      prisma.setting.findUnique({ where: { key: "integration_version_vscode" } }),
+      prisma.setting.findUnique({ where: { key: "integration_version_tabby" } }),
+      currentUser.id
+        ? prisma.setting.findUnique({ where: { key: `integration_version_vscode_${currentUser.id}` } })
+        : null,
+      currentUser.id
+        ? prisma.setting.findUnique({ where: { key: `integration_version_tabby_${currentUser.id}` } })
+        : null,
+      prisma.setting.findUnique({ where: { key: "integration_app_version_vscode" } }),
+      prisma.setting.findUnique({ where: { key: "integration_app_version_tabby" } }),
+      currentUser.id
+        ? prisma.setting.findUnique({ where: { key: `integration_app_version_vscode_${currentUser.id}` } })
+        : null,
+      currentUser.id
+        ? prisma.setting.findUnique({ where: { key: `integration_app_version_tabby_${currentUser.id}` } })
+        : null,
+    ]);
 
     const findVersionFromLogs = (filterFn: (l: any) => boolean) => {
       for (const l of logs) {
         if (filterFn(l)) {
           const v = extractIntegrationVersion(null, l.userAgent);
+          if (v) return v;
+        }
+      }
+      return null;
+    };
+
+    const findAppVersionFromLogs = (filterFn: (l: any) => boolean) => {
+      for (const l of logs) {
+        if (filterFn(l)) {
+          const v = extractIntegrationAppVersion(null, l.userAgent);
           if (v) return v;
         }
       }
@@ -69,7 +100,14 @@ export async function GET(request: NextRequest) {
       l.client.toLowerCase().includes("tabby")
     );
 
-    // Purge invalid host app versions (e.g. Tabby 1.0.238 instead of plugin 0.1.2) from persisted settings
+    const vsCodeAppLogVersion = findAppVersionFromLogs((l) =>
+      l.client.toLowerCase().includes("vscode") || l.client.toLowerCase().includes("vs code")
+    );
+    const tabbyAppLogVersion = findAppVersionFromLogs((l) =>
+      l.client.toLowerCase().includes("tabby")
+    );
+
+    // Purge invalid host app versions from plugin settings
     if (tabbyGlobalSetting?.value && !isValidPluginVersion("tabby", tabbyGlobalSetting.value)) {
       prisma.setting.delete({ where: { key: "integration_version_tabby" } }).catch(() => {});
     }
@@ -83,6 +121,20 @@ export async function GET(request: NextRequest) {
       prisma.setting.delete({ where: { key: `integration_version_vscode_${currentUser.id}` } }).catch(() => {});
     }
 
+    // Purge invalid plugin versions from app settings if any
+    if (tabbyAppGlobalSetting?.value && !isValidAppVersion("tabby", tabbyAppGlobalSetting.value)) {
+      prisma.setting.delete({ where: { key: "integration_app_version_tabby" } }).catch(() => {});
+    }
+    if (tabbyAppUserSetting?.value && !isValidAppVersion("tabby", tabbyAppUserSetting.value)) {
+      prisma.setting.delete({ where: { key: `integration_app_version_tabby_${currentUser.id}` } }).catch(() => {});
+    }
+    if (vscodeAppGlobalSetting?.value && !isValidAppVersion("vscode", vscodeAppGlobalSetting.value)) {
+      prisma.setting.delete({ where: { key: "integration_app_version_vscode" } }).catch(() => {});
+    }
+    if (vscodeAppUserSetting?.value && !isValidAppVersion("vscode", vscodeAppUserSetting.value)) {
+      prisma.setting.delete({ where: { key: `integration_app_version_vscode_${currentUser.id}` } }).catch(() => {});
+    }
+
     const rawVsCodeVersion =
       (isValidPluginVersion("vscode", vscodeUserSetting?.value) && vscodeUserSetting?.value) ||
       (isValidPluginVersion("vscode", vsCodeLogVersion) && vsCodeLogVersion) ||
@@ -94,12 +146,25 @@ export async function GET(request: NextRequest) {
       (isValidPluginVersion("tabby", tabbyGlobalSetting?.value) && tabbyGlobalSetting?.value) ||
       "0.1.2";
 
+    const rawVsCodeAppVersion =
+      (isValidAppVersion("vscode", vscodeAppUserSetting?.value) && vscodeAppUserSetting?.value) ||
+      (isValidAppVersion("vscode", vsCodeAppLogVersion) && vsCodeAppLogVersion) ||
+      (isValidAppVersion("vscode", vscodeAppGlobalSetting?.value) && vscodeAppGlobalSetting?.value) ||
+      "1.96.2";
+    const rawTabbyAppVersion =
+      (isValidAppVersion("tabby", tabbyAppUserSetting?.value) && tabbyAppUserSetting?.value) ||
+      (isValidAppVersion("tabby", tabbyAppLogVersion) && tabbyAppLogVersion) ||
+      (isValidAppVersion("tabby", tabbyAppGlobalSetting?.value) && tabbyAppGlobalSetting?.value) ||
+      "1.0.238";
+
     const vsCodeVersion = rawVsCodeVersion.startsWith("v")
       ? rawVsCodeVersion
       : `v${rawVsCodeVersion}`;
     const tabbyVersion = rawTabbyVersion.startsWith("v")
       ? rawTabbyVersion
       : `v${rawTabbyVersion}`;
+    const vsCodeAppVersion = rawVsCodeAppVersion.replace(/^v/i, "");
+    const tabbyAppVersion = rawTabbyAppVersion.replace(/^v/i, "");
 
     return NextResponse.json({
       success: true,
@@ -116,6 +181,8 @@ export async function GET(request: NextRequest) {
         lastActive,
         vsCodeVersion,
         tabbyVersion,
+        vsCodeAppVersion,
+        tabbyAppVersion,
       },
     });
   } catch (error: any) {

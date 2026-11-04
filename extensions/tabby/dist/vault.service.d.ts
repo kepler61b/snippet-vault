@@ -36,6 +36,7 @@ export declare class SnippetVaultService {
     getUrl(): string;
     getToken(): string;
     getCacheTtl(): number;
+    getAppVersion(): string;
     isConfigured(): boolean;
     invalidateCache(): void;
     private getHeaders;
