@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { notifyDataChange } from "@/lib/sync-events";
-import { prisma } from "@/lib/db";
-import { detectLanguageFromFilename } from "@/lib/languages";
-import { indexSnippet, deleteSnippetFromFts } from "@/lib/fts";
+import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { detectLanguageFromFilename } from "@/lib/languages";
+import { indexSnippet, ensureFtsInitialized } from "@/lib/fts";
+import { notifyDataChange } from "@/lib/sync-events";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser(request);
+    if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
@@ -20,26 +21,22 @@ export async function GET(
       where: { id },
       include: {
         collection: true,
-        files: {
-          orderBy: { order: "asc" },
-        },
+        files: { orderBy: { order: "asc" } },
+        user: { select: { id: true, email: true, name: true } },
       },
     });
 
     if (!snippet) {
-      return NextResponse.json(
-        { success: false, error: "Snippet not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Snippet not found" }, { status: 404 });
     }
 
-    if (snippet.userId && snippet.userId !== currentUser.id && snippet.visibility === "PRIVATE") {
+    if (snippet.userId && snippet.userId !== user.id && user.role !== "ADMIN") {
       return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json({ success: true, snippet });
   } catch (error: any) {
-    console.error("Error fetching snippet:", error);
+    console.error("GET snippet error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to fetch snippet" },
       { status: 500 }
@@ -47,86 +44,67 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser(request);
+    if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const { title, description, isFavorite, tags, files, collectionId } = body;
-
     const existing = await prisma.snippet.findUnique({
       where: { id },
-      include: {
-        files: { orderBy: { order: "asc" } },
-      },
+      include: { files: true },
     });
 
     if (!existing) {
-      return NextResponse.json(
-        { success: false, error: "Snippet not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Snippet not found" }, { status: 404 });
     }
 
+    if (existing.userId && existing.userId !== user.id && user.role !== "ADMIN") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const { title, description, tags, isFavorite, collectionId, files } = body;
+
+    // Save previous revision
+    try {
+      await prisma.snippetRevision.create({
+        data: {
+          snippetId: existing.id,
+          title: existing.title,
+          description: existing.description,
+          tags: existing.tags,
+          filesJson: JSON.stringify(
+            existing.files.map((f) => ({
+              filename: f.filename,
+              language: f.language,
+              content: f.content,
+              order: f.order,
+            }))
+          ),
+        },
+      });
+    } catch (e) {
+      console.warn("Failed to create snippet revision:", e);
+    }
+
+    // Update snippet
     const formattedTags = Array.isArray(tags)
-      ? tags.map((t: string) => t.trim().toLowerCase()).filter(Boolean).join(", ")
+      ? tags.map((t: string) => t.trim()).filter(Boolean).join(", ")
       : typeof tags === "string"
-      ? tags.trim()
-      : undefined;
+      ? tags
+      : existing.tags;
 
-    // Use a transaction to update snippet metadata and replace files
+    // Transaction to update snippet and replace files if provided
     const updated = await prisma.$transaction(async (tx) => {
-      // 1. Snapshot previous version into revisions if there are files
-      if (existing.files && existing.files.length > 0) {
-        await tx.snippetRevision.create({
-          data: {
-            snippetId: id,
-            title: existing.title,
-            description: existing.description,
-            tags: existing.tags,
-            filesJson: JSON.stringify(
-              existing.files.map((f) => ({
-                filename: f.filename,
-                language: f.language,
-                content: f.content,
-                order: f.order,
-              }))
-            ),
-          },
-        });
-
-        // Prune older revisions beyond 30 to conserve space
-        const olderRevisions = await tx.snippetRevision.findMany({
-          where: { snippetId: id },
-          orderBy: { createdAt: "desc" },
-          select: { id: true },
-          skip: 30,
-        });
-        if (olderRevisions.length > 0) {
-          await tx.snippetRevision.deleteMany({
-            where: { id: { in: olderRevisions.map((r) => r.id) } },
-          });
-        }
-      }
-
-      // 2. Delete old files if new files provided
-      if (Array.isArray(files) && files.length > 0) {
-        await tx.snippetFile.deleteMany({
-          where: { snippetId: id },
-        });
-
+      if (Array.isArray(files)) {
+        await tx.snippetFile.deleteMany({ where: { snippetId: id } });
         await tx.snippetFile.createMany({
           data: files.map((file: any, index: number) => {
             const filename = (file.filename || `snippet-${index + 1}`).trim();
-            const language =
-              file.language?.trim() || detectLanguageFromFilename(filename);
+            const language = file.language?.trim() || detectLanguageFromFilename(filename);
             return {
               snippetId: id,
               filename,
@@ -141,29 +119,29 @@ export async function PUT(
       return tx.snippet.update({
         where: { id },
         data: {
-          ...(title !== undefined && { title: title.trim() }),
-          ...(description !== undefined && { description: description?.trim() || null }),
-          ...(isFavorite !== undefined && { isFavorite: Boolean(isFavorite) }),
-          ...(formattedTags !== undefined && { tags: formattedTags }),
-          ...(collectionId !== undefined && { collectionId: collectionId || null }),
+          title: typeof title === "string" ? title.trim() : existing.title,
+          description: typeof description !== "undefined" ? (description?.trim() || null) : existing.description,
+          tags: formattedTags,
+          isFavorite: typeof isFavorite === "boolean" ? isFavorite : existing.isFavorite,
+          collectionId: typeof collectionId !== "undefined" ? (collectionId || null) : existing.collectionId,
         },
         include: {
           collection: true,
-          files: {
-            orderBy: { order: "asc" },
-          },
+          files: { orderBy: { order: "asc" } },
         },
       });
     });
 
-    // Update FTS index
-    await indexSnippet(id, updated);
+    try {
+      await ensureFtsInitialized();
+      await indexSnippet(updated.id, updated);
+    } catch {}
 
-    notifyDataChange("snippets", { userId: currentUser.id, action: "updated" });
+    notifyDataChange("snippets", { userId: user.id, action: "updated" });
 
     return NextResponse.json({ success: true, snippet: updated });
   } catch (error: any) {
-    console.error("Error updating snippet:", error);
+    console.error("PUT snippet error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to update snippet" },
       { status: 500 }
@@ -171,42 +149,31 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const currentUser = await getCurrentUser(request);
-    if (!currentUser) {
+    const user = await getCurrentUser(request);
+    if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
+    const existing = await prisma.snippet.findUnique({ where: { id } });
 
-    // Delete child files first to avoid foreign key constraint issues in SQLite
-    await prisma.snippetFile.deleteMany({
-      where: { snippetId: id },
-    });
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "Snippet not found" }, { status: 404 });
+    }
 
-    await prisma.snippet.delete({
-      where: { id },
-    });
+    if (existing.userId && existing.userId !== user.id && user.role !== "ADMIN") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
 
-    // Delete from FTS index
-    await deleteSnippetFromFts(id);
+    await prisma.snippet.delete({ where: { id } });
 
-    // Ensure seed does not recreate snippets if count drops to 0
-    await prisma.setting.upsert({
-      where: { key: "seed_completed" },
-      update: { value: "true" },
-      create: { key: "seed_completed", value: "true" },
-    });
-
-    notifyDataChange("snippets", { userId: currentUser.id, action: "deleted" });
+    notifyDataChange("snippets", { userId: user.id, action: "deleted" });
 
     return NextResponse.json({ success: true, message: "Snippet deleted" });
   } catch (error: any) {
-    console.error("Error deleting snippet:", error);
+    console.error("DELETE snippet error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to delete snippet" },
       { status: 500 }

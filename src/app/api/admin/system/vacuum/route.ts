@@ -7,30 +7,30 @@ export async function POST(request: NextRequest) {
   try {
     const admin = await requireAdmin(request);
     if (!admin) {
-      return NextResponse.json({ success: false, error: "Доступ запрещен" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    // Run SQLite VACUUM to reclaim space and defragment database
-    await prisma.$executeRawUnsafe("VACUUM;");
+    // SQLite WAL checkpoint and VACUUM
+    try {
+      await prisma.$queryRawUnsafe("PRAGMA wal_checkpoint(TRUNCATE);");
+    } catch {}
+
+    await prisma.$queryRawUnsafe("VACUUM;");
 
     await logAuditEvent({
       event: "DATABASE_VACUUM",
       category: "ADMIN",
-      status: "SUCCESS",
       actorId: admin.id,
       actorEmail: admin.email,
-      details: "Выполнена оптимизация SQLite базы данных (VACUUM)",
+      details: "Database VACUUM executed successfully",
       request,
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Оптимизация базы данных успешно завершена",
-    });
+    return NextResponse.json({ success: true, message: "Database vacuumed successfully" });
   } catch (error: any) {
-    console.error("Database vacuum error:", error);
+    console.error("POST vacuum error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка оптимизации базы данных" },
+      { success: false, error: error.message || "Failed to vacuum database" },
       { status: 500 }
     );
   }

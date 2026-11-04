@@ -193,6 +193,7 @@ export async function GET(request: NextRequest) {
         tokenPrefix: extractTokenPrefix(request),
         ip: extractClientIp(request),
         userAgent: request.headers.get("user-agent"),
+        request,
       }).catch(() => {});
     }
 
@@ -288,6 +289,7 @@ export async function POST(request: NextRequest) {
         tokenPrefix: extractTokenPrefix(request),
         ip: extractClientIp(request),
         userAgent: request.headers.get("user-agent"),
+        request,
       }).catch(() => {});
     }
 

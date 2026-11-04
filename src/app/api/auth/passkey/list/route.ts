@@ -1,16 +1,17 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const passkeys = await prisma.passkey.findMany({
       where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
       select: {
         id: true,
         name: true,
@@ -19,14 +20,16 @@ export async function GET() {
         createdAt: true,
         lastUsedAt: true,
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ success: true, passkeys });
+    return NextResponse.json({
+      success: true,
+      passkeys,
+    });
   } catch (error: any) {
-    console.error("Passkey list error:", error);
+    console.error("GET passkeys list error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка получения списка Passkeys" },
+      { success: false, error: error.message || "Failed to load passkeys" },
       { status: 500 }
     );
   }

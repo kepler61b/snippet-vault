@@ -3,10 +3,16 @@ import { notifyDataChange } from "@/lib/sync-events";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSmartCollectionSnippetCount } from "@/lib/collections";
+import {
+  logIntegrationActivity,
+  detectIntegrationClient,
+  extractTokenPrefix,
+  extractClientIp,
+} from "@/lib/integration-log";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUser = await getCurrentUser(request);
 
     const collections = await prisma.collection.findMany({
       where: currentUser
@@ -38,6 +44,25 @@ export async function GET() {
         return col;
       })
     );
+
+    const hasAuthHeader = Boolean(
+      request?.headers?.get("authorization") || request?.headers?.get("x-api-key")
+    );
+    if (hasAuthHeader && request) {
+      logIntegrationActivity({
+        client: detectIntegrationClient(request),
+        action: "Список коллекций",
+        method: "GET",
+        path: "/api/collections",
+        status: 200,
+        details: `Найдено: ${enrichedCollections.length}`,
+        userId: currentUser?.id,
+        tokenPrefix: extractTokenPrefix(request),
+        ip: extractClientIp(request),
+        userAgent: request.headers.get("user-agent"),
+        request,
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ success: true, collections: enrichedCollections });
   } catch (error: any) {

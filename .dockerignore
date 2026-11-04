@@ -1,11 +1,12 @@
 node_modules
+**/node_modules
 .next
 .git
 .gitignore
 .env
-data/*.db*
-data/*.db-wal
-data/*.db-shm
+data
+prisma/data
+*.db*
 README.md
 npm-debug.log*
 yarn-debug.log*

@@ -4,7 +4,12 @@ import { NextRequest } from "next/server";
 import prisma from "./db";
 import { COOKIE_NAME, verifyToken, SessionPayload } from "./jwt";
 import { verifyPat } from "./pat";
-import { logIntegrationActivity, detectIntegrationClient, extractClientIp } from "./integration-log";
+import {
+  logIntegrationActivity,
+  detectIntegrationClient,
+  extractClientIp,
+  recordClientVersionFromRequest,
+} from "./integration-log";
 
 export * from "./jwt";
 
@@ -72,7 +77,12 @@ export async function getCurrentUser(request?: Request | NextRequest) {
       // Check Personal Access Token
       if (cleanToken.startsWith("sv_pat_")) {
         const patUser = await verifyPat(cleanToken);
-        if (patUser) return patUser;
+        if (patUser) {
+          if (request) {
+            recordClientVersionFromRequest(request, patUser.id).catch(() => {});
+          }
+          return patUser;
+        }
 
         // Log failed PAT authentication
         logIntegrationActivity({

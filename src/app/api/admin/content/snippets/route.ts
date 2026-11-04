@@ -6,15 +6,16 @@ export async function GET(request: NextRequest) {
   try {
     const admin = await requireAdmin(request);
     if (!admin) {
-      return NextResponse.json({ success: false, error: "Доступ запрещен" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get("query")?.trim() || "";
-    const userId = searchParams.get("userId") || undefined;
-    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get("limit") || "50", 10)));
+    const query = searchParams.get("query")?.trim();
+    const userId = searchParams.get("userId");
+    const limit = Math.min(Number(searchParams.get("limit")) || 100, 500);
 
     const where: any = {};
+
     if (userId) {
       where.userId = userId;
     }
@@ -24,25 +25,33 @@ export async function GET(request: NextRequest) {
         { title: { contains: query } },
         { description: { contains: query } },
         { tags: { contains: query } },
-        { user: { email: { contains: query } } },
-        { user: { name: { contains: query } } },
       ];
     }
 
     const [snippets, total] = await Promise.all([
       prisma.snippet.findMany({
         where,
-        take: limit,
         orderBy: { createdAt: "desc" },
+        take: limit,
         include: {
           user: {
-            select: { id: true, email: true, name: true, role: true },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              role: true,
+            },
           },
           collection: {
-            select: { id: true, name: true },
+            select: {
+              id: true,
+              name: true,
+            },
           },
           _count: {
-            select: { files: true },
+            select: {
+              files: true,
+            },
           },
         },
       }),
@@ -55,9 +64,9 @@ export async function GET(request: NextRequest) {
       total,
     });
   } catch (error: any) {
-    console.error("Admin get snippets error:", error);
+    console.error("GET admin content snippets error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка получения сниппетов" },
+      { success: false, error: error.message || "Failed to load snippets" },
       { status: 500 }
     );
   }

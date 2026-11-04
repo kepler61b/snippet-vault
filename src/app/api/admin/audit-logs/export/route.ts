@@ -2,58 +2,62 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 
-export const dynamic = "force-dynamic";
-
 export async function GET(request: NextRequest) {
   try {
     const admin = await requireAdmin(request);
     if (!admin) {
-      return NextResponse.json({ success: false, error: "Доступ запрещен" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
-    const format = searchParams.get("format") || "csv";
+    const format = searchParams.get("format") === "csv" ? "csv" : "json";
 
     const logs = await prisma.auditLog.findMany({
       orderBy: { createdAt: "desc" },
-      take: 1000,
+      take: 5000,
     });
 
-    if (format === "json") {
-      return new NextResponse(JSON.stringify(logs, null, 2), {
+    const dateStr = new Date().toISOString().slice(0, 10);
+
+    if (format === "csv") {
+      const header = ["ID", "Timestamp", "Event", "Category", "Status", "Actor Email", "Target Email", "IP", "Details"];
+      const escapeCsv = (val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+
+      const rows = logs.map((log) => [
+        escapeCsv(log.id),
+        escapeCsv(log.createdAt.toISOString()),
+        escapeCsv(log.event),
+        escapeCsv(log.category),
+        escapeCsv(log.status),
+        escapeCsv(log.actorEmail),
+        escapeCsv(log.targetEmail),
+        escapeCsv(log.ip),
+        escapeCsv(log.details),
+      ]);
+
+      const csvContent = [header.join(","), ...rows.map((r) => r.join(","))].join("\n");
+
+      return new NextResponse(csvContent, {
+        status: 200,
         headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          "Content-Disposition": `attachment; filename="audit-logs-${new Date().toISOString().slice(0, 10)}.json"`,
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="audit-logs-${dateStr}.csv"`,
         },
       });
     }
 
-    // CSV format
-    const header = ["Timestamp", "Category", "Event", "Status", "Actor", "Target", "IP", "UserAgent", "Details"];
-    const rows = logs.map((l) => [
-      `"${l.createdAt.toISOString()}"`,
-      `"${l.category}"`,
-      `"${l.event}"`,
-      `"${l.status}"`,
-      `"${(l.actorEmail || "").replace(/"/g, '""')}"`,
-      `"${(l.targetEmail || "").replace(/"/g, '""')}"`,
-      `"${(l.ip || "").replace(/"/g, '""')}"`,
-      `"${(l.userAgent || "").replace(/"/g, '""')}"`,
-      `"${(l.details || "").replace(/"/g, '""')}"`,
-    ]);
-
-    const csvContent = [header.join(","), ...rows.map((r) => r.join(","))].join("\n");
-
-    return new NextResponse("\uFEFF" + csvContent, {
+    const jsonContent = JSON.stringify(logs, null, 2);
+    return new NextResponse(jsonContent, {
+      status: 200,
       headers: {
-        "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="audit-logs-${new Date().toISOString().slice(0, 10)}.csv"`,
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Disposition": `attachment; filename="audit-logs-${dateStr}.json"`,
       },
     });
   } catch (error: any) {
-    console.error("Export audit logs error:", error);
+    console.error("GET audit logs export error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка экспорта" },
+      { success: false, error: error.message || "Failed to export logs" },
       { status: 500 }
     );
   }

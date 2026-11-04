@@ -1,94 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
-import { notifyDataChange } from "@/lib/sync-events";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import {
-  getAllDescendantCollectionIds,
-  getSmartCollectionSnippetCount,
-  wouldCauseCycle,
-} from "@/lib/collections";
+import { notifyDataChange } from "@/lib/sync-events";
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = await params;
-    const currentUser = await getCurrentUser();
-    const body = await request.json();
-    const { name, description, iconType, iconValue, color, parentId, isSmart, filterRule } = body;
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
 
-    const existing = await prisma.collection.findUnique({
-      where: { id },
-    });
+    const { id } = await params;
+    const existing = await prisma.collection.findUnique({ where: { id } });
 
     if (!existing) {
-      return NextResponse.json(
-        { success: false, error: "Коллекция не найдена" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Collection not found" }, { status: 404 });
     }
 
-    // Verify parentId and prevent cycle
-    let resolvedParentId = existing.parentId;
-    if (parentId !== undefined) {
-      if (parentId === null || parentId === "" || parentId === "none") {
-        resolvedParentId = null;
-      } else {
-        const isCycle = await wouldCauseCycle(id, parentId);
-        if (isCycle) {
-          return NextResponse.json(
-            { success: false, error: "Нельзя переместить папку внутрь самой себя или её подпапок" },
-            { status: 400 }
-          );
-        }
-        const parent = await prisma.collection.findUnique({
-          where: { id: parentId },
-        });
-        if (!parent) {
-          return NextResponse.json(
-            { success: false, error: "Родительская коллекция не найдена" },
-            { status: 400 }
-          );
-        }
-        resolvedParentId = parent.id;
-      }
+    if (existing.userId && existing.userId !== user.id && user.role !== "ADMIN") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
+
+    const body = await request.json().catch(() => ({}));
+    const { name, description, iconType, iconValue, color, parentId, isSmart, filterRule } = body;
 
     const updated = await prisma.collection.update({
       where: { id },
       data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(description !== undefined && { description: description?.trim() || null }),
-        ...(iconType !== undefined && { iconType }),
-        ...(iconValue !== undefined && { iconValue }),
-        ...(color !== undefined && { color }),
-        parentId: resolvedParentId,
-        ...(isSmart !== undefined && { isSmart: Boolean(isSmart) }),
-        ...(filterRule !== undefined && {
-          filterRule: filterRule ? (typeof filterRule === "string" ? filterRule : JSON.stringify(filterRule)) : null,
-        }),
-      },
-      include: {
-        _count: {
-          select: { snippets: true },
-        },
+        name: typeof name === "string" ? name.trim() : existing.name,
+        description: typeof description !== "undefined" ? (description?.trim() || null) : existing.description,
+        iconType: iconType || existing.iconType,
+        iconValue: iconValue || existing.iconValue,
+        color: typeof color !== "undefined" ? color : existing.color,
+        parentId: typeof parentId !== "undefined" ? (parentId || null) : existing.parentId,
+        isSmart: typeof isSmart === "boolean" ? isSmart : existing.isSmart,
+        filterRule: typeof filterRule !== "undefined" ? (typeof filterRule === "object" ? JSON.stringify(filterRule) : filterRule) : existing.filterRule,
       },
     });
 
-    if (updated.isSmart && updated.filterRule) {
-      const smartCount = await getSmartCollectionSnippetCount(
-        updated.filterRule,
-        currentUser?.id
-      );
-      updated._count = { snippets: smartCount };
-    }
-
-    notifyDataChange("collections", { action: "updated" });
+    notifyDataChange("collections", { userId: user.id, action: "updated" });
 
     return NextResponse.json({ success: true, collection: updated });
   } catch (error: any) {
-    console.error("Error updating collection:", error);
+    console.error("PUT collection error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to update collection" },
       { status: 500 }
@@ -96,37 +54,31 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
+    const existing = await prisma.collection.findUnique({ where: { id } });
 
-    // Find collection and all its subcollections
-    const allCollectionIds = await getAllDescendantCollectionIds(id);
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "Collection not found" }, { status: 404 });
+    }
 
-    // Disconnect snippets in this collection and all its descendants
-    await prisma.snippet.updateMany({
-      where: { collectionId: { in: allCollectionIds } },
-      data: { collectionId: null },
-    });
+    if (existing.userId && existing.userId !== user.id && user.role !== "ADMIN") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
 
-    // Delete subcollections and target collection
-    await prisma.collection.deleteMany({
-      where: { id: { in: allCollectionIds } },
-    });
+    await prisma.collection.delete({ where: { id } });
 
-    notifyDataChange("collections", { action: "deleted" });
-    notifyDataChange("snippets", { action: "updated" });
+    notifyDataChange("collections", { userId: user.id, action: "deleted" });
 
-    return NextResponse.json({
-      success: true,
-      message: "Коллекция и вложенные папки удалены",
-      deletedCount: allCollectionIds.length,
-    });
+    return NextResponse.json({ success: true, message: "Collection deleted" });
   } catch (error: any) {
-    console.error("Error deleting collection:", error);
+    console.error("DELETE collection error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to delete collection" },
       { status: 500 }

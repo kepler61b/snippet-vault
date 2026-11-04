@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { listAvailableModels } from "@/lib/ai";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json().catch(() => ({}));
     const { provider, apiKey, baseUrl, proxyUrl } = body;
 
     const models = await listAvailableModels({
       provider,
-      apiKey: apiKey !== undefined ? String(apiKey).trim() : undefined,
-      baseUrl: baseUrl !== undefined ? String(baseUrl).trim() : undefined,
-      proxyUrl: proxyUrl !== undefined ? String(proxyUrl).trim() : undefined,
+      apiKey,
+      baseUrl,
+      proxyUrl,
     });
 
     return NextResponse.json({
@@ -18,13 +24,10 @@ export async function POST(request: NextRequest) {
       models,
     });
   } catch (error: any) {
-    console.error("AI Models Fetch Error:", error);
+    console.error("POST settings/models error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Не удалось получить список моделей",
-      },
-      { status: 500 }
+      { success: false, error: error.message || "Failed to load models" },
+      { status: 400 }
     );
   }
 }

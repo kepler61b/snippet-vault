@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile for SnippetVault
 ARG NEXT_PUBLIC_APP_ENV=prod
-ARG NEXT_PUBLIC_APP_VERSION=0.8.0
+ARG NEXT_PUBLIC_APP_VERSION=0.8.1
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-RUN npm ci
+RUN npm ci || npm install
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder

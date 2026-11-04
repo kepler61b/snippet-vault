@@ -1,94 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { logAuditEvent } from "@/lib/audit-log";
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id } = await params;
-
-    const passkey = await prisma.passkey.findFirst({
-      where: { id, userId: user.id },
-    });
-
-    if (!passkey) {
-      return NextResponse.json(
-        { success: false, error: "Ключ доступа не найден" },
-        { status: 404 }
-      );
-    }
-
-    await prisma.passkey.delete({
-      where: { id },
-    });
-
-    return NextResponse.json({ success: true, message: "Passkey удален" });
-  } catch (error: any) {
-    console.error("Passkey delete error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "Ошибка удаления Passkey" },
-      { status: 500 }
-    );
-  }
+interface RouteParams {
+  params: Promise<{ id: string }>;
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const { name } = body;
-
-    if (!name || typeof name !== "string" || !name.trim()) {
-      return NextResponse.json(
-        { success: false, error: "Название ключа не может быть пустым" },
-        { status: 400 }
-      );
-    }
-
-    const passkey = await prisma.passkey.findFirst({
-      where: { id, userId: user.id },
+    const passkey = await prisma.passkey.findUnique({
+      where: { id },
     });
 
     if (!passkey) {
-      return NextResponse.json(
-        { success: false, error: "Ключ доступа не найден" },
-        { status: 404 }
-      );
+      return NextResponse.json({ success: false, error: "Passkey not found" }, { status: 404 });
     }
 
-    const updated = await prisma.passkey.update({
-      where: { id },
-      data: { name: name.trim() },
-      select: {
-        id: true,
-        name: true,
-        deviceType: true,
-        backedUp: true,
-        createdAt: true,
-        lastUsedAt: true,
-      },
+    if (passkey.userId !== user.id && user.role !== "ADMIN") {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
+    await prisma.passkey.delete({ where: { id } });
+
+    await logAuditEvent({
+      event: "AUTH_PASSKEY_DELETE",
+      category: "SECURITY",
+      actorId: user.id,
+      actorEmail: user.email,
+      targetId: passkey.userId,
+      details: `Passkey deleted: ${passkey.name}`,
+      request,
     });
 
-    return NextResponse.json({ success: true, passkey: updated });
+    return NextResponse.json({ success: true, message: "Passkey deleted" });
   } catch (error: any) {
-    console.error("Passkey rename error:", error);
+    console.error("DELETE passkey error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка изменения названия Passkey" },
+      { success: false, error: error.message || "Failed to delete passkey" },
       { status: 500 }
     );
   }

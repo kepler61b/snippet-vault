@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
 import fs from "fs";
+import path from "path";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
+  if (bytes <= 0) return "0 B";
   const k = 1024;
-  const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 }
 
@@ -16,57 +16,69 @@ export async function GET(request: NextRequest) {
   try {
     const admin = await requireAdmin(request);
     if (!admin) {
-      return NextResponse.json({ success: false, error: "Доступ запрещен" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const dbPath = path.resolve(process.cwd(), "data", "snippetvault.db");
+    // Resolve SQLite db path
+    const dbUrl = process.env.DATABASE_URL || "file:./data/snippetvault.db";
+    let dbPath = dbUrl.replace(/^file:/, "");
+    if (!path.isAbsolute(dbPath)) {
+      dbPath = path.resolve(process.cwd(), dbPath);
+    }
+
     let dbFileSize = 0;
-    let dbModified: string | null = null;
-
+    let lastModified: string | null = null;
     if (fs.existsSync(dbPath)) {
-      const stat = fs.statSync(dbPath);
-      dbFileSize = stat.size;
-      dbModified = stat.mtime.toISOString();
+      const stats = fs.statSync(dbPath);
+      dbFileSize = stats.size;
+      lastModified = stats.mtime.toISOString();
     }
 
-    // Run SQLite PRAGMAs
-    let integrity = "unknown";
-    let pageSize = 4096;
+    // SQLite PRAGMA queries
     let pageCount = 0;
+    let pageSize = 4096;
     let freelistCount = 0;
     let journalMode = "wal";
+    let integrity = "ok";
 
     try {
-      const integrityRes: any = await prisma.$queryRawUnsafe("PRAGMA integrity_check;");
-      if (Array.isArray(integrityRes) && integrityRes[0]) {
-        integrity = integrityRes[0].integrity_check || "ok";
-      }
-
-      const pageSizeRes: any = await prisma.$queryRawUnsafe("PRAGMA page_size;");
-      if (Array.isArray(pageSizeRes) && pageSizeRes[0]) {
-        pageSize = Number(pageSizeRes[0].page_size) || 4096;
-      }
-
       const pageCountRes: any = await prisma.$queryRawUnsafe("PRAGMA page_count;");
-      if (Array.isArray(pageCountRes) && pageCountRes[0]) {
-        pageCount = Number(pageCountRes[0].page_count) || 0;
+      if (pageCountRes?.[0]) {
+        pageCount = Number(Object.values(pageCountRes[0])[0]) || 0;
       }
+    } catch {}
 
+    try {
+      const pageSizeRes: any = await prisma.$queryRawUnsafe("PRAGMA page_size;");
+      if (pageSizeRes?.[0]) {
+        pageSize = Number(Object.values(pageSizeRes[0])[0]) || 4096;
+      }
+    } catch {}
+
+    try {
       const freelistRes: any = await prisma.$queryRawUnsafe("PRAGMA freelist_count;");
-      if (Array.isArray(freelistRes) && freelistRes[0]) {
-        freelistCount = Number(freelistRes[0].freelist_count) || 0;
+      if (freelistRes?.[0]) {
+        freelistCount = Number(Object.values(freelistRes[0])[0]) || 0;
       }
+    } catch {}
 
+    try {
       const journalRes: any = await prisma.$queryRawUnsafe("PRAGMA journal_mode;");
-      if (Array.isArray(journalRes) && journalRes[0]) {
-        journalMode = journalRes[0].journal_mode || "wal";
+      if (journalRes?.[0]) {
+        journalMode = String(Object.values(journalRes[0])[0]) || "wal";
       }
-    } catch (e: any) {
-      console.warn("Could not query PRAGMAs:", e.message);
-    }
+    } catch {}
+
+    try {
+      const integrityRes: any = await prisma.$queryRawUnsafe("PRAGMA integrity_check(1);");
+      if (integrityRes?.[0]) {
+        integrity = String(Object.values(integrityRes[0])[0]) || "ok";
+      }
+    } catch {}
 
     const freelistBytes = freelistCount * pageSize;
-    const memUsage = process.memoryUsage();
+    const memory = process.memoryUsage();
+    const memoryRss = memory.rss;
 
     return NextResponse.json({
       success: true,
@@ -79,18 +91,18 @@ export async function GET(request: NextRequest) {
         pageSize,
         journalMode,
         integrity,
-        lastModified: dbModified,
+        lastModified,
         uptimeSeconds: Math.floor(process.uptime()),
-        memoryRss: memUsage.rss,
-        memoryRssFormatted: formatBytes(memUsage.rss),
+        memoryRss,
+        memoryRssFormatted: formatBytes(memoryRss),
         nodeVersion: process.version,
-        platform: process.platform,
+        platform: `${process.platform} (${process.arch})`,
       },
     });
   } catch (error: any) {
-    console.error("System health check error:", error);
+    console.error("GET system health error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка получения статуса системы" },
+      { success: false, error: error.message || "Failed to load system health" },
       { status: 500 }
     );
   }

@@ -1,54 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { executeAIRequestWithConfig } from "@/lib/ai";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    let { provider, apiKey, baseUrl, model, proxyUrl } = body;
-
-    // Auto-detect provider if user supplied Gemini key or model
-    if (provider === "openai" && (model?.toLowerCase().includes("gemini") || apiKey?.startsWith("AIzaSy"))) {
-      provider = "gemini";
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!apiKey && provider !== "custom") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "API ключ не указан. Пожалуйста, вставьте ваш API ключ.",
-        },
-        { status: 400 }
-      );
-    }
+    const body = await request.json().catch(() => ({}));
+    const { provider, apiKey, baseUrl, model, proxyUrl } = body;
 
-    const startTime = performance.now();
-    const reply = await executeAIRequestWithConfig(
+    const response = await executeAIRequestWithConfig(
       {
         provider: provider || "openai",
-        apiKey: apiKey?.trim() || "",
-        baseUrl: baseUrl?.trim() || (provider === "gemini" ? "https://generativelanguage.googleapis.com" : "https://api.openai.com/v1"),
-        model: model?.trim() || (provider === "gemini" ? "gemini-3.5-flash" : "gpt-4o-mini"),
-        proxyUrl: proxyUrl !== undefined ? String(proxyUrl).trim() : undefined,
+        apiKey: apiKey || "",
+        baseUrl: baseUrl || "",
+        model: model || "",
+        proxyUrl: proxyUrl || "",
       },
-      "Ты тестовый ассистент. Ответь одним коротким словом: OK.",
-      "Тест подключения."
+      "You are a test assistant.",
+      "Reply with 'OK' only."
     );
-
-    const latency = Math.round(performance.now() - startTime);
 
     return NextResponse.json({
       success: true,
-      latency,
-      reply: reply.slice(0, 100),
+      message: response.trim() || "OK",
     });
   } catch (error: any) {
-    console.error("AI Test Connection Error:", error);
+    console.error("POST settings/test error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Не удалось установить соединение с AI сервисом",
-      },
-      { status: 500 }
+      { success: false, error: error.message || "Connection test failed" },
+      { status: 400 }
     );
   }
 }

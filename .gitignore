@@ -40,6 +40,10 @@ yarn-error.log*
 /data/*.db*
 /data/*.db-wal
 /data/*.db-shm
+prisma/data/
+*.db
+*.db-wal
+*.db-shm
 
 # vercel
 .vercel

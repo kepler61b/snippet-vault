@@ -1,102 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { logAuditEvent } from "@/lib/audit-log";
-import { notifyDataChange } from "@/lib/sync-events";
 
 export async function POST(request: NextRequest) {
   try {
     const admin = await requireAdmin(request);
     if (!admin) {
-      return NextResponse.json({ success: false, error: "Доступ запрещен" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const { sourceTag, targetTag } = body;
+    const body = await request.json().catch(() => ({}));
+    const sourceTag = body.sourceTag?.trim();
+    const targetTag = body.targetTag?.trim();
 
-    const cleanSource = typeof sourceTag === "string" ? sourceTag.trim() : "";
-    const cleanTarget = typeof targetTag === "string" ? targetTag.trim() : "";
-
-    if (!cleanSource || !cleanTarget) {
+    if (!sourceTag || !targetTag) {
       return NextResponse.json(
-        { success: false, error: "Укажите исходный и целевой тег" },
+        { success: false, error: "sourceTag and targetTag are required" },
         { status: 400 }
       );
     }
 
-    if (cleanSource.toLowerCase() === cleanTarget.toLowerCase()) {
+    if (sourceTag.toLowerCase() === targetTag.toLowerCase()) {
       return NextResponse.json(
-        { success: false, error: "Исходный и целевой тег не могут совпадать" },
+        { success: false, error: "Source and target tag cannot be identical" },
         { status: 400 }
       );
     }
 
-    const sourceLower = cleanSource.toLowerCase();
-
-    // Find all snippets that might contain the source tag
     const snippets = await prisma.snippet.findMany({
-      where: { tags: { contains: cleanSource } },
+      where: {
+        tags: {
+          contains: sourceTag,
+        },
+      },
       select: { id: true, tags: true },
     });
 
-    let updatedCount = 0;
+    let updatedSnippets = 0;
+    const lowerSource = sourceTag.toLowerCase();
 
-    for (const s of snippets) {
-      const parts = s.tags.split(",").map((t) => t.trim()).filter(Boolean);
+    for (const snippet of snippets) {
+      const parts = snippet.tags.split(",").map((t) => t.trim()).filter(Boolean);
       let changed = false;
 
       const newParts: string[] = [];
-      const seen = new Set<string>();
+      let hasTarget = false;
 
       for (const t of parts) {
-        const checkLower = t.toLowerCase();
-        let finalTag = t;
-
-        if (checkLower === sourceLower) {
-          finalTag = cleanTarget;
+        if (t.toLowerCase() === lowerSource) {
           changed = true;
-        }
-
-        const finalLower = finalTag.toLowerCase();
-        if (!seen.has(finalLower)) {
-          seen.add(finalLower);
-          newParts.push(finalTag);
+          if (!hasTarget) {
+            newParts.push(targetTag);
+            hasTarget = true;
+          }
+        } else if (t.toLowerCase() === targetTag.toLowerCase()) {
+          if (!hasTarget) {
+            newParts.push(t);
+            hasTarget = true;
+          }
         } else {
-          changed = true; // Duplicate eliminated
+          newParts.push(t);
         }
       }
 
       if (changed) {
         await prisma.snippet.update({
-          where: { id: s.id },
+          where: { id: snippet.id },
           data: { tags: newParts.join(", ") },
         });
-        updatedCount++;
+        updatedSnippets++;
       }
     }
 
-    await logAuditEvent({
-      event: "SETTINGS_CHANGE",
-      category: "ADMIN",
-      status: "SUCCESS",
-      actorId: admin.id,
-      actorEmail: admin.email,
-      details: `Слияние тега "${cleanSource}" в "${cleanTarget}" (обновлено сниппетов: ${updatedCount})`,
-      request,
-    });
-
-    notifyDataChange("snippets");
-    notifyDataChange("tags");
-
-    return NextResponse.json({
-      success: true,
-      message: `Слияние завершено: обновлено ${updatedCount} сниппетов`,
-      updatedCount,
-    });
+    return NextResponse.json({ success: true, updatedSnippets });
   } catch (error: any) {
-    console.error("Admin merge tags error:", error);
+    console.error("POST merge tags error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка слияния тегов" },
+      { success: false, error: error.message || "Failed to merge tags" },
       { status: 500 }
     );
   }

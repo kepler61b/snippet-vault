@@ -14,12 +14,22 @@ export function detectIntegrationClient(
     if (customHeader.toLowerCase().includes("vscode")) {
       return "VS Code Extension";
     }
+    if (customHeader.toLowerCase().includes("tabby")) {
+      return "Tabby Terminal";
+    }
   }
 
   const userAgent =
     uaString ||
     (request ? request.headers.get("user-agent") || "" : "");
   const lowerUa = userAgent.toLowerCase().trim();
+
+  if (
+    lowerUa.includes("snippetvault-tabby") ||
+    lowerUa.includes("tabby")
+  ) {
+    return "Tabby Terminal";
+  }
 
   if (
     lowerUa.includes("snippetvault-vscode") ||
@@ -53,6 +63,97 @@ export function detectIntegrationClient(
   return "REST API / CLI";
 }
 
+export function extractIntegrationVersion(
+  request?: Request | NextRequest | null,
+  uaString?: string | null
+): string | null {
+  if (request) {
+    const versionHeader =
+      request.headers.get("x-client-version") ||
+      request.headers.get("x-snippetvault-client-version") ||
+      request.headers.get("x-snippetvault-version") ||
+      request.headers.get("x-version");
+    if (versionHeader && versionHeader.trim()) {
+      return versionHeader.trim().replace(/^v/i, "");
+    }
+  }
+
+  const userAgent =
+    uaString ||
+    (request ? request.headers.get("user-agent") || "" : "");
+  if (!userAgent) return null;
+
+  // Patterns: "SnippetVault-Tabby/0.1.2", "SnippetVault-VSCode/0.1.0", "tabby-snippetvault/0.1.2", "vscode-snippetvault/0.1.0"
+  const match = userAgent.match(
+    /(?:SnippetVault[-_]?(?:VSCode|Tabby)|(?:vscode|tabby)[-_]?snippetvault)[/:\s]v?([0-9]+\.[0-9]+(?:\.[0-9]+)?(?:-[a-zA-Z0-9.-]+)?)/i
+  );
+  if (match) {
+    return match[1];
+  }
+
+  // Generic fallback if user-agent has a slash or colon version e.g. "Tabby/0.1.2"
+  const genericMatch = userAgent.match(/(?:Tabby|VSCode|SnippetVault)[/:\s]v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/i);
+  if (genericMatch) {
+    return genericMatch[1];
+  }
+
+  return null;
+}
+
+export async function recordIntegrationVersion(
+  client: string,
+  version: string,
+  userId?: string | null
+) {
+  try {
+    const cleanVer = version.trim().replace(/^v/i, "");
+    if (!cleanVer) return;
+
+    const lowerClient = client.toLowerCase();
+    const key = lowerClient.includes("vscode") || lowerClient.includes("vs code")
+      ? "integration_version_vscode"
+      : lowerClient.includes("tabby")
+      ? "integration_version_tabby"
+      : null;
+
+    if (!key) return;
+
+    // Update global setting
+    await prisma.setting.upsert({
+      where: { key },
+      update: { value: cleanVer },
+      create: { key, value: cleanVer },
+    });
+
+    // Update per-user setting if userId is provided
+    if (userId) {
+      const userKey = `${key}_${userId}`;
+      await prisma.setting.upsert({
+        where: { key: userKey },
+        update: { value: cleanVer },
+        create: { key: userKey, value: cleanVer },
+      });
+    }
+  } catch (err) {
+    console.error("Failed to record integration version:", err);
+  }
+}
+
+export async function recordClientVersionFromRequest(
+  request: Request | NextRequest,
+  userId?: string | null
+) {
+  try {
+    const client = detectIntegrationClient(request);
+    const version = extractIntegrationVersion(request);
+    if (version) {
+      await recordIntegrationVersion(client, version, userId);
+    }
+  } catch (err) {
+    console.error("Failed to record client version from request:", err);
+  }
+}
+
 export function extractTokenPrefix(request?: Request | NextRequest | null): string | null {
   if (!request) return null;
   const auth = request.headers.get("authorization") || request.headers.get("x-api-key");
@@ -84,6 +185,8 @@ export async function logIntegrationActivity({
   ip,
   userAgent,
   userId,
+  clientVersion,
+  request,
 }: {
   client: string;
   action: string;
@@ -95,8 +198,16 @@ export async function logIntegrationActivity({
   ip?: string | null;
   userAgent?: string | null;
   userId?: string | null;
+  clientVersion?: string | null;
+  request?: Request | NextRequest | null;
 }) {
   try {
+    // Automatically record client version if detected
+    const ver = clientVersion || extractIntegrationVersion(request, userAgent);
+    if (ver) {
+      recordIntegrationVersion(client, ver, userId).catch(() => {});
+    }
+
     await prisma.integrationLog.create({
       data: {
         client,

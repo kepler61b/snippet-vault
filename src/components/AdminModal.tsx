@@ -24,6 +24,8 @@ import {
   Shield,
   ShieldAlert,
   ShieldCheck,
+  ShieldMinus,
+  ShieldPlus,
   Terminal,
   Trash2,
   Unlock,
@@ -208,20 +210,33 @@ export function AdminModal({
         fetch("/api/admin/tokens"),
       ]);
 
+      const parseJsonSafe = async (res: Response) => {
+        try {
+          return await res.json();
+        } catch {
+          return null;
+        }
+      };
+
       const [usersData, settingsData, tokensData] = await Promise.all([
-        usersRes.json(),
-        settingsRes.json(),
-        tokensRes.json(),
+        parseJsonSafe(usersRes),
+        parseJsonSafe(settingsRes),
+        parseJsonSafe(tokensRes),
       ]);
 
-      if (usersRes.ok && usersData.success) {
+      if (usersRes.ok && usersData?.success) {
         setUsers(usersData.users || []);
       }
-      if (settingsRes.ok && settingsData.success) {
+      if (settingsRes.ok && settingsData?.success) {
         setStats(settingsData.stats || null);
       }
-      if (tokensRes.ok && tokensData.success) {
+      if (tokensRes.ok && tokensData?.success) {
         setTokens(tokensData.tokens || []);
+      }
+
+      if (!usersRes.ok || !settingsRes.ok || !tokensRes.ok) {
+        const errMsg = usersData?.error || settingsData?.error || tokensData?.error;
+        if (errMsg) showFeedback(errMsg, "error");
       }
     } catch (err: any) {
       showFeedback(err.message || t("admin.loadError"), "error");
@@ -865,11 +880,11 @@ export function AdminModal({
                               setIssueError(null);
                               setShowIssueModal(true);
                             }}
-                            className="h-8 px-2.5 rounded-lg text-xs font-medium border border-zinc-800 bg-zinc-900/80 hover:bg-amber-500/10 hover:border-amber-500/40 text-zinc-300 hover:text-amber-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                            className="h-8 w-8 rounded-lg border border-zinc-800 bg-zinc-900/80 hover:bg-amber-500/10 hover:border-amber-500/40 text-zinc-300 hover:text-amber-300 transition-all flex items-center justify-center cursor-pointer shadow-sm"
                             title={t("admin.issueTokenBtn")}
+                            aria-label={t("admin.issueTokenBtn")}
                           >
                             <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                            <span>{t("admin.userTokensBtn")}</span>
                           </button>
 
                           {/* Role switch button */}
@@ -882,7 +897,7 @@ export function AdminModal({
                                 user.role === "ADMIN" ? "USER" : "ADMIN"
                               )
                             }
-                            className={`h-8 px-2.5 rounded-lg text-xs font-medium border transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm ${
+                            className={`h-8 w-8 rounded-lg border transition-all flex items-center justify-center cursor-pointer shadow-sm ${
                               user.role === "ADMIN"
                                 ? "border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800"
                                 : "border-violet-500/30 bg-violet-600/10 text-violet-300 hover:bg-violet-600/20 hover:border-violet-500/50"
@@ -896,11 +911,15 @@ export function AdminModal({
                                 ? t("admin.removeAdmin")
                                 : t("admin.makeAdmin")
                             }
+                            aria-label={
+                              user.role === "ADMIN" ? t("admin.removeAdmin") : t("admin.makeAdmin")
+                            }
                           >
-                            <Shield className="w-3.5 h-3.5 text-violet-400" />
-                            <span>
-                              {user.role === "ADMIN" ? t("admin.removeAdmin") : t("admin.makeAdmin")}
-                            </span>
+                            {user.role === "ADMIN" ? (
+                              <ShieldMinus className="w-3.5 h-3.5 text-violet-400" />
+                            ) : (
+                              <ShieldPlus className="w-3.5 h-3.5 text-violet-400" />
+                            )}
                           </button>
 
                           {/* Session Kill Switch (Item 2) */}
@@ -908,15 +927,15 @@ export function AdminModal({
                             type="button"
                             onClick={() => handleRevokeSessions(user)}
                             disabled={revokingSessionsUserId === user.id}
-                            className="h-8 px-2.5 rounded-lg text-xs font-medium border border-zinc-800 bg-zinc-900/80 hover:bg-rose-500/10 hover:border-rose-500/40 text-zinc-400 hover:text-rose-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-                            title={t("admin.revokeSessionsConfirm", { email: user.email })}
+                            className="h-8 w-8 rounded-lg border border-zinc-800 bg-zinc-900/80 hover:bg-rose-500/10 hover:border-rose-500/40 text-zinc-400 hover:text-rose-300 transition-all flex items-center justify-center cursor-pointer shadow-sm"
+                            title={t("admin.revokeSessionsBtn")}
+                            aria-label={t("admin.revokeSessionsBtn")}
                           >
                             {revokingSessionsUserId === user.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-400" />
                             ) : (
                               <LogOut className="w-3.5 h-3.5 text-zinc-400" />
                             )}
-                            <span>{t("admin.revokeSessionsBtn")}</span>
                           </button>
 
                           {/* Reset password button */}
@@ -927,11 +946,11 @@ export function AdminModal({
                               setResetPasswordVal("");
                               setResetError(null);
                             }}
-                            className="h-8 px-2.5 rounded-lg text-xs font-medium border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                            className="h-8 w-8 rounded-lg border border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all flex items-center justify-center cursor-pointer shadow-sm"
                             title={t("admin.resetPasswordTitle")}
+                            aria-label={t("admin.resetPasswordTitle")}
                           >
                             <Lock className="w-3.5 h-3.5" />
-                            <span>{t("admin.passwordBtn")}</span>
                           </button>
 
                           {/* Ban / Unban button */}
@@ -939,7 +958,7 @@ export function AdminModal({
                             type="button"
                             disabled={isSelf}
                             onClick={() => handleToggleBan(user)}
-                            className={`h-8 px-2.5 rounded-lg text-xs font-medium border transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm ${
+                            className={`h-8 w-8 rounded-lg border transition-all flex items-center justify-center cursor-pointer shadow-sm ${
                               user.isBanned
                                 ? "border-emerald-500/30 bg-emerald-600/10 text-emerald-300 hover:bg-emerald-600/20"
                                 : "border-zinc-800 bg-zinc-900/80 text-zinc-400 hover:border-rose-500/40 hover:text-rose-300 hover:bg-rose-500/10"
@@ -951,17 +970,12 @@ export function AdminModal({
                                 ? t("admin.unbanBtn")
                                 : t("admin.banBtn")
                             }
+                            aria-label={user.isBanned ? t("admin.unbanBtn") : t("admin.banBtn")}
                           >
                             {user.isBanned ? (
-                              <>
-                                <Unlock className="w-3.5 h-3.5 text-emerald-400" />
-                                <span>{t("admin.unbanBtn")}</span>
-                              </>
+                              <Unlock className="w-3.5 h-3.5 text-emerald-400" />
                             ) : (
-                              <>
-                                <Ban className="w-3.5 h-3.5 text-rose-400" />
-                                <span>{t("admin.banBtn")}</span>
-                              </>
+                              <Ban className="w-3.5 h-3.5 text-rose-400" />
                             )}
                           </button>
 
@@ -980,6 +994,7 @@ export function AdminModal({
                                 ? t("admin.cannotDeleteLocalAdmin")
                                 : t("admin.deleteUserBtn")
                             }
+                            aria-label={t("admin.deleteUserBtn")}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>

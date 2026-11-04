@@ -3,84 +3,61 @@ import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit-log";
 
-export async function POST(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     if (!admin) {
-      return NextResponse.json({ success: false, error: "Доступ запрещен" }, { status: 403 });
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
-    const { id: targetId } = await context.params;
-
-    if (admin.id === targetId) {
-      return NextResponse.json(
-        { success: false, error: "Вы не можете заблокировать свой собственный аккаунт" },
-        { status: 400 }
-      );
+    const { id } = await params;
+    if (id === admin.id) {
+      return NextResponse.json({ success: false, error: "Cannot ban yourself" }, { status: 400 });
     }
 
-    const targetUser = await prisma.user.findUnique({
-      where: { id: targetId },
-      select: { id: true, isBanned: true, role: true },
-    });
-
-    if (!targetUser) {
-      return NextResponse.json(
-        { success: false, error: "Пользователь не найден" },
-        { status: 404 }
-      );
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
     }
 
-    let isBannedToSet = !targetUser.isBanned;
-
-    // Check optional body for explicit boolean
-    try {
-      const body = await request.json();
-      if (typeof body.isBanned === "boolean") {
-        isBannedToSet = body.isBanned;
-      }
-    } catch {
-      // Body not provided or not JSON, toggle used
-    }
+    const body = await request.json().catch(() => ({}));
+    const isBanned = typeof body.isBanned === "boolean" ? body.isBanned : !user.isBanned;
 
     const updated = await prisma.user.update({
-      where: { id: targetId },
-      data: { isBanned: isBannedToSet },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isBanned: true,
+      where: { id },
+      data: {
+        isBanned,
+        tokenVersion: isBanned ? { increment: 1 } : undefined,
       },
     });
 
-    logAuditEvent({
-      event: updated.isBanned ? "ADMIN_USER_BAN" : "ADMIN_USER_UNBAN",
+    await logAuditEvent({
+      event: isBanned ? "ADMIN_USER_BAN" : "ADMIN_USER_UNBAN",
       category: "ADMIN",
-      status: updated.isBanned ? "WARNING" : "INFO",
       actorId: admin.id,
       actorEmail: admin.email,
-      targetId: updated.id,
-      targetEmail: updated.email,
-      details: updated.isBanned
-        ? `Пользователь ${updated.email} заблокирован администратором ${admin.email}`
-        : `Пользователь ${updated.email} разблокирован администратором ${admin.email}`,
+      targetId: user.id,
+      targetEmail: user.email,
+      details: isBanned ? "User was banned" : "User was unbanned",
       request,
-    }).catch(() => {});
+    });
 
     return NextResponse.json({
       success: true,
-      user: updated,
-      message: updated.isBanned ? "Пользователь заблокирован" : "Пользователь разблокирован",
+      user: {
+        id: updated.id,
+        email: updated.email,
+        isBanned: updated.isBanned,
+      },
     });
   } catch (error: any) {
-    console.error("Admin toggle ban error:", error);
+    console.error("POST admin user ban error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка изменения статуса блокировки" },
+      { success: false, error: error.message || "Failed to update ban status" },
       { status: 500 }
     );
   }

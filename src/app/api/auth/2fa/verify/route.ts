@@ -2,53 +2,56 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { verifyToken, signToken, setSessionCookie } from "@/lib/auth";
 import { verifyTOTP } from "@/lib/totp";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { tempToken, code } = body;
 
     if (!tempToken || !code) {
-      return NextResponse.json(
-        { success: false, error: "Укажите код подтверждения" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "Код и токен обязательны" }, { status: 400 });
     }
 
     const payload = await verifyToken<any>(tempToken);
-    if (!payload?.userId || payload.stage !== "2fa_challenge") {
+    if (!payload?.userId || !payload?.temp2FA) {
       return NextResponse.json(
-        { success: false, error: "Сессия двухфакторной аутентификации истекла. Войдите снова." },
-        { status: 401 }
+        { success: false, error: "Сессия двухфакторной аутентификации истекла" },
+        { status: 400 }
       );
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-    });
-
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
     if (!user || !user.twoFactorSecret) {
       return NextResponse.json(
-        { success: false, error: "Двухфакторная аутентификация не настроена для этого аккаунта" },
+        { success: false, error: "2FA не настроена для данного пользователя" },
         { status: 400 }
       );
     }
 
-    const isValid = verifyTOTP(user.twoFactorSecret, code.trim());
+    const isValid = verifyTOTP(user.twoFactorSecret, code);
     if (!isValid) {
-      return NextResponse.json(
-        { success: false, error: "Неверный код доступа. Попробуйте еще раз." },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "Неверный код доступа" }, { status: 400 });
     }
 
-    // Set full session cookie
-    const token = await signToken({
+    const sessionToken = await signToken({
       userId: user.id,
       email: user.email,
       tokenVersion: user.tokenVersion ?? 0,
     });
-    await setSessionCookie(token, request);
+
+    await setSessionCookie(sessionToken, request);
+
+    await logAuditEvent({
+      event: "AUTH_LOGIN_SUCCESS",
+      category: "AUTH",
+      actorId: user.id,
+      actorEmail: user.email,
+      targetId: user.id,
+      targetEmail: user.email,
+      details: "Успешная двухфакторная аутентификация",
+      request,
+    });
 
     return NextResponse.json({
       success: true,
@@ -56,14 +59,13 @@ export async function POST(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        bio: user.bio,
-        twoFactorEnabled: user.twoFactorEnabled,
+        role: user.role,
       },
     });
   } catch (error: any) {
-    console.error("2FA verify error:", error);
+    console.error("POST 2fa verify error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка проверки двухфакторного кода" },
+      { success: false, error: error.message || "Ошибка проверки 2FA" },
       { status: 500 }
     );
   }

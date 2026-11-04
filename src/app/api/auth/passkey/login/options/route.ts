@@ -5,26 +5,19 @@ import { getWebAuthnConfig, setPasskeyChallenge } from "@/lib/webauthn";
 
 export async function POST(request: NextRequest) {
   try {
-    let email: string | undefined;
-    try {
-      const body = await request.json();
-      email = body.email ? body.email.trim().toLowerCase() : undefined;
-    } catch {
-      // Body may be empty if discoverable credentials / 1-click passkey login is requested
-    }
+    const body = await request.json().catch(() => ({}));
+    const { email } = body;
 
-    const { rpID } = getWebAuthnConfig(request);
+    let allowCredentials: any[] | undefined = undefined;
+    let targetUserId: string | undefined = undefined;
 
-    let allowCredentials:
-      | { id: string; transports?: any[] }[]
-      | undefined = undefined;
-
-    if (email) {
+    if (email && typeof email === "string") {
       const user = await prisma.user.findUnique({
-        where: { email },
+        where: { email: email.trim().toLowerCase() },
         include: { passkeys: true },
       });
       if (user && user.passkeys.length > 0) {
+        targetUserId = user.id;
         allowCredentials = user.passkeys.map((p) => ({
           id: p.credentialId,
           transports: p.transports ? JSON.parse(p.transports) : undefined,
@@ -32,19 +25,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const { rpID } = getWebAuthnConfig(request);
+
     const options = await generateAuthenticationOptions({
       rpID,
-      userVerification: "preferred",
       allowCredentials,
+      userVerification: "preferred",
     });
 
-    await setPasskeyChallenge(options.challenge, undefined, request);
+    await setPasskeyChallenge(options.challenge, targetUserId, request);
 
-    return NextResponse.json({ success: true, options });
+    return NextResponse.json({
+      success: true,
+      options,
+    });
   } catch (error: any) {
     console.error("Passkey login options error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка генерации параметров входа Passkey" },
+      { success: false, error: error.message || "Failed to generate passkey options" },
       { status: 500 }
     );
   }

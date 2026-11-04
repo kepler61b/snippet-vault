@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.8.0-blue.svg" alt="Version 0.8.0" />
+  <img src="https://img.shields.io/badge/version-0.8.1-blue.svg" alt="Version 0.8.1" />
   <img src="https://img.shields.io/badge/docker-ready-2496ED.svg?logo=docker&logoColor=white" alt="Docker Ready" />
   <img src="https://img.shields.io/badge/database-SQLite%20WAL-003B57.svg?logo=sqlite&logoColor=white" alt="SQLite" />
   <img src="https://img.shields.io/badge/next.js-16%20Turbopack-black.svg?logo=next.js&logoColor=white" alt="Next.js" />
@@ -38,11 +38,15 @@
 - Ранжирование совпадений по релевантности.
 - Точная подсветка найденного фрагмента прямо в карточке сниппета с отображением номера строки (`строка N`).
 
-### 🔌 Интеграция с VS Code и экосистема разработчика
+### 🔌 Интеграции и экосистема разработчика
 - **Официальное расширение для Visual Studio Code** (`extensions/vscode/`):
   - Быстрая вставка сниппетов в активный редактор по `Ctrl+Alt+V` (`Cmd+Alt+V`) с поиском по библиотеке.
   - Сохранение выделенного фрагмента кода в SnippetVault в 1 клик по `Ctrl+Alt+S` (`Cmd+Alt+S`) или через контекстное меню.
   - Автоматическое определение языка, имени файла и заголовка.
+- **Плагин для терминала Tabby** (`extensions/tabby/`):
+  - Пункт контекстного меню **«Сохранить в SnippetVault»** для выделенного текста команд.
+  - Пункт контекстного меню **«Загрузить из SnippetVault»** с иерархическим подменю коллекций и вставкой клипов в терминал в 1 клик.
+  - Встроенная вкладка настроек в Tabby для проверки подключения и сброса кеша.
 - **Персональные токены доступа (PAT / API ключи)**:
   - Генерация токенов доступа (`sv_pat_...`) с SHA-256 хешированием и ролями (`Только чтение` / `Чтение и запись`).
   - Поддержка авторизации через заголовок `Authorization: Bearer <TOKEN>` или `X-API-Key: <TOKEN>`.
@@ -118,7 +122,7 @@ docker run -d \
   kepler61b/snippet-vault:latest
 ```
 
-> **Совет**: Для использования версии `0.8.0` в ветке разработки укажите тег `kepler61b/snippet-vault:0.8.0-dev` или `kepler61b/snippet-vault:dev`.
+> **Совет**: Для использования версии `0.8.1` в ветке разработки укажите тег `kepler61b/snippet-vault:0.8.1` или `kepler61b/snippet-vault:dev`.
 
 ---
 
@@ -228,6 +232,38 @@ npm run dev
 
 ---
 
+## 🖥️ Подключение плагина для терминала Tabby
+
+Плагин поставляется в каталоге [`extensions/tabby/`](file:///Users/scfmcdck/Desktop/projects/snippet-vault/extensions/tabby/README.md) и интегрируется в контекстное меню терминала Tabby.
+
+1. **Соберите плагин**:
+   ```bash
+   cd extensions/tabby
+   npm install
+   npm run build
+   ```
+2. **Установите в Tabby**:
+   - Создайте символическую ссылку в каталог плагинов Tabby:
+     ```bash
+     # macOS:
+     mkdir -p "$HOME/Library/Application Support/tabby/plugins/node_modules"
+     ln -sfn "$(pwd)/extensions/tabby" "$HOME/Library/Application Support/tabby/plugins/node_modules/tabby-snippetvault"
+     # Linux:
+     # mkdir -p "$HOME/.config/tabby/plugins/node_modules"
+     # ln -sfn "$(pwd)/extensions/tabby" "$HOME/.config/tabby/plugins/node_modules/tabby-snippetvault"
+     ```
+   - Перезапустите Tabby (или нажмите `Ctrl+Shift+R`).
+3. **Настройте подключение**:
+   - Откройте **Settings ➔ SnippetVault**.
+   - Укажите адрес сервера (например, `http://localhost:3000`) и сгенерированный токен PAT.
+   - Нажмите **«Проверить подключение»**.
+
+**Использование:**
+- Выделите любой текст в терминале ➔ ПКМ ➔ **«Сохранить в SnippetVault»**.
+- ПКМ в терминале ➔ **«Загрузить из SnippetVault»** ➔ выберите коллекцию и клип для моментальной вставки в строку ввода.
+
+---
+
 ## 🔑 Первый вход в систему
 
 При первом запуске на чистой базе данных отображается подсказка для входа локального администратора:
@@ -247,7 +283,7 @@ npm run dev
 | `DATABASE_URL` | `file:/app/data/snippetvault.db` | Путь к файлу базы данных SQLite |
 | `JWT_SECRET` | *(auto-generated)* | Секретный ключ для подписи сессионных JWT токенов |
 | `NEXT_PUBLIC_APP_ENV` | `prod` | Режим работы (`prod` или `dev`) |
-| `NEXT_PUBLIC_APP_VERSION` | `0.8.0` | Отображаемая версия приложения |
+| `NEXT_PUBLIC_APP_VERSION` | `0.8.1` | Отображаемая версия приложения |
 | `NODE_TLS_REJECT_UNAUTHORIZED` | `1` | Проверка TLS сертификатов при вызове AI API (`0` для самоподписанных) |
 | `AI_PROVIDER` | `openai` | Провайдер AI по умолчанию (`openai`, `gemini`, `custom`) |
 | `AI_API_KEY` | — | Ключ доступа к AI API |

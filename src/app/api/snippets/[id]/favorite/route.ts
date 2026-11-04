@@ -1,36 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/db";
+import { getCurrentUser } from "@/lib/auth";
 import { notifyDataChange } from "@/lib/sync-events";
-import { prisma } from "@/lib/db";
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
-    const { id } = await params;
-    const snippet = await prisma.snippet.findUnique({
-      where: { id },
-      select: { isFavorite: true },
-    });
+    const user = await getCurrentUser(request);
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
 
-    if (!snippet) {
-      return NextResponse.json(
-        { success: false, error: "Snippet not found" },
-        { status: 404 }
-      );
+    const { id } = await params;
+    const existing = await prisma.snippet.findUnique({ where: { id } });
+
+    if (!existing) {
+      return NextResponse.json({ success: false, error: "Snippet not found" }, { status: 404 });
     }
 
     const updated = await prisma.snippet.update({
       where: { id },
-      data: { isFavorite: !snippet.isFavorite },
-      select: { id: true, isFavorite: true },
+      data: { isFavorite: !existing.isFavorite },
+      include: {
+        collection: true,
+        files: { orderBy: { order: "asc" } },
+      },
     });
 
-    notifyDataChange("snippets", { action: "updated" });
+    notifyDataChange("snippets", { userId: user.id, action: "updated" });
 
-    return NextResponse.json({ success: true, isFavorite: updated.isFavorite });
+    return NextResponse.json({ success: true, snippet: updated });
   } catch (error: any) {
-    console.error("Error toggling favorite:", error);
+    console.error("POST snippet favorite error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to toggle favorite" },
       { status: 500 }

@@ -107,6 +107,8 @@ async function configureVault(context: vscode.ExtensionContext): Promise<boolean
       headers: {
         Authorization: `Bearer ${inputToken.trim()}`,
         "User-Agent": "SnippetVault-VSCode/0.1.0",
+        "X-Client-Version": "0.1.0",
+        "X-SnippetVault-Client": "vscode",
       },
     });
 
@@ -162,6 +164,8 @@ async function insertSnippetCommand(context: vscode.ExtensionContext) {
           headers: {
             Authorization: `Bearer ${token}`,
             "User-Agent": "SnippetVault-VSCode/0.1.0",
+            "X-Client-Version": "0.1.0",
+            "X-SnippetVault-Client": "vscode",
           },
         });
 
@@ -333,6 +337,8 @@ async function saveSnippetCommand(context: vscode.ExtensionContext) {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
             "User-Agent": "SnippetVault-VSCode/0.1.0",
+            "X-Client-Version": "0.1.0",
+            "X-SnippetVault-Client": "vscode",
           },
           body: JSON.stringify({
             title: title.trim(),

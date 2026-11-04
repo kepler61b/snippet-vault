@@ -1,74 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { verifyPassword, signToken, setSessionCookie, hashPassword } from "@/lib/auth";
+import { verifyPassword, signToken, setSessionCookie } from "@/lib/auth";
 import { ensureSeedSnippets } from "@/lib/seed";
-import { logAuditEvent } from "@/lib/audit-log";
 
 export async function POST(request: NextRequest) {
   try {
     await ensureSeedSnippets();
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { email, password } = body;
 
-    if (!email || !password) {
+    if (!email || !password || typeof email !== "string" || typeof password !== "string") {
       return NextResponse.json(
-        { success: false, error: "Введите email и пароль" },
+        { success: false, error: "Укажите email и пароль" },
         { status: 400 }
       );
     }
 
     const cleanEmail = email.trim().toLowerCase();
-
-    // Check if database has 0 users -> allow initial local admin login
-    const totalUsers = await prisma.user.count();
-    if (totalUsers === 0) {
-      if (cleanEmail === "admin@snippetvault.local" || cleanEmail === "admin") {
-        if (password === "admin" || password === "admin12345") {
-          const newAdmin = await prisma.user.create({
-            data: {
-              email: "admin@snippetvault.local",
-              name: "Администратор",
-              role: "ADMIN",
-              passwordHash: hashPassword(password),
-              tokenVersion: 0,
-            },
-          });
-          const token = await signToken({
-            userId: newAdmin.id,
-            email: newAdmin.email,
-            tokenVersion: newAdmin.tokenVersion ?? 0,
-          });
-          await setSessionCookie(token, request);
-          return NextResponse.json({
-            success: true,
-            require2FA: false,
-            user: {
-              id: newAdmin.id,
-              email: newAdmin.email,
-              name: newAdmin.name,
-              role: newAdmin.role,
-              twoFactorEnabled: false,
-            },
-          });
-        }
-      }
-    }
-
     const user = await prisma.user.findUnique({
       where: { email: cleanEmail },
     });
 
-    if (!user) {
-      logAuditEvent({
-        event: "AUTH_LOGIN_FAIL",
-        category: "AUTH",
-        status: "FAILURE",
-        actorEmail: cleanEmail,
-        details: "Пользователь не найден",
-        request,
-      }).catch(() => {});
-
+    if (!user || !verifyPassword(password, user.passwordHash)) {
       return NextResponse.json(
         { success: false, error: "Неверный email или пароль" },
         { status: 401 }
@@ -76,45 +30,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (user.isBanned) {
-      logAuditEvent({
-        event: "AUTH_LOGIN_FAIL",
-        category: "AUTH",
-        status: "FAILURE",
-        actorId: user.id,
-        actorEmail: user.email,
-        details: "Попытка входа в заблокированный аккаунт",
-        request,
-      }).catch(() => {});
-
       return NextResponse.json(
         { success: false, error: "Ваш аккаунт заблокирован администратором" },
         { status: 403 }
       );
     }
 
-    const isMatch = verifyPassword(password, user.passwordHash);
-    if (!isMatch) {
-      logAuditEvent({
-        event: "AUTH_LOGIN_FAIL",
-        category: "AUTH",
-        status: "FAILURE",
-        actorId: user.id,
-        actorEmail: user.email,
-        details: "Неверный пароль",
-        request,
-      }).catch(() => {});
-
-      return NextResponse.json(
-        { success: false, error: "Неверный email или пароль" },
-        { status: 401 }
-      );
-    }
-
-    // Check if 2FA is enabled
-    if (user.twoFactorEnabled && user.twoFactorSecret) {
-      // Create temporary token for 2FA challenge (valid for 5 minutes)
+    if (user.twoFactorEnabled) {
       const tempToken = await signToken(
-        { userId: user.id, email: user.email, stage: "2fa_challenge" },
+        { userId: user.id, email: user.email, temp2FA: true },
         300
       );
       return NextResponse.json({
@@ -124,34 +48,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Direct login
     const token = await signToken({
       userId: user.id,
       email: user.email,
       tokenVersion: user.tokenVersion ?? 0,
     });
-    await setSessionCookie(token, request);
 
-    logAuditEvent({
-      event: "AUTH_LOGIN_SUCCESS",
-      category: "AUTH",
-      status: "SUCCESS",
-      actorId: user.id,
-      actorEmail: user.email,
-      details: "Успешная авторизация по паролю",
-      request,
-    }).catch(() => {});
+    await setSessionCookie(token, request);
 
     return NextResponse.json({
       success: true,
-      require2FA: false,
       user: {
         id: user.id,
         email: user.email,
         name: user.name,
-        bio: user.bio,
         role: user.role,
-        twoFactorEnabled: user.twoFactorEnabled,
+        bio: user.bio,
       },
     });
   } catch (error: any) {

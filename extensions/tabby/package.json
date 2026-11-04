@@ -1,0 +1,49 @@
+{
+  "name": "tabby-snippetvault",
+  "version": "0.1.2",
+  "description": "SnippetVault integration plugin for Tabby terminal",
+  "keywords": [
+    "tabby-plugin",
+    "terminus-plugin",
+    "snippetvault",
+    "snippets",
+    "terminal"
+  ],
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "scripts": {
+    "build": "webpack --mode production",
+    "watch": "webpack --mode development --watch",
+    "prepack": "npm run build"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "icon.png",
+    "package.json"
+  ],
+  "author": "Kepler61b",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kepler61b/snippet-vault.git"
+  },
+  "homepage": "https://github.com/Kepler61b/snippet-vault",
+  "license": "MIT",
+  "devDependencies": {
+    "@angular/common": "15.2.10",
+    "@angular/compiler": "15.2.10",
+    "@angular/core": "15.2.10",
+    "@angular/forms": "15.2.10",
+    "@ng-bootstrap/ng-bootstrap": "14.2.0",
+    "@types/node": "^20.0.0",
+    "rxjs": "^7.8.1",
+    "tabby-core": "1.0.231-nightly.0",
+    "tabby-settings": "1.0.231-nightly.0",
+    "tabby-terminal": "1.0.231-nightly.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "4.9.5",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
+  }
+}

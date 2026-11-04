@@ -2,25 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { createTwoFactorSetup, verifyTOTP } from "@/lib/totp";
+import { logAuditEvent } from "@/lib/audit-log";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
     const setup = await createTwoFactorSetup(user.email);
+
     return NextResponse.json({
       success: true,
-      secret: setup.secret,
-      qrCode: setup.qrCodeDataUrl,
-      otpauthUrl: setup.otpauthUrl,
+      ...setup,
     });
   } catch (error: any) {
-    console.error("2FA setup error:", error);
+    console.error("GET 2fa setup error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка настройки 2FA" },
+      { success: false, error: error.message || "Failed to generate 2FA setup" },
       { status: 500 }
     );
   }
@@ -28,46 +28,47 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { secret, code } = body;
 
     if (!secret || !code) {
-      return NextResponse.json(
-        { success: false, error: "Укажите секретный ключ и код подтверждения" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "Secret and code required" }, { status: 400 });
     }
 
-    const isValid = verifyTOTP(secret, code.trim());
+    const isValid = verifyTOTP(secret, code);
     if (!isValid) {
-      return NextResponse.json(
-        { success: false, error: "Неверный код доступа. Проверьте правильность ввода из приложения аутентификатора." },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: "Неверный код подтверждения" }, { status: 400 });
     }
 
-    // Save secret and enable 2FA permanently
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        twoFactorSecret: secret,
         twoFactorEnabled: true,
+        twoFactorSecret: secret,
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      message: "Двухфакторная аутентификация успешно подключена!",
+    await logAuditEvent({
+      event: "AUTH_2FA_SETUP",
+      category: "SECURITY",
+      actorId: user.id,
+      actorEmail: user.email,
+      targetId: user.id,
+      targetEmail: user.email,
+      details: "Two-factor authentication enabled",
+      request,
     });
+
+    return NextResponse.json({ success: true, message: "2FA enabled" });
   } catch (error: any) {
-    console.error("2FA enable error:", error);
+    console.error("POST 2fa setup error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка подключения 2FA" },
+      { success: false, error: error.message || "Failed to setup 2FA" },
       { status: 500 }
     );
   }

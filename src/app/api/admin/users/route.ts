@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin, hashPassword } from "@/lib/auth";
-import { logAuditEvent } from "@/lib/audit-log";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     if (!admin) {
-      return NextResponse.json({ success: false, error: "Доступ запрещен" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Admin access required" },
+        { status: 403 }
+      );
     }
 
     const users = await prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
       select: {
         id: true,
         email: true,
@@ -30,14 +33,16 @@ export async function GET() {
           },
         },
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ success: true, users });
+    return NextResponse.json({
+      success: true,
+      users,
+    });
   } catch (error: any) {
-    console.error("Admin get users error:", error);
+    console.error("Error fetching admin users:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка получения списка пользователей" },
+      { success: false, error: error.message || "Failed to fetch users" },
       { status: 500 }
     );
   }
@@ -45,24 +50,27 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     if (!admin) {
-      return NextResponse.json({ success: false, error: "Доступ запрещен" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Admin access required" },
+        { status: 403 }
+      );
     }
 
-    const body = await request.json();
-    const { email, password, name, role = "USER" } = body;
+    const body = await request.json().catch(() => ({}));
+    const { email, name, password, role } = body;
 
-    if (!email || typeof email !== "string" || !email.includes("@")) {
+    if (!email || !password || typeof email !== "string" || typeof password !== "string") {
       return NextResponse.json(
-        { success: false, error: "Укажите корректный адрес электронной почты" },
+        { success: false, error: "Укажите email и пароль" },
         { status: 400 }
       );
     }
 
-    if (!password || typeof password !== "string" || password.length < 6) {
+    if (password.length < 6) {
       return NextResponse.json(
-        { success: false, error: "Пароль должен содержать не менее 6 символов" },
+        { success: false, error: "Пароль должен содержать минимум 6 символов" },
         { status: 400 }
       );
     }
@@ -70,7 +78,6 @@ export async function POST(request: NextRequest) {
     const cleanEmail = email.trim().toLowerCase();
     const existing = await prisma.user.findUnique({
       where: { email: cleanEmail },
-      select: { id: true },
     });
 
     if (existing) {
@@ -80,52 +87,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validRole = role === "ADMIN" ? "ADMIN" : "USER";
-    const passwordHash = hashPassword(password);
-
     const newUser = await prisma.user.create({
       data: {
         email: cleanEmail,
-        passwordHash,
-        name: name?.trim() || cleanEmail.split("@")[0],
-        role: validRole,
+        name: typeof name === "string" ? name.trim() : null,
+        passwordHash: hashPassword(password),
+        role: role === "ADMIN" ? "ADMIN" : "USER",
       },
       select: {
         id: true,
         email: true,
         name: true,
         role: true,
-        isBanned: true,
-        twoFactorEnabled: true,
         createdAt: true,
-        _count: {
-          select: {
-            snippets: true,
-            collections: true,
-            passkeys: true,
-            personalAccessTokens: true,
-          },
-        },
       },
     });
 
-    logAuditEvent({
-      event: "ADMIN_USER_CREATE",
-      category: "ADMIN",
-      status: "SUCCESS",
-      actorId: admin.id,
-      actorEmail: admin.email,
-      targetId: newUser.id,
-      targetEmail: newUser.email,
-      details: `Создан пользователь ${newUser.email} (роль: ${newUser.role})`,
-      request,
-    }).catch(() => {});
-
-    return NextResponse.json({ success: true, user: newUser });
+    return NextResponse.json({
+      success: true,
+      user: newUser,
+    });
   } catch (error: any) {
-    console.error("Admin create user error:", error);
+    console.error("Error creating user:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка создания пользователя" },
+      { success: false, error: error.message || "Failed to create user" },
       { status: 500 }
     );
   }

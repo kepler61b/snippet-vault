@@ -494,9 +494,12 @@ export function SettingsModal({
   const [integrationStats, setIntegrationStats] = useState<{
     total: number;
     vsCodeCount: number;
+    tabbyCount: number;
     curlCount: number;
     errorsCount: number;
     lastActive: string | null;
+    vsCodeVersion?: string | null;
+    tabbyVersion?: string | null;
   } | null>(null);
 
   const loadIntegrationLogs = async (silent = false) => {
@@ -549,7 +552,7 @@ export function SettingsModal({
         setIntegrationLogs([]);
         setIntegrationStats((prev) =>
           prev
-            ? { ...prev, total: 0, vsCodeCount: 0, curlCount: 0, errorsCount: 0, lastActive: null }
+            ? { ...prev, total: 0, vsCodeCount: 0, tabbyCount: 0, curlCount: 0, errorsCount: 0, lastActive: null }
             : null
         );
       }
@@ -1955,7 +1958,9 @@ export function SettingsModal({
                         <div>
                           <div className="text-xs font-bold text-white flex items-center gap-1.5">
                             <span>{t("settings.integrations.vscodeTitle")}</span>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">v0.1.0</span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">
+                              {integrationStats?.vsCodeVersion || "v0.1.0"}
+                            </span>
                           </div>
                           <div className="text-[10px] text-zinc-400 font-mono">vscode-snippetvault</div>
                         </div>
@@ -1983,8 +1988,48 @@ export function SettingsModal({
                     </div>
                   </div>
 
-                  {/* cURL & CLI Card */}
+                  {/* Tabby Terminal Card */}
                   <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-950/70 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 shrink-0">
+                          <Terminal className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <span>{t("settings.integrations.tabbyTitle")}</span>
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 font-mono">
+                              {integrationStats?.tabbyVersion || "v0.1.2"}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-zinc-400 font-mono">tabby-snippetvault</div>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`inline-flex items-center justify-center text-center text-[10px] px-2.5 py-1 rounded-full border font-semibold leading-none shrink-0 ${
+                          integrationStats && integrationStats.tabbyCount > 0
+                            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                            : "bg-violet-500/15 text-violet-300 border-violet-500/30"
+                        }`}
+                      >
+                        {integrationStats && integrationStats.tabbyCount > 0
+                          ? t("settings.integrations.tabbyActiveBadge")
+                          : t("settings.integrations.tabbyReadyBadge")}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      {t("settings.integrations.tabbyDesc")}
+                    </p>
+
+                    <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800/80 text-[11px] font-mono text-zinc-300">
+                      {t("settings.integrations.tabbyHotkeys")}
+                    </div>
+                  </div>
+
+                  {/* cURL & CLI Card */}
+                  <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-950/70 space-y-3 md:col-span-2">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
@@ -2416,6 +2461,11 @@ export function SettingsModal({
                                   {log.client.includes("VS Code") ? (
                                     <span className="flex items-center gap-1 text-[10px] font-medium text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
                                       <Laptop className="w-3 h-3" />
+                                      <span>{log.client}</span>
+                                    </span>
+                                  ) : log.client.includes("Tabby") ? (
+                                    <span className="flex items-center gap-1 text-[10px] font-medium text-violet-400 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/20">
+                                      <Terminal className="w-3 h-3" />
                                       <span>{log.client}</span>
                                     </span>
                                   ) : log.client.includes("cURL") || log.client.includes("Terminal") ? (

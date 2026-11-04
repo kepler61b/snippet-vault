@@ -5,5 +5,5 @@ import { COOKIE_NAME } from "@/lib/auth";
 export async function POST() {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
-  return NextResponse.json({ success: true, message: "Logged out" });
+  return NextResponse.json({ success: true });
 }

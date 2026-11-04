@@ -8,91 +8,81 @@ import {
   clearPasskeyChallenge,
   uint8ArrayToBase64,
 } from "@/lib/webauthn";
+import { logAuditEvent } from "@/lib/audit-log";
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const challengePayload = await getPasskeyChallenge();
-    if (!challengePayload || challengePayload.userId !== user.id) {
-      return NextResponse.json(
-        { success: false, error: "Срок действия запроса Passkey истек. Попробуйте снова." },
-        { status: 400 }
-      );
-    }
-
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { response, name } = body;
 
-    if (!response) {
+    const challengeData = await getPasskeyChallenge();
+    if (!challengeData || !challengeData.challenge) {
       return NextResponse.json(
-        { success: false, error: "Отсутствует ответ WebAuthn" },
+        { success: false, error: "Challenge expired or invalid" },
         { status: 400 }
       );
     }
 
-    const { origin, rpID } = getWebAuthnConfig(request);
+    const { rpID, origin } = getWebAuthnConfig(request);
 
     const verification = await verifyRegistrationResponse({
       response,
-      expectedChallenge: challengePayload.challenge,
+      expectedChallenge: challengeData.challenge,
       expectedOrigin: origin,
       expectedRPID: rpID,
     });
 
     if (!verification.verified || !verification.registrationInfo) {
       return NextResponse.json(
-        { success: false, error: "Не удалось подтвердить регистрацию Passkey" },
+        { success: false, error: "Passkey verification failed" },
         { status: 400 }
       );
     }
 
-    const { credential, credentialDeviceType, credentialBackedUp } =
-      verification.registrationInfo;
+    const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
 
-    // Check if credential ID is already registered
-    const existing = await prisma.passkey.findUnique({
-      where: { credentialId: credential.id },
-    });
-    if (existing) {
-      return NextResponse.json(
-        { success: false, error: "Этот ключ доступа уже привязан к системе" },
-        { status: 400 }
-      );
-    }
-
-    const passkey = await prisma.passkey.create({
+    const newPasskey = await prisma.passkey.create({
       data: {
         userId: user.id,
-        name: (name && typeof name === "string" && name.trim()) || "Основной Passkey",
+        name: name ? String(name).trim() : "Passkey",
         credentialId: credential.id,
         publicKey: uint8ArrayToBase64(credential.publicKey),
         counter: credential.counter,
         deviceType: credentialDeviceType,
         backedUp: credentialBackedUp,
         transports: credential.transports ? JSON.stringify(credential.transports) : null,
-        lastUsedAt: new Date(),
-      },
-      select: {
-        id: true,
-        name: true,
-        deviceType: true,
-        backedUp: true,
-        createdAt: true,
-        lastUsedAt: true,
       },
     });
 
     await clearPasskeyChallenge();
 
-    return NextResponse.json({ success: true, passkey });
+    await logAuditEvent({
+      event: "AUTH_PASSKEY_REGISTER",
+      category: "SECURITY",
+      actorId: user.id,
+      actorEmail: user.email,
+      targetId: user.id,
+      targetEmail: user.email,
+      details: `Passkey registered: ${newPasskey.name}`,
+      request,
+    });
+
+    return NextResponse.json({
+      success: true,
+      passkey: {
+        id: newPasskey.id,
+        name: newPasskey.name,
+      },
+    });
   } catch (error: any) {
     console.error("Passkey register verify error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Ошибка верификации Passkey" },
+      { success: false, error: error.message || "Failed to verify passkey registration" },
       { status: 500 }
     );
   }
