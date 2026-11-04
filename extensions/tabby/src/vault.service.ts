@@ -71,6 +71,8 @@ export class SnippetVaultService {
       'Content-Type': 'application/json',
       'User-Agent': `SnippetVault-Tabby/${PLUGIN_VERSION}`,
       'X-Client-Version': PLUGIN_VERSION,
+      'X-Plugin-Version': PLUGIN_VERSION,
+      'X-SnippetVault-Plugin-Version': PLUGIN_VERSION,
       'X-SnippetVault-Client': 'tabby',
     };
   }
@@ -83,10 +85,10 @@ export class SnippetVaultService {
     const baseUrl = this.getUrl();
     try {
       const [resCols, resSnips] = await Promise.all([
-        fetch(`${baseUrl}/api/collections`, {
+        fetch(`${baseUrl}/api/collections?client=tabby&pluginVersion=${PLUGIN_VERSION}`, {
           headers: this.getHeaders(),
         }),
-        fetch(`${baseUrl}/api/snippets`, {
+        fetch(`${baseUrl}/api/snippets?client=tabby&pluginVersion=${PLUGIN_VERSION}`, {
           headers: this.getHeaders(),
         }),
       ]);
@@ -150,8 +152,8 @@ export class SnippetVaultService {
     const headers = this.getHeaders();
 
     const [colsRes, snipsRes] = await Promise.all([
-      fetch(`${baseUrl}/api/collections`, { headers }),
-      fetch(`${baseUrl}/api/snippets`, { headers }),
+      fetch(`${baseUrl}/api/collections?client=tabby&pluginVersion=${PLUGIN_VERSION}`, { headers }),
+      fetch(`${baseUrl}/api/snippets?client=tabby&pluginVersion=${PLUGIN_VERSION}`, { headers }),
     ]);
 
     if (!snipsRes.ok || !colsRes.ok) {
@@ -184,7 +186,7 @@ export class SnippetVaultService {
     }
 
     const baseUrl = this.getUrl();
-    const res = await fetch(`${baseUrl}/api/snippets`, {
+    const res = await fetch(`${baseUrl}/api/snippets?client=tabby&pluginVersion=${PLUGIN_VERSION}`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({

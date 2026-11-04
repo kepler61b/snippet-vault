@@ -103,11 +103,13 @@ async function configureVault(context: vscode.ExtensionContext): Promise<boolean
 
   // Test connection
   try {
-    const testRes = await fetch(`${cleanUrl}/api/snippets`, {
+    const testRes = await fetch(`${cleanUrl}/api/snippets?client=vscode&pluginVersion=0.1.0`, {
       headers: {
         Authorization: `Bearer ${inputToken.trim()}`,
         "User-Agent": "SnippetVault-VSCode/0.1.0",
         "X-Client-Version": "0.1.0",
+        "X-Plugin-Version": "0.1.0",
+        "X-SnippetVault-Plugin-Version": "0.1.0",
         "X-SnippetVault-Client": "vscode",
       },
     });
@@ -160,11 +162,13 @@ async function insertSnippetCommand(context: vscode.ExtensionContext) {
         cancellable: false,
       },
       async () => {
-        const res = await fetch(`${baseUrl}/api/snippets`, {
+        const res = await fetch(`${baseUrl}/api/snippets?client=vscode&pluginVersion=0.1.0`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "User-Agent": "SnippetVault-VSCode/0.1.0",
             "X-Client-Version": "0.1.0",
+            "X-Plugin-Version": "0.1.0",
+            "X-SnippetVault-Plugin-Version": "0.1.0",
             "X-SnippetVault-Client": "vscode",
           },
         });
@@ -331,13 +335,15 @@ async function saveSnippetCommand(context: vscode.ExtensionContext) {
         cancellable: false,
       },
       async () => {
-        const res = await fetch(`${baseUrl}/api/snippets`, {
+        const res = await fetch(`${baseUrl}/api/snippets?client=vscode&pluginVersion=0.1.0`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
             "User-Agent": "SnippetVault-VSCode/0.1.0",
             "X-Client-Version": "0.1.0",
+            "X-Plugin-Version": "0.1.0",
+            "X-SnippetVault-Plugin-Version": "0.1.0",
             "X-SnippetVault-Client": "vscode",
           },
           body: JSON.stringify({

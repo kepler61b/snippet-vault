@@ -63,19 +63,56 @@ export function detectIntegrationClient(
   return "REST API / CLI";
 }
 
+export function isValidPluginVersion(client: string, version?: string | null): boolean {
+  if (!version) return false;
+  const clean = version.trim().replace(/^v/i, "");
+  // Must match semver-like format
+  if (!/^[0-9]+(\.[0-9]+)+(?:-[a-zA-Z0-9.-]+)?$/.test(clean)) {
+    return false;
+  }
+  const lower = client.toLowerCase();
+  // Tabby terminal application is 1.0.x+, tabby-snippetvault plugin is 0.x.x
+  if (lower.includes("tabby") && (clean.startsWith("1.0.") || clean.startsWith("1."))) {
+    return false;
+  }
+  // VS Code application is 1.8x/1.9x+, vscode-snippetvault plugin is 0.x.x
+  if ((lower.includes("vscode") || lower.includes("vs code")) && clean.startsWith("1.")) {
+    return false;
+  }
+  return true;
+}
+
 export function extractIntegrationVersion(
   request?: Request | NextRequest | null,
   uaString?: string | null
 ): string | null {
   if (request) {
     const versionHeader =
+      request.headers.get("x-plugin-version") ||
+      request.headers.get("x-snippetvault-plugin-version") ||
       request.headers.get("x-client-version") ||
       request.headers.get("x-snippetvault-client-version") ||
       request.headers.get("x-snippetvault-version") ||
       request.headers.get("x-version");
     if (versionHeader && versionHeader.trim()) {
-      return versionHeader.trim().replace(/^v/i, "");
+      const v = versionHeader.trim().replace(/^v/i, "");
+      if (isValidPluginVersion("", v)) {
+        return v;
+      }
     }
+
+    try {
+      if (request.url) {
+        const url = new URL(request.url);
+        const qv = url.searchParams.get("pluginVersion") || url.searchParams.get("plugin_version");
+        if (qv && qv.trim()) {
+          const v = qv.trim().replace(/^v/i, "");
+          if (isValidPluginVersion("", v)) {
+            return v;
+          }
+        }
+      }
+    } catch {}
   }
 
   const userAgent =
@@ -83,18 +120,12 @@ export function extractIntegrationVersion(
     (request ? request.headers.get("user-agent") || "" : "");
   if (!userAgent) return null;
 
-  // Patterns: "SnippetVault-Tabby/0.1.2", "SnippetVault-VSCode/0.1.0", "tabby-snippetvault/0.1.2", "vscode-snippetvault/0.1.0"
+  // Patterns strictly for the plugins: "SnippetVault-Tabby/0.1.2", "SnippetVault-VSCode/0.1.0", "tabby-snippetvault/0.1.2", "vscode-snippetvault/0.1.0"
   const match = userAgent.match(
     /(?:SnippetVault[-_]?(?:VSCode|Tabby)|(?:vscode|tabby)[-_]?snippetvault)[/:\s]v?([0-9]+\.[0-9]+(?:\.[0-9]+)?(?:-[a-zA-Z0-9.-]+)?)/i
   );
   if (match) {
     return match[1];
-  }
-
-  // Generic fallback if user-agent has a slash or colon version e.g. "Tabby/0.1.2"
-  const genericMatch = userAgent.match(/(?:Tabby|VSCode|SnippetVault)[/:\s]v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/i);
-  if (genericMatch) {
-    return genericMatch[1];
   }
 
   return null;
@@ -108,6 +139,11 @@ export async function recordIntegrationVersion(
   try {
     const cleanVer = version.trim().replace(/^v/i, "");
     if (!cleanVer) return;
+
+    // Validate: only record genuine plugin versions, never host application versions (e.g. Tabby 1.0.238)
+    if (!isValidPluginVersion(client, cleanVer)) {
+      return;
+    }
 
     const lowerClient = client.toLowerCase();
     const key = lowerClient.includes("vscode") || lowerClient.includes("vs code")
