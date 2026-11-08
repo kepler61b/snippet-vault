@@ -7,6 +7,7 @@ export interface SnippetFile {
   filename: string;
   language: string;
   content: string;
+  order?: number;
 }
 
 export interface Snippet {

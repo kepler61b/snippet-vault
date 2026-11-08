@@ -18,7 +18,7 @@ module.exports = {
         test: /\.ts$/,
         loader: 'ts-loader',
         options: {
-          transpileOnly: false,
+          transpileOnly: true,
         },
         exclude: /node_modules/,
       },
